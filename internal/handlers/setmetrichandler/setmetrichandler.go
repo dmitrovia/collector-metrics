@@ -61,7 +61,7 @@ func addMetricToMemStore(h *SetMetricHandler, m *validMetric) {
 	if m.mtype == "gauge" {
 		h.serv.AddGauge(m.mname, m.mvalueFloat)
 	} else if m.mtype == "counter" {
-		h.serv.AddCounter(m.mname, m.mvalueInt)
+		m.mvalueInt = h.serv.AddCounter(m.mname, m.mvalueInt).Value
 	}
 }
 

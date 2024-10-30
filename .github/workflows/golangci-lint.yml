@@ -2,14 +2,9 @@ name: golangci-lint
 on:
   push:
     branches:
-      - main
-      - master
-      - iter1
-      - iter2
-      - iter3
-      - iter4
       - iter5
       - iter6
+      - iter7
 
 permissions:
   contents: read

@@ -1,4 +1,4 @@
-package models
+package bizmodels
 
 type Gauge struct {
 	Name  string

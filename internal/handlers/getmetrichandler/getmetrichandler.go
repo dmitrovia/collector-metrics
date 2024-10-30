@@ -89,15 +89,15 @@ func isValidMetric(r *http.Request, metric *validMetric) (bool, int) {
 
 func setAnswerData(metric *validMetric, ansd *ansData, h *GetMetricHandler) (bool, int) {
 	if metric.mtype == "gauge" {
-		return setValueByType(metric, ansd, h.serv.GetStringValueGaugeMetric)
+		return setStrValueByType(metric, ansd, h.serv.GetStringValueGaugeMetric)
 	} else if metric.mtype == "counter" {
-		return setValueByType(metric, ansd, h.serv.GetStringValueCounterMetric)
+		return setStrValueByType(metric, ansd, h.serv.GetStringValueCounterMetric)
 	}
 
 	return false, http.StatusNotFound
 }
 
-func setValueByType(metric *validMetric, ansd *ansData, getFunction func(string) (string, error)) (bool, int) {
+func setStrValueByType(metric *validMetric, ansd *ansData, getFunction func(string) (string, error)) (bool, int) {
 	metricStringValue, err := getFunction(metric.mname)
 	if err != nil {
 		return false, http.StatusNotFound

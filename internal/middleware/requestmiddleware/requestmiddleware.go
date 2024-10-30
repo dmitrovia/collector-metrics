@@ -26,9 +26,13 @@ type ResponseWriter interface {
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
+	if err != nil {
+		return 0, fmt.Errorf("loggingResponseWriterWrite: %w", err)
+	}
+
 	r.responseData.size += size
 
-	return size, fmt.Errorf("loggingResponseWriterWrite: %w", err)
+	return size, nil
 }
 
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
@@ -55,7 +59,7 @@ func RequestLogger(zapLogger *zap.Logger) func(http.Handler) http.Handler {
 
 			duration := time.Since(start)
 
-			zapLogger.Info("got incoming HTTP request",
+			zapLogger.Debug("got incoming HTTP request",
 				zap.String("method", req.Method),
 				zap.String("path", req.URL.Path),
 				zap.Duration("duration", duration),

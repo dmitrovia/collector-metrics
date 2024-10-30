@@ -17,7 +17,8 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/endpoints"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
-	"github.com/dmitrovia/collector-metrics/internal/models"
+	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
 
 const defPORT string = "localhost:8080"
@@ -34,6 +35,8 @@ var errGetENV1 = errors.New("POLL_INTERVAL failed converting to int")
 
 var errParseFlags = errors.New("addr is not valid")
 
+var errReqSendMetric = errors.New("error sending mertric request")
+
 type initParams struct {
 	url                 string
 	PORT                string
@@ -45,21 +48,21 @@ type initParams struct {
 func main() {
 	var waitGroup *sync.WaitGroup
 
-	var monitor *models.Monitor
+	var monitor *bizmodels.Monitor
 
 	var httpClient *http.Client
 
-	var gauges *[]models.Gauge
+	var gauges *[]bizmodels.Gauge
 
-	var counters *map[string]models.Counter
+	var counters *map[string]bizmodels.Counter
 
 	var params *initParams
 
 	waitGroup = new(sync.WaitGroup)
-	monitor = new(models.Monitor)
+	monitor = new(bizmodels.Monitor)
 	httpClient = new(http.Client)
-	gauges = new([]models.Gauge)
-	counters = new(map[string]models.Counter)
+	gauges = new([]bizmodels.Gauge)
+	counters = new(map[string]bizmodels.Counter)
 
 	params = new(initParams)
 	params.url = "http://"
@@ -83,7 +86,7 @@ func main() {
 	waitGroup.Wait()
 }
 
-func collect(mod *models.Monitor, par *initParams, wg *sync.WaitGroup, gauges *[]models.Gauge, counters *map[string]models.Counter) {
+func collect(mod *bizmodels.Monitor, par *initParams, wg *sync.WaitGroup, gauges *[]bizmodels.Gauge, cnts *map[string]bizmodels.Counter) {
 	defer wg.Done()
 
 	channelCancel := make(chan os.Signal, 1)
@@ -94,12 +97,12 @@ func collect(mod *models.Monitor, par *initParams, wg *sync.WaitGroup, gauges *[
 		case <-channelCancel:
 			return
 		case <-time.After(time.Duration(par.pollInterval) * time.Second):
-			setValuesMonitor(mod, gauges, counters)
+			setValuesMonitor(mod, gauges, cnts)
 		}
 	}
 }
 
-func send(par *initParams, wg *sync.WaitGroup, httpC *http.Client, gauges *[]models.Gauge, counters *map[string]models.Counter) {
+func send(par *initParams, wg *sync.WaitGroup, httpC *http.Client, gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) {
 	defer wg.Done()
 
 	channelCancel := make(chan os.Signal, 1)
@@ -110,24 +113,42 @@ func send(par *initParams, wg *sync.WaitGroup, httpC *http.Client, gauges *[]mod
 		case <-channelCancel:
 			return
 		case <-time.After(time.Duration(par.reportInterval) * time.Second):
-			go doReqSendMetrics(par.url, httpC, gauges, counters)
+			go reqMetricsJSON(par.url, httpC, gauges, counters)
 		}
 	}
 }
 
-func doReqSendMetrics(url string, httpC *http.Client, gauges *[]models.Gauge, counters *map[string]models.Counter) {
-	tmpURL := url + "/update/" + "counter/"
+func reqMetricsJSON(url string, httpC *http.Client, gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) {
+	var reqMetric apimodels.Metrics
+
+	tmpURL := url + "/update/"
+
 	for _, metric := range *counters {
-		endpoints.SendMetricEndpoint(context.Background(), tmpURL+metric.Name+"/"+strconv.FormatInt(metric.Value, 10), httpC)
+		reqMetric = apimodels.Metrics{}
+		reqMetric.ID = metric.Name
+		reqMetric.MType = "counter"
+		reqMetric.Delta = &metric.Value
+
+		err := endpoints.SendMetricJSONEndpoint(context.Background(), tmpURL, reqMetric, httpC)
+		if err != nil {
+			fmt.Println("reqMetricsJSON:"+metric.Name+","+"counter"+","+strconv.FormatInt(metric.Value, 10), errReqSendMetric)
+		}
 	}
 
-	tmpURL = url + "/update/" + "gauge/"
 	for _, metric := range *gauges {
-		endpoints.SendMetricEndpoint(context.Background(), tmpURL+metric.Name+"/"+strconv.FormatFloat(metric.Value, 'f', -1, 64), httpC)
+		reqMetric = apimodels.Metrics{}
+		reqMetric.ID = metric.Name
+		reqMetric.MType = "gauge"
+		reqMetric.Value = &metric.Value
+
+		err := endpoints.SendMetricJSONEndpoint(context.Background(), tmpURL, reqMetric, httpC)
+		if err != nil {
+			fmt.Println("reqMetricsJSON:"+metric.Name+","+"gauge"+","+strconv.FormatFloat(metric.Value, 'f', -1, 64), errReqSendMetric)
+		}
 	}
 }
 
-func initialization(params *initParams, httpC *http.Client, mon *models.Monitor) error {
+func initialization(params *initParams, httpC *http.Client, mon *bizmodels.Monitor) error {
 	var err error
 
 	*httpC = http.Client{}
@@ -214,17 +235,17 @@ func parseFlags(params *initParams) error {
 	return nil
 }
 
-func setValuesMonitor(mon *models.Monitor, gauges *[]models.Gauge, counters *map[string]models.Counter) {
+func setValuesMonitor(mon *bizmodels.Monitor, gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) {
 	const maxRandomValue int64 = 1000
 
 	writeFromMemory(mon)
 
 	mon.PollCount.Value++
 
-	tmpCounters := make(map[string]models.Counter, 1)
+	tmpCounters := make(map[string]bizmodels.Counter, 1)
 	tmpCounters["PollCount"] = mon.PollCount
 
-	tmpGauges := make([]models.Gauge, 0, metricGaugeCount)
+	tmpGauges := make([]bizmodels.Gauge, 0, metricGaugeCount)
 
 	mon.RandomValue.Value = random.RandF64(maxRandomValue)
 
@@ -239,7 +260,7 @@ func setValuesMonitor(mon *models.Monitor, gauges *[]models.Gauge, counters *map
 	*counters = tmpCounters
 }
 
-func writeFromMemory(mon *models.Monitor) {
+func writeFromMemory(mon *bizmodels.Monitor) {
 	var rtm runtime.MemStats
 
 	runtime.ReadMemStats(&rtm)

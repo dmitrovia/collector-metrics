@@ -14,8 +14,10 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/defaulthandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetrichandler"
+	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/notallowedhandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
+	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/requestmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/service"
@@ -24,11 +26,11 @@ import (
 	"go.uber.org/zap"
 )
 
-const rTimeout = 10
+const rTimeout = 15
 
-const wTimeout = 10
+const wTimeout = 15
 
-const iTimeout = 30
+const iTimeout = 60
 
 var errParseFlags = errors.New("addr is not valid")
 
@@ -108,7 +110,8 @@ func initiate(par *initParams, mser *service.MemoryService, server *http.Server,
 	mux := mux.NewRouter()
 
 	handlerSet := setmetrichandler.NewSetMetricHandler(mser)
-
+	handlerJSONSet := setmetricjsonhandler.NewSetMetricJSONHandler(mser)
+	handlerJSONGet := getmetricjsonhandler.NewGetMetricJSONHandler(mser)
 	handlerGet := getmetrichandler.NewGetMetricHandler(mser)
 	handlerDefault := defaulthandler.NewDefaultHandler(mser)
 	handlerNotAllowed := notallowedhandler.NotAllowedHandler{}
@@ -120,6 +123,14 @@ func initiate(par *initParams, mser *service.MemoryService, server *http.Server,
 	getMEtricMux := mux.Methods(http.MethodGet).Subrouter()
 	getMEtricMux.HandleFunc("/value/{metric_type}/{metric_name}", handlerGet.GetMetricHandler)
 	getMEtricMux.Use(requestmiddleware.RequestLogger(zapLogger))
+
+	getMEtricJSONMux := mux.Methods(http.MethodPost).Subrouter()
+	getMEtricJSONMux.HandleFunc("/value/", handlerJSONGet.GetMetricJSONHandler)
+	getMEtricJSONMux.Use(requestmiddleware.RequestLogger(zapLogger))
+
+	setMetricJSONMux := mux.Methods(http.MethodPost).Subrouter()
+	setMetricJSONMux.HandleFunc("/update/", handlerJSONSet.SetMetricJSONHandler)
+	setMetricJSONMux.Use(requestmiddleware.RequestLogger(zapLogger))
 
 	mux.MethodNotAllowedHandler = handlerNotAllowed
 

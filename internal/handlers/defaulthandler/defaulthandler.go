@@ -29,10 +29,12 @@ func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Requ
 
 	tmpl, err := template.ParseFiles("../../internal/html/allMetricsTemplate.html")
 	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
 		fmt.Println(err)
 	} else {
 		err = tmpl.Execute(writer, data)
 		if err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
 			fmt.Println(err)
 		}
 	}
