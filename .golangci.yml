@@ -1,0 +1,71 @@
+# See https://golangci-lint.run/usage/linters/
+
+linters:
+  enable-all: true
+  disable:
+    # Note: deprecated linters
+    - gomnd
+    - execinquery
+    - exportloopref
+    - forbidigo
+    # gosimple
+
+linters-settings:
+  depguard:
+    rules:
+      main:
+        list-mode: lax
+        files:
+          - "!**/*_a _file.go"
+        allow:
+          - $gostd
+          - github.com/OpenPeeDeeP
+        deny:
+          - pkg: "github.com/sirupsen/logrus"
+            desc: not allowed
+          - pkg: "github.com/pkg/errors"
+            desc: Should be replaced by standard lib errors package
+
+  lll:
+    line-length: 140
+    tab-width: 1
+
+  exhaustruct:
+    include:
+      - '.+\.Test'
+      - 'example\.com/package\.ExampleStruct[\d]{1,2}'
+    exclude:
+      - '.+/cobra\.Command$'
+
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - errors.Join(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .WithStack(
+    ignoreSigRegexps:
+      - \.New.*Error\(
+    ignorePackageGlobs:
+      - encoding/*
+      - github.com/pkg/*
+    ignoreInterfaceRegexps:
+      - ^(?i)c(?-i)ach(ing|e)
+
+
+  forbidigo:
+
+    forbid:
+      - ^print.*$
+      - p: ^fmt\.Print.*$
+        msg: Do not commit print statements.
+      - 'fmt\.Print.*(# Do not commit print statements\.)?'
+      - ^spew\.(ConfigState\.)?Dump$
+      - p: ^v1.Dump$
+        pkg: ^example.com/pkg/api/v1$
+    exclude-godoc-examples: false
+    analyze-types: true

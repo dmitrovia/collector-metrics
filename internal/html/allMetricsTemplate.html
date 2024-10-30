@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Доступные метрики</title>
+    </head>
+    <body>
+        <h1>Доступные метрики</h1>
+        {{range $key, $value := .Metrics}}
+        <div>Metric: {{ $key }} value: {{ $value }}</div>
+        {{end}}
+          
+    </body>
+</html>
