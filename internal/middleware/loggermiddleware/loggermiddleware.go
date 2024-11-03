@@ -1,4 +1,4 @@
-package requestmiddleware
+package loggermiddleware
 
 import (
 	"fmt"
@@ -59,7 +59,7 @@ func RequestLogger(zapLogger *zap.Logger) func(http.Handler) http.Handler {
 
 			duration := time.Since(start)
 
-			zapLogger.Debug("got incoming HTTP request",
+			zapLogger.Info("got incoming HTTP request",
 				zap.String("method", req.Method),
 				zap.String("path", req.URL.Path),
 				zap.Duration("duration", duration),

@@ -42,6 +42,7 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	err := getReqJSONData(req, valm)
 	if err != nil {
+		fmt.Println(err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
