@@ -19,7 +19,6 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
-	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
@@ -127,19 +126,16 @@ func initiate(par *initParams, mser *service.MemoryService, server *http.Server,
 
 	getMEtricJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	getMEtricJSONMux.HandleFunc("/value/", handlerJSONGet.GetMetricJSONHandler)
-	getMEtricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware())
 	getMEtricJSONMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	setMetricJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	setMetricJSONMux.HandleFunc("/update/", handlerJSONSet.SetMetricJSONHandler)
-	setMetricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware())
 	setMetricJSONMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	mux.MethodNotAllowedHandler = handlerNotAllowed
 
 	defaultMux := mux.Methods(http.MethodGet).Subrouter()
 	defaultMux.HandleFunc("/", handlerDefault.DefaultHandler)
-	defaultMux.Use(gzipcompressmiddleware.GzipMiddleware())
 	defaultMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	*server = http.Server{
