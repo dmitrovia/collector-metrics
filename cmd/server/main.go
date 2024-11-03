@@ -19,7 +19,8 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
-	"github.com/dmitrovia/collector-metrics/internal/middleware/requestmiddleware"
+	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
+	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
 	"github.com/gorilla/mux"
@@ -118,25 +119,28 @@ func initiate(par *initParams, mser *service.MemoryService, server *http.Server,
 
 	setMetricMux := mux.Methods(http.MethodPost).Subrouter()
 	setMetricMux.HandleFunc("/update/{metric_type}/{metric_name}/{metric_value}", handlerSet.SetMetricHandler)
-	setMetricMux.Use(requestmiddleware.RequestLogger(zapLogger))
+	setMetricMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	getMEtricMux := mux.Methods(http.MethodGet).Subrouter()
 	getMEtricMux.HandleFunc("/value/{metric_type}/{metric_name}", handlerGet.GetMetricHandler)
-	getMEtricMux.Use(requestmiddleware.RequestLogger(zapLogger))
+	getMEtricMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	getMEtricJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	getMEtricJSONMux.HandleFunc("/value/", handlerJSONGet.GetMetricJSONHandler)
-	getMEtricJSONMux.Use(requestmiddleware.RequestLogger(zapLogger))
+	getMEtricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware())
+	getMEtricJSONMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	setMetricJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	setMetricJSONMux.HandleFunc("/update/", handlerJSONSet.SetMetricJSONHandler)
-	setMetricJSONMux.Use(requestmiddleware.RequestLogger(zapLogger))
+	setMetricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware())
+	setMetricJSONMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	mux.MethodNotAllowedHandler = handlerNotAllowed
 
 	defaultMux := mux.Methods(http.MethodGet).Subrouter()
 	defaultMux.HandleFunc("/", handlerDefault.DefaultHandler)
-	defaultMux.Use(requestmiddleware.RequestLogger(zapLogger))
+	defaultMux.Use(gzipcompressmiddleware.GzipMiddleware())
+	defaultMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
 	*server = http.Server{
 		Addr:         par.PORT,
