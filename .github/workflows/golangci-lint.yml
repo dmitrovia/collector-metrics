@@ -1,0 +1,43 @@
+name: golangci-lint
+on: 
+  push:
+    branches:
+      - main
+      - master
+      - iter1
+      - iter2
+      - iter3
+      - iter4
+      - iter5
+      - iter6
+      - iter7
+  pull_request:
+    branches:
+      - main
+      - master
+      - iter1
+      - iter2
+      - iter3
+      - iter4
+      - iter5
+      - iter6
+      - iter7
+
+permissions:
+  contents: read
+  # Optional: allow read access to pull request. Use with `only-new-issues` option.
+  # pull-requests: read
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.60
