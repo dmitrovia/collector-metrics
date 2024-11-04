@@ -12,6 +12,8 @@ on:
       - iter5
       - iter6
       - iter7
+      - iter8
+      - iter9
   pull_request:
     branches:
       - main
@@ -23,6 +25,8 @@ on:
       - iter5
       - iter6
       - iter7
+      - iter8
+      - iter9
 
 jobs:
   build:
