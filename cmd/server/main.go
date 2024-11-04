@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
@@ -33,25 +36,35 @@ const wTimeout = 15
 
 const iTimeout = 60
 
+const defPORT string = "localhost:8080"
+
+const defSavePathFile string = "../../internal/temp/metrics.json"
+
+const defSavingIntervalDisk = 300
+
 var errParseFlags = errors.New("addr is not valid")
 
 type initParams struct {
 	PORT                string
 	validateAddrPattern string
+	storeInterval       int
+	FileStoragePath     string
+	restore             bool
 }
 
 func main() {
-	var memStorage *memoryrepository.MemoryRepository
-
-	var params *initParams
-
-	var server *http.Server
-
-	var zapLogLevel string
+	var (
+		memStorage  *memoryrepository.MemoryRepository
+		params      *initParams
+		server      *http.Server
+		zapLogLevel string
+	)
 
 	memStorage = new(memoryrepository.MemoryRepository)
 	MemoryService := service.NewMemoryService(memStorage)
 	memStorage.Init()
+
+	waitGroup := new(sync.WaitGroup)
 
 	server = new(http.Server)
 
@@ -72,38 +85,74 @@ func main() {
 		os.Exit(1)
 	}
 
-	go func() {
-		log.Println("Listening to", ":"+params.PORT)
-
-		err := server.ListenAndServe()
+	if params.restore {
+		err := MemoryService.LoadFromFile(params.FileStoragePath)
 		if err != nil {
-			log.Printf("Error starting server: %s\n", err)
-
-			return
+			fmt.Println("Error reading metrics from file: %w", err)
 		}
-	}()
+	}
 
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, os.Interrupt)
-	sig := <-sigs
-	log.Println("Quitting after signal:", sig)
+	go runServer(server)
+
+	waitGroup.Add(1)
+
+	go saveMetrics(MemoryService, params, waitGroup)
+	waitGroup.Wait()
 
 	err = server.Shutdown(context.TODO())
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	err = MemoryService.SaveInFile(params.FileStoragePath)
+	if err != nil {
+		fmt.Println("Error writing metrics to file: %w", err)
+	}
+}
+
+func saveMetrics(mser *service.MemoryService, par *initParams, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	channelCancel := make(chan os.Signal, 1)
+	signal.Notify(channelCancel, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	if par.storeInterval == 0 {
+		err := mser.SaveInFile(par.FileStoragePath)
+		if err != nil {
+			fmt.Println("Error writing metrics to file: %w", err)
+		}
+
+		sig := <-channelCancel
+		log.Println("Quitting after signal_1:", sig)
+	} else {
+		for {
+			select {
+			case sig := <-channelCancel:
+				log.Println("Quitting after signal_2:", sig)
+
+				return
+			case <-time.After(time.Duration(par.storeInterval) * time.Second):
+				err := mser.SaveInFile(par.FileStoragePath)
+				if err != nil {
+					fmt.Println("Error writing metrics to file: %w", err)
+				}
+			}
+		}
+	}
+}
+
+func runServer(server *http.Server) {
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Printf("Error starting server: %s\n", err)
+
+		return
+	}
 }
 
 func initiate(par *initParams, mser *service.MemoryService, server *http.Server, zapLogger *zap.Logger) error {
-	var err error
-
-	err = parseFlags(par)
-	if err != nil {
-		return err
-	}
-
-	err = getENV(par)
+	err := setInitParams(par)
 	if err != nil {
 		return err
 	}
@@ -154,44 +203,57 @@ func initiate(par *initParams, mser *service.MemoryService, server *http.Server,
 	return err
 }
 
-func parseFlags(params *initParams) error {
-	flag.StringVar(&params.PORT, "a", "localhost:8080", "Port to listen on.")
+func setInitParams(params *initParams) error {
+	var err error
+
+	envRA := os.Getenv("ADDRESS")
+	envSI := os.Getenv("STORE_INTERVAL")
+	envFSP := os.Getenv("FILE_STORAGE_PATH")
+	envRestore := os.Getenv("RESTORE")
+
+	if envRA != "" {
+		params.PORT = envRA
+	} else {
+		flag.StringVar(&params.PORT, "a", defPORT, "Port to listen on.")
+	}
+
+	if envSI != "" {
+		value, err := strconv.Atoi(envSI)
+		if err != nil {
+			return fmt.Errorf("setInitParams->Atoi %w", err)
+		}
+
+		params.storeInterval = value
+	} else {
+		flag.IntVar(&params.storeInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
+	}
+
+	if envFSP != "" {
+		params.FileStoragePath = envFSP
+	} else {
+		flag.StringVar(&params.FileStoragePath, "f", defSavePathFile, "Directory for saving metrics.")
+	}
+
+	if envRestore != "" {
+		value, err := strconv.ParseBool(envRestore)
+		if err != nil {
+			return fmt.Errorf("setInitParams->ParseBool %w", err)
+		}
+
+		params.restore = value
+	} else {
+		flag.BoolVar(&params.restore, "r", true, "Loading metrics at server startup.")
+	}
+
 	flag.Parse()
 
-	res, _ := validate.IsMatchesTemplate(params.PORT, params.validateAddrPattern)
+	res, err := validate.IsMatchesTemplate(params.PORT, params.validateAddrPattern)
+	if err != nil {
+		return fmt.Errorf("setInitParams->IsMatchesTemplate: %w", err)
+	}
 
 	if !res {
 		return errParseFlags
-	}
-
-	return nil
-}
-
-func getENV(params *initParams) error {
-	var err error
-
-	envRunAddr := os.Getenv("ADDRESS")
-
-	if envRunAddr != "" {
-		err = addrIsValid(envRunAddr, params)
-		if err != nil {
-			return err
-		}
-	}
-
-	return err
-}
-
-func addrIsValid(addr string, params *initParams) error {
-	res, err := validate.IsMatchesTemplate(addr, params.validateAddrPattern)
-	if err == nil {
-		if res {
-			params.PORT = addr
-		} else {
-			return errParseFlags
-		}
-	} else {
-		return fmt.Errorf("addrIsValid: %w", err)
 	}
 
 	return nil

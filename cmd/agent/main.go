@@ -176,10 +176,16 @@ func getENV(params *initParams) error {
 	envRunAddr := os.Getenv("ADDRESS")
 
 	if envRunAddr != "" {
-		err = addrIsValid(envRunAddr, params)
+		res, err := validate.IsMatchesTemplate(envRunAddr, params.validateAddrPattern)
 		if err != nil {
-			return err
+			return fmt.Errorf("getENV: %w", err)
 		}
+
+		if !res {
+			return errParseFlags
+		}
+
+		params.PORT = envRunAddr
 	}
 
 	if envReportInterval := os.Getenv("REPORT_INTERVAL"); envReportInterval != "" {
@@ -201,21 +207,6 @@ func getENV(params *initParams) error {
 	}
 
 	return err
-}
-
-func addrIsValid(addr string, params *initParams) error {
-	res, err := validate.IsMatchesTemplate(addr, params.validateAddrPattern)
-	if err == nil {
-		if res {
-			params.PORT = addr
-		} else {
-			return errParseFlags
-		}
-	} else {
-		return fmt.Errorf("addrIsValid: %w", err)
-	}
-
-	return nil
 }
 
 func parseFlags(params *initParams) error {

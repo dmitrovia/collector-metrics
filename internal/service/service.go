@@ -15,10 +15,30 @@ type Service interface {
 	GetStringValueCounterMetric(mname string) (string, error)
 	GetValueGaugeMetric(mname string) (float64, error)
 	GetValueCounterMetric(mname string) (int64, error)
+	SaveInFile(path string) error
+	LoadFromFile(path string) error
 }
 
 type MemoryService struct {
 	repository storage.Repository
+}
+
+func (s *MemoryService) SaveInFile(path string) error {
+	err := s.repository.SaveInFile(path)
+	if err != nil {
+		return fmt.Errorf("SaveInFile: %w", err)
+	}
+
+	return nil
+}
+
+func (s *MemoryService) LoadFromFile(path string) error {
+	err := s.repository.LoadFromFile(path)
+	if err != nil {
+		return fmt.Errorf("SaveInFile: %w", err)
+	}
+
+	return nil
 }
 
 func (s *MemoryService) GetMapStringsAllMetrics() *map[string]string {

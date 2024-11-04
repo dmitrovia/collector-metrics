@@ -11,4 +11,6 @@ type Repository interface {
 	GetMapStringsAllMetrics() *map[string]string
 	AddGauge(gauge *bizmodels.Gauge)
 	AddCounter(counter *bizmodels.Counter) *bizmodels.Counter
+	SaveInFile(path string) error
+	LoadFromFile(path string) error
 }
