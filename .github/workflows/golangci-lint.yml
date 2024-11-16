@@ -13,6 +13,8 @@ on:
       - iter7
       - iter8
       - iter9
+      - iter10
+      - iter11
   pull_request:
     branches:
       - main
@@ -26,6 +28,8 @@ on:
       - iter7
       - iter8
       - iter9
+      - iter10
+      - iter11
 
 permissions:
   contents: read
