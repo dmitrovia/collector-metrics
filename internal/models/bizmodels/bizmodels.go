@@ -1,5 +1,7 @@
 package bizmodels
 
+import "time"
+
 type Gauge struct {
 	Name  string
 	Value float64
@@ -74,4 +76,14 @@ func (m *Monitor) Init() {
 
 	m.PollCount = Counter{Name: "PollCount", Value: 0}
 	m.RandomValue = Gauge{Name: "RandomValue", Value: 0}
+}
+
+type InitParams struct {
+	PORT                string
+	ValidateAddrPattern string
+	StoreInterval       int
+	FileStoragePath     string
+	Restore             bool
+	DatabaseDSN         string
+	WaitSecRespDB       time.Duration
 }

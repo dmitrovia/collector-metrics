@@ -19,11 +19,13 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/notallowedhandler"
+	"github.com/dmitrovia/collector-metrics/internal/handlers/pinghandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
 	"github.com/gorilla/mux"
@@ -42,20 +44,14 @@ const defSavePathFile string = "../../internal/temp/metrics.json"
 
 const defSavingIntervalDisk = 300
 
-var errParseFlags = errors.New("addr is not valid")
+const defWaitSecRespDB = 60
 
-type initParams struct {
-	PORT                string
-	validateAddrPattern string
-	storeInterval       int
-	FileStoragePath     string
-	restore             bool
-}
+var errParseFlags = errors.New("addr is not valid")
 
 func main() {
 	var (
 		memStorage  *memoryrepository.MemoryRepository
-		params      *initParams
+		params      *bizmodels.InitParams
 		server      *http.Server
 		zapLogLevel string
 	)
@@ -68,8 +64,8 @@ func main() {
 
 	server = new(http.Server)
 
-	params = new(initParams)
-	params.validateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
+	params = new(bizmodels.InitParams)
+	params.ValidateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
 	zapLogLevel = "info"
 
@@ -85,7 +81,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if params.restore {
+	if params.Restore {
 		err := MemoryService.LoadFromFile(params.FileStoragePath)
 		if err != nil {
 			fmt.Println("Error reading metrics from file: %w", err)
@@ -111,13 +107,13 @@ func main() {
 	}
 }
 
-func saveMetrics(mser *service.MemoryService, par *initParams, wg *sync.WaitGroup) {
+func saveMetrics(mser *service.MemoryService, par *bizmodels.InitParams, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	channelCancel := make(chan os.Signal, 1)
 	signal.Notify(channelCancel, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	if par.storeInterval == 0 {
+	if par.StoreInterval == 0 {
 		err := mser.SaveInFile(par.FileStoragePath)
 		if err != nil {
 			fmt.Println("Error writing metrics to file: %w", err)
@@ -132,7 +128,7 @@ func saveMetrics(mser *service.MemoryService, par *initParams, wg *sync.WaitGrou
 				log.Println("Quitting after signal_2:", sig)
 
 				return
-			case <-time.After(time.Duration(par.storeInterval) * time.Second):
+			case <-time.After(time.Duration(par.StoreInterval) * time.Second):
 				err := mser.SaveInFile(par.FileStoragePath)
 				if err != nil {
 					fmt.Println("Error writing metrics to file: %w", err)
@@ -151,14 +147,17 @@ func runServer(server *http.Server) {
 	}
 }
 
-func initiate(par *initParams, mser *service.MemoryService, server *http.Server, zapLogger *zap.Logger) error {
+func initiate(par *bizmodels.InitParams, mser *service.MemoryService, server *http.Server, zapLogger *zap.Logger) error {
 	err := setInitParams(par)
 	if err != nil {
 		return err
 	}
 
+	setInitParamsDB(par)
+
 	mux := mux.NewRouter()
 
+	handlerPing := pinghandler.NewPingHandler(mser, par)
 	handlerSet := setmetrichandler.NewSetMetricHandler(mser)
 	handlerJSONSet := setmetricjsonhandler.NewSetMetricJSONHandler(mser)
 	handlerJSONGet := getmetricjsonhandler.NewGetMetricJSONHandler(mser)
@@ -184,6 +183,11 @@ func initiate(par *initParams, mser *service.MemoryService, server *http.Server,
 	setMetricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware())
 	setMetricJSONMux.Use(loggermiddleware.RequestLogger(zapLogger))
 
+	getPingBDMux := mux.Methods(http.MethodGet).Subrouter()
+	getPingBDMux.HandleFunc("/ping", handlerPing.PingHandler)
+	getPingBDMux.Use(gzipcompressmiddleware.GzipMiddleware())
+	getPingBDMux.Use(loggermiddleware.RequestLogger(zapLogger))
+
 	mux.MethodNotAllowedHandler = handlerNotAllowed
 
 	defaultMux := mux.Methods(http.MethodGet).Subrouter()
@@ -203,13 +207,24 @@ func initiate(par *initParams, mser *service.MemoryService, server *http.Server,
 	return err
 }
 
-func setInitParams(params *initParams) error {
+func setInitParamsDB(params *bizmodels.InitParams) {
+	params.WaitSecRespDB = defWaitSecRespDB * time.Second
+}
+
+func setInitParams(params *bizmodels.InitParams) error {
 	var err error
 
 	envRA := os.Getenv("ADDRESS")
 	envSI := os.Getenv("STORE_INTERVAL")
 	envFSP := os.Getenv("FILE_STORAGE_PATH")
 	envRestore := os.Getenv("RESTORE")
+	envDatabaseDSN := os.Getenv("DATABASE_DSN")
+
+	if envDatabaseDSN != "" {
+		params.DatabaseDSN = envDatabaseDSN
+	} else {
+		flag.StringVar(&params.DatabaseDSN, "d", "postgres://admin:collmetr@localhost:5432/collmetricdb", "database connection address.")
+	}
 
 	if envRA != "" {
 		params.PORT = envRA
@@ -223,9 +238,9 @@ func setInitParams(params *initParams) error {
 			return fmt.Errorf("setInitParams->Atoi %w", err)
 		}
 
-		params.storeInterval = value
+		params.StoreInterval = value
 	} else {
-		flag.IntVar(&params.storeInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
+		flag.IntVar(&params.StoreInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
 	}
 
 	if envFSP != "" {
@@ -240,14 +255,14 @@ func setInitParams(params *initParams) error {
 			return fmt.Errorf("setInitParams->ParseBool %w", err)
 		}
 
-		params.restore = value
+		params.Restore = value
 	} else {
-		flag.BoolVar(&params.restore, "r", true, "Loading metrics at server startup.")
+		flag.BoolVar(&params.Restore, "r", true, "Loading metrics at server startup.")
 	}
 
 	flag.Parse()
 
-	res, err := validate.IsMatchesTemplate(params.PORT, params.validateAddrPattern)
+	res, err := validate.IsMatchesTemplate(params.PORT, params.ValidateAddrPattern)
 	if err != nil {
 		return fmt.Errorf("setInitParams->IsMatchesTemplate: %w", err)
 	}
