@@ -55,6 +55,8 @@ const defWaitSecRespDB = 10
 
 var errParseFlags = errors.New("addr is not valid")
 
+var errPath = errors.New("path is not valid")
+
 const migrationsDir = "db/migrations"
 
 const zapLogLevel = "info"
@@ -232,6 +234,11 @@ func initiate(par *bizmodels.InitParams) (*zap.Logger, error) {
 		return nil, fmt.Errorf("initiate->logger.Initialize %w", err)
 	}
 
+	err = setInitParamsFileStorage(par)
+	if err != nil {
+		return nil, err
+	}
+
 	setInitParamsDB(par)
 	par.ValidateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
@@ -303,15 +310,7 @@ func initiateServer(par *bizmodels.InitParams, mser *service.DataService, server
 
 func setInitParamsDB(params *bizmodels.InitParams) {
 	params.WaitSecRespDB = defWaitSecRespDB * time.Second
-}
 
-func setInitParams(params *bizmodels.InitParams) error {
-	var err error
-
-	envRA := os.Getenv("ADDRESS")
-	envSI := os.Getenv("STORE_INTERVAL")
-	envFSP := os.Getenv("FILE_STORAGE_PATH")
-	envRestore := os.Getenv("RESTORE")
 	envDatabaseDSN := os.Getenv("DATABASE_DSN")
 
 	if envDatabaseDSN != "" {
@@ -320,22 +319,12 @@ func setInitParams(params *bizmodels.InitParams) error {
 		flag.StringVar(&params.DatabaseDSN, "d", defPostgreConnURL, "database connection address.")
 	}
 
-	if envRA != "" {
-		params.PORT = envRA
-	} else {
-		flag.StringVar(&params.PORT, "a", defPORT, "Port to listen on.")
-	}
+	flag.Parse()
+}
 
-	if envSI != "" {
-		value, err := strconv.Atoi(envSI)
-		if err != nil {
-			return fmt.Errorf("setInitParams->Atoi %w", err)
-		}
-
-		params.StoreInterval = value
-	} else {
-		flag.IntVar(&params.StoreInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
-	}
+func setInitParamsFileStorage(params *bizmodels.InitParams) error {
+	envFSP := os.Getenv("FILE_STORAGE_PATH")
+	envRestore := os.Getenv("RESTORE")
 
 	if envFSP != "" {
 		params.FileStoragePath = envFSP
@@ -343,7 +332,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 		_, path, _, ok := runtime.Caller(0)
 
 		if !ok {
-			return fmt.Errorf("setInitParams->runtime.Caller( %w", err)
+			return fmt.Errorf("setInitParams->runtime.Caller( %w", errPath)
 		}
 
 		Root := filepath.Join(filepath.Dir(path), "../..")
@@ -361,6 +350,34 @@ func setInitParams(params *bizmodels.InitParams) error {
 		params.Restore = value
 	} else {
 		flag.BoolVar(&params.Restore, "r", true, "Loading metrics at server startup.")
+	}
+
+	flag.Parse()
+
+	return nil
+}
+
+func setInitParams(params *bizmodels.InitParams) error {
+	var err error
+
+	envRA := os.Getenv("ADDRESS")
+	envSI := os.Getenv("STORE_INTERVAL")
+
+	if envRA != "" {
+		params.PORT = envRA
+	} else {
+		flag.StringVar(&params.PORT, "a", defPORT, "Port to listen on.")
+	}
+
+	if envSI != "" {
+		value, err := strconv.Atoi(envSI)
+		if err != nil {
+			return fmt.Errorf("setInitParams->Atoi %w", err)
+		}
+
+		params.StoreInterval = value
+	} else {
+		flag.IntVar(&params.StoreInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
 	}
 
 	flag.Parse()

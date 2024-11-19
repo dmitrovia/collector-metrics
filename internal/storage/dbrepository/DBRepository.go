@@ -27,7 +27,12 @@ func (m *DBepository) Init() {
 }
 
 func (m *DBepository) GetAllGauges() *map[string]bizmodels.Gauge {
-	var gauges map[string]bizmodels.Gauge
+	var (
+		gauges map[string]bizmodels.Gauge
+		name   string
+		value  float64
+		temp   *bizmodels.Gauge
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), m.waitSecRespDB)
 	defer cancel()
@@ -41,12 +46,6 @@ func (m *DBepository) GetAllGauges() *map[string]bizmodels.Gauge {
 		defer rows.Close()
 
 		for rows.Next() {
-			var name string
-
-			var value float64
-
-			var temp *bizmodels.Gauge
-
 			err = rows.Scan(&name, &value)
 			if err != nil {
 				fmt.Printf("Scan error: %v", err)
@@ -64,7 +63,12 @@ func (m *DBepository) GetAllGauges() *map[string]bizmodels.Gauge {
 }
 
 func (m *DBepository) GetAllCounters() *map[string]bizmodels.Counter {
-	var counters map[string]bizmodels.Counter
+	var (
+		counters map[string]bizmodels.Counter
+		name     string
+		value    int64
+		temp     *bizmodels.Counter
+	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), m.waitSecRespDB)
 	defer cancel()
@@ -78,12 +82,6 @@ func (m *DBepository) GetAllCounters() *map[string]bizmodels.Counter {
 		defer rows.Close()
 
 		for rows.Next() {
-			var name string
-
-			var value int64
-
-			var temp *bizmodels.Counter
-
 			err = rows.Scan(&name, &value)
 			if err != nil {
 				fmt.Printf("Scan error: %v", err)
