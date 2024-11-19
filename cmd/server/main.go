@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -9,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"sync"
 	"syscall"
@@ -25,10 +29,13 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
+	"github.com/dmitrovia/collector-metrics/internal/migrator"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
-	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
+	dbrep "github.com/dmitrovia/collector-metrics/internal/storage/dbrepository"
+	memrep "github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 )
 
@@ -40,74 +47,146 @@ const iTimeout = 60
 
 const defPORT string = "localhost:8080"
 
-const defSavePathFile string = "../../internal/temp/metrics.json"
+const defSavePathFile string = "/internal/temp/metrics.json"
 
 const defSavingIntervalDisk = 300
 
-const defWaitSecRespDB = 60
+const defWaitSecRespDB = 10
 
 var errParseFlags = errors.New("addr is not valid")
 
+const migrationsDir = "db/migrations"
+
+const zapLogLevel = "info"
+
+// const defPostgreConnURL = "postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable"
+
+const defPostgreConnURL = ""
+
+//go:embed db/migrations/*.sql
+var MigrationsFS embed.FS
+
 func main() {
 	var (
-		memStorage  *memoryrepository.MemoryRepository
 		params      *bizmodels.InitParams
 		server      *http.Server
-		zapLogLevel string
+		dataService *service.DataService
+		conn        *pgx.Conn
 	)
 
-	memStorage = new(memoryrepository.MemoryRepository)
-	MemoryService := service.NewMemoryService(memStorage)
-	memStorage.Init()
-
+	server = new(http.Server)
+	params = new(bizmodels.InitParams)
 	waitGroup := new(sync.WaitGroup)
 
-	server = new(http.Server)
-
-	params = new(bizmodels.InitParams)
-	params.ValidateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
-
-	zapLogLevel = "info"
-
-	zapLogger, err := logger.Initialize(zapLogLevel)
+	zapLogger, err := initiate(params)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	err = initiate(params, MemoryService, server, zapLogger)
+	ctx, cancel := context.WithTimeout(context.Background(), params.WaitSecRespDB)
+
+	conn, dataService, err = initStorage(ctx, params)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	if params.Restore {
-		err := MemoryService.LoadFromFile(params.FileStoragePath)
-		if err != nil {
-			fmt.Println("Error reading metrics from file: %w", err)
+	initiateServer(params, dataService, server, zapLogger)
+
+	err = useMigrations(params)
+	if err != nil {
+		if conn != nil {
+			conn.Close(ctx)
 		}
+
+		cancel()
+		os.Exit(1)
 	}
 
 	go runServer(server)
 
 	waitGroup.Add(1)
 
-	go saveMetrics(MemoryService, params, waitGroup)
+	go saveMetrics(dataService, params, waitGroup)
 	waitGroup.Wait()
 
-	err = server.Shutdown(context.TODO())
+	if conn != nil {
+		conn.Close(ctx)
+	}
+
+	err = server.Shutdown(ctx)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	err = MemoryService.SaveInFile(params.FileStoragePath)
+	err = dataService.SaveInFile(params.FileStoragePath)
 	if err != nil {
 		fmt.Println("Error writing metrics to file: %w", err)
 	}
 }
 
-func saveMetrics(mser *service.MemoryService, par *bizmodels.InitParams, wg *sync.WaitGroup) {
+func initStorage(ctx context.Context, par *bizmodels.InitParams) (*pgx.Conn, *service.DataService, error) {
+	var (
+		memStorage *memrep.MemoryRepository
+		DBStorage  *dbrep.DBepository
+	)
+
+	DBStorage = new(dbrep.DBepository)
+	memStorage = new(memrep.MemoryRepository)
+
+	if par.DatabaseDSN != "" {
+		datas := service.NewMemoryService(DBStorage)
+
+		dbConn, err := pgx.Connect(ctx, par.DatabaseDSN)
+		if err != nil {
+			return nil, nil, fmt.Errorf("initStorage->pgx.Connect %w", err)
+		}
+
+		DBStorage.Initiate(par.DatabaseDSN, par.WaitSecRespDB, dbConn)
+
+		return dbConn, datas, nil
+	}
+
+	datas := service.NewMemoryService(memStorage)
+	memStorage.Init()
+
+	return nil, datas, nil
+}
+
+func useMigrations(par *bizmodels.InitParams) error {
+	if par.DatabaseDSN == "" {
+		return nil
+	}
+
+	migrator, err := migrator.MustGetNewMigrator(MigrationsFS, migrationsDir)
+	if err != nil {
+		fmt.Println(err)
+
+		return fmt.Errorf("useMigrations->migrator.MustGetNewMigrator %w", err)
+	}
+
+	conn, err := sql.Open("postgres", par.DatabaseDSN)
+	if err != nil {
+		fmt.Println(err)
+
+		return fmt.Errorf("useMigrations->sql.Open %w", err)
+	}
+
+	defer conn.Close()
+
+	err = migrator.ApplyMigrations(conn)
+	if err != nil {
+		fmt.Println(err)
+
+		return fmt.Errorf("useMigrations->migrator.ApplyMigrations %w", err)
+	}
+
+	return nil
+}
+
+func saveMetrics(mser *service.DataService, par *bizmodels.InitParams, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	channelCancel := make(chan os.Signal, 1)
@@ -147,14 +226,24 @@ func runServer(server *http.Server) {
 	}
 }
 
-func initiate(par *bizmodels.InitParams, mser *service.MemoryService, server *http.Server, zapLogger *zap.Logger) error {
-	err := setInitParams(par)
+func initiate(par *bizmodels.InitParams) (*zap.Logger, error) {
+	zlog, err := logger.Initialize(zapLogLevel)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("initiate->logger.Initialize %w", err)
 	}
 
 	setInitParamsDB(par)
+	par.ValidateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
+	err = setInitParams(par)
+	if err != nil {
+		return nil, err
+	}
+
+	return zlog, nil
+}
+
+func initiateServer(par *bizmodels.InitParams, mser *service.DataService, server *http.Server, zapLogger *zap.Logger) {
 	mux := mux.NewRouter()
 
 	handlerPing := pinghandler.NewPingHandler(mser, par)
@@ -204,7 +293,12 @@ func initiate(par *bizmodels.InitParams, mser *service.MemoryService, server *ht
 		IdleTimeout:  iTimeout * time.Second,
 	}
 
-	return err
+	if par.Restore {
+		err := mser.LoadFromFile(par.FileStoragePath)
+		if err != nil {
+			fmt.Println("Error reading metrics from file: %w", err)
+		}
+	}
 }
 
 func setInitParamsDB(params *bizmodels.InitParams) {
@@ -223,7 +317,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 	if envDatabaseDSN != "" {
 		params.DatabaseDSN = envDatabaseDSN
 	} else {
-		flag.StringVar(&params.DatabaseDSN, "d", "postgres://admin:collmetr@localhost:5432/collmetricdb", "database connection address.")
+		flag.StringVar(&params.DatabaseDSN, "d", defPostgreConnURL, "database connection address.")
 	}
 
 	if envRA != "" {
@@ -246,7 +340,16 @@ func setInitParams(params *bizmodels.InitParams) error {
 	if envFSP != "" {
 		params.FileStoragePath = envFSP
 	} else {
-		flag.StringVar(&params.FileStoragePath, "f", defSavePathFile, "Directory for saving metrics.")
+		_, path, _, ok := runtime.Caller(0)
+
+		if !ok {
+			return fmt.Errorf("setInitParams->runtime.Caller( %w", err)
+		}
+
+		Root := filepath.Join(filepath.Dir(path), "../..")
+		temp := Root + defSavePathFile
+		fmt.Println(temp)
+		flag.StringVar(&params.FileStoragePath, "f", temp, "Directory for saving metrics.")
 	}
 
 	if envRestore != "" {

@@ -28,8 +28,6 @@ func (h *PingHandler) PingHandler(writer http.ResponseWriter, req *http.Request)
 		// fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		writer.WriteHeader(http.StatusInternalServerError)
 
-		defer conn.Close(ctx)
-
 		return
 	}
 

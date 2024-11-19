@@ -136,7 +136,7 @@ func isValidJSONMetric(r *http.Request, metric *validMetric) (bool, int) {
 
 	var pattern string
 
-	pattern = "^[0-9a-zA-Z/ ]{1,20}$"
+	pattern = "^[0-9a-zA-Z/ ]{1,40}$"
 	res, _ := validate.IsMatchesTemplate(metric.mname, pattern)
 
 	if !res {

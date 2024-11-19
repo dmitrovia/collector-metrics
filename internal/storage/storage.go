@@ -4,13 +4,10 @@ import "github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 
 type Repository interface {
 	Init()
-	GetStringValueGaugeMetric(name string) (string, error)
-	GetStringValueCounterMetric(name string) (string, error)
-	GetValueGaugeMetric(mname string) (float64, error)
-	GetValueCounterMetric(mname string) (int64, error)
-	GetMapStringsAllMetrics() *map[string]string
+	GetGaugeMetric(mname string) (*bizmodels.Gauge, error)
+	GetCounterMetric(mname string) (*bizmodels.Counter, error)
 	AddGauge(gauge *bizmodels.Gauge)
 	AddCounter(counter *bizmodels.Counter) *bizmodels.Counter
-	SaveInFile(path string) error
-	LoadFromFile(path string) error
+	GetAllGauges() *map[string]bizmodels.Gauge
+	GetAllCounters() *map[string]bizmodels.Counter
 }
