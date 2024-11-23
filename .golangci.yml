@@ -53,6 +53,7 @@ linters-settings:
     ignorePackageGlobs:
       - encoding/*
       - github.com/pkg/*
+      - compress/*
     ignoreInterfaceRegexps:
       - ^(?i)c(?-i)ach(ing|e)
 
