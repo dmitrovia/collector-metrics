@@ -2,7 +2,6 @@ package gzipcompressmiddleware
 
 import (
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -72,13 +71,7 @@ func newCompressReader(reader io.ReadCloser) (*compressReader, error) {
 }
 
 func (c compressReader) Read(p []byte) (int, error) {
-	cnt, err := c.zr.Read(p)
-
-	if err != nil && !errors.Is(err, io.EOF) {
-		return 0, fmt.Errorf("compressReaderRead: %w", err)
-	}
-
-	return cnt, io.EOF
+	return c.zr.Read(p)
 }
 
 func (c *compressReader) Close() error {
@@ -129,6 +122,7 @@ func GzipMiddleware() func(http.Handler) http.Handler {
 				}
 
 				req.Body = compressReader
+
 				defer compressReader.Close()
 			}
 

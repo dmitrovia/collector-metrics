@@ -26,6 +26,37 @@ func (m *DBepository) Initiate(dsn string, waitSecRespDB time.Duration, conn *pg
 func (m *DBepository) Init() {
 }
 
+func (m *DBepository) AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
+	ctx, cancel := context.WithTimeout(context.Background(), m.waitSecRespDB)
+	defer cancel()
+
+	tranz, err := m.conn.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("AddMetrics->m.conn.Begin %w", err)
+	}
+
+	for _, gauge := range gauges {
+		err = m.AddGauge(&gauge)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	for _, counter := range counters {
+		_, err = m.AddCounter(&counter)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	err = tranz.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("AddMetrics->tranz.Commit %w", err)
+	}
+
+	return nil
+}
+
 func (m *DBepository) GetAllGauges() *map[string]bizmodels.Gauge {
 	var (
 		gauges map[string]bizmodels.Gauge
@@ -144,45 +175,47 @@ func (m *DBepository) GetCounterMetric(name string) (*bizmodels.Counter, error) 
 	return temp, nil
 }
 
-func (m *DBepository) AddGauge(gauge *bizmodels.Gauge) {
+func (m *DBepository) AddGauge(gauge *bizmodels.Gauge) error {
 	ctx, cancel := context.WithTimeout(context.Background(), m.waitSecRespDB)
 	defer cancel()
 
 	rows, err := m.conn.Exec(ctx, "UPDATE gauges SET value = $1 where name=$2", gauge.Value, gauge.Name)
 	if err != nil {
-		fmt.Printf("AddGauge->Update error: %v", err)
+		return fmt.Errorf("AddGauge->m.conn.Exec( %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
 		_, err := m.conn.Exec(ctx, "INSERT INTO gauges (name, value) VALUES ($1, $2)", gauge.Name, gauge.Value)
 		if err != nil {
-			fmt.Printf("AddGauge->INSERT INTO error: %v", err)
+			return fmt.Errorf("AddGauge->INSERT INTO error: %w", err)
 		}
 	}
+
+	return nil
 }
 
-func (m *DBepository) AddCounter(counter *bizmodels.Counter) *bizmodels.Counter {
+func (m *DBepository) AddCounter(counter *bizmodels.Counter) (*bizmodels.Counter, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), m.waitSecRespDB)
 	defer cancel()
 
 	rows, err := m.conn.Exec(ctx, "UPDATE counters SET value = value + $1 where name=$2", counter.Value, counter.Name)
 	if err != nil {
-		fmt.Printf("AddCounter->Update error: %v", err)
+		return nil, fmt.Errorf("AddCounter->UPDATE counters SET: %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
 		_, err := m.conn.Exec(ctx, "INSERT INTO counters (name, value) VALUES ($1, $2)", counter.Name, counter.Value)
 		if err != nil {
-			fmt.Printf("AddCounter->INSERT INTO error: %v", err)
+			return nil, fmt.Errorf("AddCounter->INSERT INTO error: %w", err)
 		}
 
-		return counter
+		return counter, nil
 	}
 
 	temp, err := m.GetCounterMetric(counter.Name)
 	if err != nil {
-		fmt.Printf("AddCounter->m.GetCounterMetric %v", err)
+		return nil, fmt.Errorf("AddCounter->m.GetCounterMetric %w", err)
 	}
 
-	return temp
+	return temp, nil
 }

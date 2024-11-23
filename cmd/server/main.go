@@ -26,6 +26,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/pinghandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
+	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricsjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
@@ -62,7 +63,6 @@ const migrationsDir = "db/migrations"
 const zapLogLevel = "info"
 
 // const defPostgreConnURL = "postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable"
-
 const defPostgreConnURL = ""
 
 //go:embed db/migrations/*.sql
@@ -229,6 +229,11 @@ func runServer(server *http.Server) {
 }
 
 func initiate(par *bizmodels.InitParams) (*zap.Logger, error) {
+	err := initiateFlags(par)
+	if err != nil {
+		return nil, fmt.Errorf("initiate->initiateFlags %w", err)
+	}
+
 	zlog, err := logger.Initialize(zapLogLevel)
 	if err != nil {
 		return nil, fmt.Errorf("initiate->logger.Initialize %w", err)
@@ -250,12 +255,33 @@ func initiate(par *bizmodels.InitParams) (*zap.Logger, error) {
 	return zlog, nil
 }
 
+func initiateFlags(par *bizmodels.InitParams) error {
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return fmt.Errorf("setInitParams->runtime.Caller( %w", errPath)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../..")
+	temp := Root + defSavePathFile
+	flag.StringVar(&par.FileStoragePath, "f", temp, "Directory for saving metrics.")
+
+	flag.StringVar(&par.DatabaseDSN, "d", defPostgreConnURL, "database connection address.")
+	flag.BoolVar(&par.Restore, "r", true, "Loading metrics at server startup.")
+	flag.StringVar(&par.PORT, "a", defPORT, "Port to listen on.")
+	flag.IntVar(&par.StoreInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
+	flag.Parse()
+
+	return nil
+}
+
 func initiateServer(par *bizmodels.InitParams, mser *service.DataService, server *http.Server, zapLogger *zap.Logger) {
 	mux := mux.NewRouter()
 
 	handlerPing := pinghandler.NewPingHandler(mser, par)
 	handlerSet := setmetrichandler.NewSetMetricHandler(mser)
 	handlerJSONSet := setmetricjsonhandler.NewSetMetricJSONHandler(mser)
+	handlerJSONSets := setmetricsjsonhandler.NewSetMetricsJSONHandler(mser)
 	handlerJSONGet := getmetricjsonhandler.NewGetMetricJSONHandler(mser)
 	handlerGet := getmetrichandler.NewGetMetricHandler(mser)
 	handlerDefault := defaulthandler.NewDefaultHandler(mser)
@@ -271,25 +297,25 @@ func initiateServer(par *bizmodels.InitParams, mser *service.DataService, server
 
 	getMEtricJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	getMEtricJSONMux.HandleFunc("/value/", handlerJSONGet.GetMetricJSONHandler)
-	getMEtricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware())
-	getMEtricJSONMux.Use(loggermiddleware.RequestLogger(zapLogger))
+	getMEtricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(), loggermiddleware.RequestLogger(zapLogger))
 
 	setMetricJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	setMetricJSONMux.HandleFunc("/update/", handlerJSONSet.SetMetricJSONHandler)
-	setMetricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware())
-	setMetricJSONMux.Use(loggermiddleware.RequestLogger(zapLogger))
+	setMetricJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(), loggermiddleware.RequestLogger(zapLogger))
+
+	setMetricsJSONMux := mux.Methods(http.MethodPost).Subrouter()
+	setMetricsJSONMux.HandleFunc("/updates/", handlerJSONSets.SetMetricsJSONHandler)
+	setMetricsJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(), loggermiddleware.RequestLogger(zapLogger))
 
 	getPingBDMux := mux.Methods(http.MethodGet).Subrouter()
 	getPingBDMux.HandleFunc("/ping", handlerPing.PingHandler)
-	getPingBDMux.Use(gzipcompressmiddleware.GzipMiddleware())
-	getPingBDMux.Use(loggermiddleware.RequestLogger(zapLogger))
+	getPingBDMux.Use(gzipcompressmiddleware.GzipMiddleware(), loggermiddleware.RequestLogger(zapLogger))
 
 	mux.MethodNotAllowedHandler = handlerNotAllowed
 
 	defaultMux := mux.Methods(http.MethodGet).Subrouter()
 	defaultMux.HandleFunc("/", handlerDefault.DefaultHandler)
-	defaultMux.Use(gzipcompressmiddleware.GzipMiddleware())
-	defaultMux.Use(loggermiddleware.RequestLogger(zapLogger))
+	defaultMux.Use(gzipcompressmiddleware.GzipMiddleware(), loggermiddleware.RequestLogger(zapLogger))
 
 	*server = http.Server{
 		Addr:         par.PORT,
@@ -315,11 +341,7 @@ func setInitParamsDB(params *bizmodels.InitParams) {
 
 	if envDatabaseDSN != "" {
 		params.DatabaseDSN = envDatabaseDSN
-	} else {
-		flag.StringVar(&params.DatabaseDSN, "d", defPostgreConnURL, "database connection address.")
 	}
-
-	flag.Parse()
 }
 
 func setInitParamsFileStorage(params *bizmodels.InitParams) error {
@@ -328,17 +350,6 @@ func setInitParamsFileStorage(params *bizmodels.InitParams) error {
 
 	if envFSP != "" {
 		params.FileStoragePath = envFSP
-	} else {
-		_, path, _, ok := runtime.Caller(0)
-
-		if !ok {
-			return fmt.Errorf("setInitParams->runtime.Caller( %w", errPath)
-		}
-
-		Root := filepath.Join(filepath.Dir(path), "../..")
-		temp := Root + defSavePathFile
-		fmt.Println(temp)
-		flag.StringVar(&params.FileStoragePath, "f", temp, "Directory for saving metrics.")
 	}
 
 	if envRestore != "" {
@@ -348,11 +359,7 @@ func setInitParamsFileStorage(params *bizmodels.InitParams) error {
 		}
 
 		params.Restore = value
-	} else {
-		flag.BoolVar(&params.Restore, "r", true, "Loading metrics at server startup.")
 	}
-
-	flag.Parse()
 
 	return nil
 }
@@ -365,8 +372,6 @@ func setInitParams(params *bizmodels.InitParams) error {
 
 	if envRA != "" {
 		params.PORT = envRA
-	} else {
-		flag.StringVar(&params.PORT, "a", defPORT, "Port to listen on.")
 	}
 
 	if envSI != "" {
@@ -376,11 +381,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 		}
 
 		params.StoreInterval = value
-	} else {
-		flag.IntVar(&params.StoreInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
 	}
-
-	flag.Parse()
 
 	res, err := validate.IsMatchesTemplate(params.PORT, params.ValidateAddrPattern)
 	if err != nil {

@@ -57,11 +57,19 @@ func getReqData(r *http.Request, m *validMetric) {
 	m.mvalue = mux.Vars(r)["metric_value"]
 }
 
-func addMetricToMemStore(h *SetMetricHandler, m *validMetric) {
-	if m.mtype == "gauge" {
-		h.serv.AddGauge(m.mname, m.mvalueFloat)
-	} else if m.mtype == "counter" {
-		m.mvalueInt = h.serv.AddCounter(m.mname, m.mvalueInt).Value
+func addMetricToMemStore(handler *SetMetricHandler, metr *validMetric) {
+	if metr.mtype == "gauge" {
+		err := handler.serv.AddGauge(metr.mname, metr.mvalueFloat)
+		if err != nil {
+			fmt.Println(err)
+		}
+	} else if metr.mtype == "counter" {
+		res, err := handler.serv.AddCounter(metr.mname, metr.mvalueInt)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		metr.mvalueInt = res.Value
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"runtime"
+	"strconv"
 
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
@@ -23,8 +24,18 @@ type ViewData struct {
 }
 
 func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Request) {
+	mapMetrics := make(map[string]string)
+
+	for key, value := range *h.serv.GetAllCounters() {
+		mapMetrics[key] = strconv.FormatInt(value.Value, 10)
+	}
+
+	for key, value := range *h.serv.GetAllGauges() {
+		mapMetrics[key] = strconv.FormatFloat(value.Value, 'f', -1, 64)
+	}
+
 	data := ViewData{
-		Metrics: *h.serv.GetMapStringsAllMetrics(),
+		Metrics: mapMetrics,
 	}
 
 	_, path, _, ok := runtime.Caller(0)

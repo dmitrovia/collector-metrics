@@ -71,7 +71,7 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	metricMarshall, err := json.Marshal(dataMarshal)
 	if err != nil {
-		fmt.Println("SetMetricJSONHandlerMarshal: %w", err)
+		fmt.Println(err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -79,7 +79,7 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	_, err = writer.Write(metricMarshall)
 	if err != nil {
-		fmt.Println("SetMetricJSONHandlerWrite: %w", err)
+		fmt.Println(err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -121,11 +121,19 @@ func getReqJSONData(req *http.Request, metric *validMetric) error {
 	return nil
 }
 
-func addMetricToMemStore(h *SetMetricJSONHandler, m *validMetric) {
-	if m.mtype == "gauge" {
-		h.serv.AddGauge(m.mname, m.mvalueFloat)
-	} else if m.mtype == "counter" {
-		m.mvalueInt = h.serv.AddCounter(m.mname, m.mvalueInt).Value
+func addMetricToMemStore(handler *SetMetricJSONHandler, vmet *validMetric) {
+	if vmet.mtype == "gauge" {
+		err := handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
+		if err != nil {
+			fmt.Println(err)
+		}
+	} else if vmet.mtype == "counter" {
+		res, err := handler.serv.AddCounter(vmet.mname, vmet.mvalueInt)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		vmet.mvalueInt = res.Value
 	}
 }
 

@@ -3,10 +3,8 @@ package service
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
@@ -15,22 +13,36 @@ import (
 
 const fmode os.FileMode = 0o666
 
-var errGetStringValueMetric = errors.New("value by name not found")
-
 type Service interface {
-	GetMapStringsAllMetrics() *map[string]string
-	AddGauge(mname string, mvalue float64)
-	AddCounter(mname string, mvalue int64) *bizmodels.Counter
-	GetStringValueGaugeMetric(mname string) (string, error)
-	GetStringValueCounterMetric(mname string) (string, error)
+	AddGauge(mname string, mvalue float64) error
+	AddCounter(mname string, mvalue int64) (*bizmodels.Counter, error)
 	GetValueGaugeMetric(mname string) (float64, error)
 	GetValueCounterMetric(mname string) (int64, error)
 	SaveInFile(path string) error
 	LoadFromFile(path string) error
+	AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error
+	GetAllGauges() *map[string]bizmodels.Gauge
+	GetAllCounters() *map[string]bizmodels.Counter
 }
 
 type DataService struct {
 	repository storage.Repository
+}
+
+func (s *DataService) GetAllGauges() *map[string]bizmodels.Gauge {
+	return s.repository.GetAllGauges()
+}
+
+func (s *DataService) GetAllCounters() *map[string]bizmodels.Counter {
+	return s.repository.GetAllCounters()
+}
+
+func (s *DataService) AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
+	err := s.repository.AddMetrics(gauges, counters)
+	if err != nil {
+		return fmt.Errorf("DataService->AddMetrics: %w", err)
+	}
+	return nil
 }
 
 func (s *DataService) SaveInFile(path string) error {
@@ -103,9 +115,15 @@ func (s *DataService) LoadFromFile(path string) error {
 		}
 
 		if metric.MType == "gauge" {
-			s.repository.AddGauge(&bizmodels.Gauge{Name: metric.ID, Value: *metric.Value})
+			err := s.repository.AddGauge(&bizmodels.Gauge{Name: metric.ID, Value: *metric.Value})
+			if err != nil {
+				fmt.Println(err)
+			}
 		} else if metric.MType == "counter" {
-			s.repository.AddCounter(&bizmodels.Counter{Name: metric.ID, Value: *metric.Delta})
+			_, err := s.repository.AddCounter(&bizmodels.Counter{Name: metric.ID, Value: *metric.Delta})
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 
 		if err := scanner.Err(); err != nil {
@@ -116,44 +134,22 @@ func (s *DataService) LoadFromFile(path string) error {
 	return nil
 }
 
-func (s *DataService) GetMapStringsAllMetrics() *map[string]string {
-	mapMetrics := make(map[string]string)
-
-	for key, value := range *s.repository.GetAllCounters() {
-		mapMetrics[key] = strconv.FormatInt(value.Value, 10)
-	}
-
-	for key, value := range *s.repository.GetAllGauges() {
-		mapMetrics[key] = strconv.FormatFloat(value.Value, 'f', -1, 64)
-	}
-
-	return &mapMetrics
-}
-
-func (s *DataService) AddGauge(mname string, mvalue float64) {
-	s.repository.AddGauge(&bizmodels.Gauge{Name: mname, Value: mvalue})
-}
-
-func (s *DataService) AddCounter(mname string, mvalue int64) *bizmodels.Counter {
-	return s.repository.AddCounter(&bizmodels.Counter{Name: mname, Value: mvalue})
-}
-
-func (s *DataService) GetStringValueGaugeMetric(mname string) (string, error) {
-	val, err := s.repository.GetGaugeMetric(mname)
+func (s *DataService) AddGauge(mname string, mvalue float64) error {
+	err := s.repository.AddGauge(&bizmodels.Gauge{Name: mname, Value: mvalue})
 	if err != nil {
-		return "0", errGetStringValueMetric
+		return fmt.Errorf("AddGauge->s.repository.AddGauge %w", err)
 	}
 
-	return strconv.FormatFloat(val.Value, 'f', -1, 64), nil
+	return nil
 }
 
-func (s *DataService) GetStringValueCounterMetric(mname string) (string, error) {
-	val, err := s.repository.GetCounterMetric(mname)
+func (s *DataService) AddCounter(mname string, mvalue int64) (*bizmodels.Counter, error) {
+	res, err := s.repository.AddCounter(&bizmodels.Counter{Name: mname, Value: mvalue})
 	if err != nil {
-		return "0", errGetStringValueMetric
+		return nil, fmt.Errorf("AddCounter->.repository.AddCounter %w", err)
 	}
 
-	return strconv.FormatInt(val.Value, 10), nil
+	return res, nil
 }
 
 func (s *DataService) GetValueGaugeMetric(mname string) (float64, error) {

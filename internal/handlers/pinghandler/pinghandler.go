@@ -25,7 +25,7 @@ func (h *PingHandler) PingHandler(writer http.ResponseWriter, req *http.Request)
 
 	conn, err := pgx.Connect(ctx, h.params.DatabaseDSN)
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		// fmt.Fprintf(os.Stderr, "Unable to connect to database: %w\n", err)
 		writer.WriteHeader(http.StatusInternalServerError)
 
 		return

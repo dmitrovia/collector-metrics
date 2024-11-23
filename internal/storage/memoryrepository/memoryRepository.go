@@ -2,6 +2,7 @@ package memoryrepository
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
@@ -11,6 +12,24 @@ var errGetValueMetric = errors.New("value by name not found")
 type MemoryRepository struct {
 	gauges   map[string]bizmodels.Gauge
 	counters map[string]bizmodels.Counter
+}
+
+func (m *MemoryRepository) AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
+	for _, gauge := range gauges {
+		err := m.AddGauge(&gauge)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	for _, counter := range counters {
+		_, err := m.AddCounter(&counter)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	return nil
 }
 
 func (m *MemoryRepository) Init() {
@@ -44,11 +63,13 @@ func (m *MemoryRepository) GetCounterMetric(name string) (*bizmodels.Counter, er
 	return nil, errGetValueMetric
 }
 
-func (m *MemoryRepository) AddGauge(gauge *bizmodels.Gauge) {
+func (m *MemoryRepository) AddGauge(gauge *bizmodels.Gauge) error {
 	m.gauges[gauge.Name] = *gauge
+
+	return nil
 }
 
-func (m *MemoryRepository) AddCounter(counter *bizmodels.Counter) *bizmodels.Counter {
+func (m *MemoryRepository) AddCounter(counter *bizmodels.Counter) (*bizmodels.Counter, error) {
 	val, ok := m.counters[counter.Name]
 
 	var temp *bizmodels.Counter
@@ -59,10 +80,10 @@ func (m *MemoryRepository) AddCounter(counter *bizmodels.Counter) *bizmodels.Cou
 		temp.Value = val.Value + counter.Value
 		m.counters[counter.Name] = *temp
 
-		return temp
+		return temp, nil
 	}
 
 	m.counters[counter.Name] = *counter
 
-	return counter
+	return counter, nil
 }

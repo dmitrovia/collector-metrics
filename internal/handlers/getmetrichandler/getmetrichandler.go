@@ -3,6 +3,7 @@ package getmetrichandler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/service"
@@ -89,21 +90,32 @@ func isValidMetric(r *http.Request, metric *validMetric) (bool, int) {
 
 func setAnswerData(metric *validMetric, ansd *ansData, h *GetMetricHandler) (bool, int) {
 	if metric.mtype == "gauge" {
-		return setStrValueByType(metric, ansd, h.serv.GetStringValueGaugeMetric)
+		return GetStringValueGaugeMetric(ansd, h, metric.mname)
 	} else if metric.mtype == "counter" {
-		return setStrValueByType(metric, ansd, h.serv.GetStringValueCounterMetric)
+		return GetStringValueCounterMetric(ansd, h, metric.mname)
 	}
 
 	return false, http.StatusNotFound
 }
 
-func setStrValueByType(metric *validMetric, ansd *ansData, getFunction func(string) (string, error)) (bool, int) {
-	metricStringValue, err := getFunction(metric.mname)
+func GetStringValueGaugeMetric(ansd *ansData, h *GetMetricHandler, mname string) (bool, int) {
+	val, err := h.serv.GetValueGaugeMetric(mname)
 	if err != nil {
 		return false, http.StatusNotFound
 	}
 
-	ansd.mvalue = metricStringValue
+	ansd.mvalue = strconv.FormatFloat(val, 'f', -1, 64)
+
+	return true, http.StatusOK
+}
+
+func GetStringValueCounterMetric(ansd *ansData, h *GetMetricHandler, mname string) (bool, int) {
+	val, err := h.serv.GetValueCounterMetric(mname)
+	if err != nil {
+		return false, http.StatusNotFound
+	}
+
+	ansd.mvalue = strconv.FormatInt(val, 10)
 
 	return true, http.StatusOK
 }

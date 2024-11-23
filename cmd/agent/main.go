@@ -35,8 +35,6 @@ var errGetENV1 = errors.New("POLL_INTERVAL failed converting to int")
 
 var errParseFlags = errors.New("addr is not valid")
 
-var errReqSendMetric = errors.New("error sending mertric request")
-
 type initParams struct {
 	url                 string
 	PORT                string
@@ -121,18 +119,16 @@ func send(par *initParams, wg *sync.WaitGroup, httpC *http.Client, gauges *[]biz
 func reqMetricsJSON(url string, httpC *http.Client, gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) {
 	var reqMetric apimodels.Metrics
 
-	tmpURL := url + "/update/"
+	tmpURL := url + "/updates/"
+
+	data := make(apimodels.ArrMetrics, 0, len(*gauges)+len(*counters))
 
 	for _, metric := range *counters {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = metric.Name
 		reqMetric.MType = "counter"
 		reqMetric.Delta = &metric.Value
-
-		err := endpoints.SendMetricJSONEndpoint(context.Background(), tmpURL, reqMetric, httpC)
-		if err != nil {
-			fmt.Println("reqMetricsJSON:"+metric.Name+","+"counter"+","+strconv.FormatInt(metric.Value, 10), errReqSendMetric)
-		}
+		data = append(data, reqMetric)
 	}
 
 	for _, metric := range *gauges {
@@ -140,11 +136,12 @@ func reqMetricsJSON(url string, httpC *http.Client, gauges *[]bizmodels.Gauge, c
 		reqMetric.ID = metric.Name
 		reqMetric.MType = "gauge"
 		reqMetric.Value = &metric.Value
+		data = append(data, reqMetric)
+	}
 
-		err := endpoints.SendMetricJSONEndpoint(context.Background(), tmpURL, reqMetric, httpC)
-		if err != nil {
-			fmt.Println("reqMetricsJSON:"+metric.Name+","+"gauge"+","+strconv.FormatFloat(metric.Value, 'f', -1, 64), errReqSendMetric)
-		}
+	err := endpoints.SendMetricsJSONEndpoint(context.Background(), tmpURL, &data, httpC)
+	if err != nil {
+		fmt.Println("reqMetricsJSON->endpoints.SendMetricsJSONEndpoint: %w", err)
 	}
 }
 
