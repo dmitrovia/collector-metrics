@@ -229,6 +229,11 @@ func runServer(server *http.Server) {
 }
 
 func initiate(par *bizmodels.InitParams) (*zap.Logger, error) {
+	err := initiateFlags(par)
+	if err != nil {
+		return nil, fmt.Errorf("initiate->initiateFlags %w", err)
+	}
+
 	zlog, err := logger.Initialize(zapLogLevel)
 	if err != nil {
 		return nil, fmt.Errorf("initiate->logger.Initialize %w", err)
@@ -248,6 +253,26 @@ func initiate(par *bizmodels.InitParams) (*zap.Logger, error) {
 	}
 
 	return zlog, nil
+}
+
+func initiateFlags(par *bizmodels.InitParams) error {
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return fmt.Errorf("setInitParams->runtime.Caller( %w", errPath)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../..")
+	temp := Root + defSavePathFile
+	flag.StringVar(&par.FileStoragePath, "f", temp, "Directory for saving metrics.")
+
+	flag.StringVar(&par.DatabaseDSN, "d", defPostgreConnURL, "database connection address.")
+	flag.BoolVar(&par.Restore, "r", true, "Loading metrics at server startup.")
+	flag.StringVar(&par.PORT, "a", defPORT, "Port to listen on.")
+	flag.IntVar(&par.StoreInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
+	flag.Parse()
+
+	return nil
 }
 
 func initiateServer(par *bizmodels.InitParams, mser *service.DataService, server *http.Server, zapLogger *zap.Logger) {
@@ -315,11 +340,7 @@ func setInitParamsDB(params *bizmodels.InitParams) {
 
 	if envDatabaseDSN != "" {
 		params.DatabaseDSN = envDatabaseDSN
-	} else {
-		flag.StringVar(&params.DatabaseDSN, "d", defPostgreConnURL, "database connection address.")
 	}
-
-	flag.Parse()
 }
 
 func setInitParamsFileStorage(params *bizmodels.InitParams) error {
@@ -328,17 +349,6 @@ func setInitParamsFileStorage(params *bizmodels.InitParams) error {
 
 	if envFSP != "" {
 		params.FileStoragePath = envFSP
-	} else {
-		_, path, _, ok := runtime.Caller(0)
-
-		if !ok {
-			return fmt.Errorf("setInitParams->runtime.Caller( %w", errPath)
-		}
-
-		Root := filepath.Join(filepath.Dir(path), "../..")
-		temp := Root + defSavePathFile
-		fmt.Println(temp)
-		flag.StringVar(&params.FileStoragePath, "f", temp, "Directory for saving metrics.")
 	}
 
 	if envRestore != "" {
@@ -348,11 +358,7 @@ func setInitParamsFileStorage(params *bizmodels.InitParams) error {
 		}
 
 		params.Restore = value
-	} else {
-		flag.BoolVar(&params.Restore, "r", true, "Loading metrics at server startup.")
 	}
-
-	flag.Parse()
 
 	return nil
 }
@@ -365,8 +371,6 @@ func setInitParams(params *bizmodels.InitParams) error {
 
 	if envRA != "" {
 		params.PORT = envRA
-	} else {
-		flag.StringVar(&params.PORT, "a", defPORT, "Port to listen on.")
 	}
 
 	if envSI != "" {
@@ -376,11 +380,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 		}
 
 		params.StoreInterval = value
-	} else {
-		flag.IntVar(&params.StoreInterval, "i", defSavingIntervalDisk, "Metrics saving interval.")
 	}
-
-	flag.Parse()
 
 	res, err := validate.IsMatchesTemplate(params.PORT, params.ValidateAddrPattern)
 	if err != nil {
