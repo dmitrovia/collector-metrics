@@ -23,3 +23,6 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+
+# docker
+.docker-compose.yml
