@@ -80,7 +80,7 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 func formResponeBody(handler *SetMetricJSONHandler) *apimodels.ArrMetrics {
 	tmpGauges := handler.serv.GetAllGauges()
-	tmpCounters := handler.serv.GetAllGauges()
+	tmpCounters := handler.serv.GetAllCounters()
 	marshal := make(apimodels.ArrMetrics, 0, len(*tmpGauges)+len(*tmpCounters))
 
 	for _, vmr := range *tmpGauges {
@@ -96,7 +96,7 @@ func formResponeBody(handler *SetMetricJSONHandler) *apimodels.ArrMetrics {
 		tmp := apimodels.Metrics{}
 		tmp.ID = vmr.Name
 		tmp.MType = "counter"
-		tmp.Value = &vmr.Value
+		tmp.Delta = &vmr.Value
 
 		marshal = append(marshal, tmp)
 	}
