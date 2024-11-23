@@ -42,6 +42,7 @@ func (s *DataService) AddMetrics(gauges map[string]bizmodels.Gauge, counters map
 	if err != nil {
 		return fmt.Errorf("DataService->AddMetrics: %w", err)
 	}
+
 	return nil
 }
 

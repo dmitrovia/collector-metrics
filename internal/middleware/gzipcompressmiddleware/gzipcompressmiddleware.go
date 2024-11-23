@@ -71,7 +71,9 @@ func newCompressReader(reader io.ReadCloser) (*compressReader, error) {
 }
 
 func (c compressReader) Read(p []byte) (int, error) {
-	return c.zr.Read(p)
+	n, err := c.zr.Read(p)
+
+	return n, err
 }
 
 func (c *compressReader) Close() error {
