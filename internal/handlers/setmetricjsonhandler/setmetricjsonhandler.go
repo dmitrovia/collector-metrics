@@ -55,7 +55,14 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 		return
 	}
 
-	addMetricToMemStore(h, valm)
+	err = addMetricToMemStore(h, valm)
+	if err != nil {
+		fmt.Println(err)
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
 	writer.WriteHeader(status)
 
 	dataMarshal.ID = valm.mname
@@ -121,20 +128,22 @@ func getReqJSONData(req *http.Request, metric *validMetric) error {
 	return nil
 }
 
-func addMetricToMemStore(handler *SetMetricJSONHandler, vmet *validMetric) {
+func addMetricToMemStore(handler *SetMetricJSONHandler, vmet *validMetric) error {
 	if vmet.mtype == "gauge" {
 		err := handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Errorf("addMetricToMemStore->handler.serv.AddGauge: %w", err)
 		}
 	} else if vmet.mtype == "counter" {
 		res, err := handler.serv.AddCounter(vmet.mname, vmet.mvalueInt)
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Errorf("addMetricToMemStore->handler.serv.AddCounter: %w", err)
 		}
 
 		vmet.mvalueInt = res.Value
 	}
+
+	return nil
 }
 
 func isValidJSONMetric(r *http.Request, metric *validMetric) (bool, int) {

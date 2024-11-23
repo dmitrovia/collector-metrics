@@ -18,14 +18,14 @@ func (m *MemoryRepository) AddMetrics(gauges map[string]bizmodels.Gauge, counter
 	for _, gauge := range gauges {
 		err := m.AddGauge(&gauge)
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Errorf("AddMetrics->m.AddGauge: %w", err)
 		}
 	}
 
 	for _, counter := range counters {
 		_, err := m.AddCounter(&counter)
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Errorf("AddMetrics->m.AddCounter: %w", err)
 		}
 	}
 
@@ -37,12 +37,12 @@ func (m *MemoryRepository) Init() {
 	m.counters = make(map[string]bizmodels.Counter)
 }
 
-func (m *MemoryRepository) GetAllGauges() *map[string]bizmodels.Gauge {
-	return &m.gauges
+func (m *MemoryRepository) GetAllGauges() (*map[string]bizmodels.Gauge, error) {
+	return &m.gauges, nil
 }
 
-func (m *MemoryRepository) GetAllCounters() *map[string]bizmodels.Counter {
-	return &m.counters
+func (m *MemoryRepository) GetAllCounters() (*map[string]bizmodels.Counter, error) {
+	return &m.counters, nil
 }
 
 func (m *MemoryRepository) GetGaugeMetric(name string) (*bizmodels.Gauge, error) {

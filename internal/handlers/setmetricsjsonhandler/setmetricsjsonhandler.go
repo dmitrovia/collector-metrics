@@ -57,7 +57,13 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 		return
 	}
 
-	marshal := formResponeBody(h)
+	marshal, err := formResponeBody(h)
+	if err != nil {
+		fmt.Println(err)
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
 
 	metricsMarshall, err := json.Marshal(marshal)
 	if err != nil {
@@ -78,9 +84,17 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 	}
 }
 
-func formResponeBody(handler *SetMetricJSONHandler) *apimodels.ArrMetrics {
-	tmpGauges := handler.serv.GetAllGauges()
-	tmpCounters := handler.serv.GetAllGauges()
+func formResponeBody(handler *SetMetricJSONHandler) (*apimodels.ArrMetrics, error) {
+	tmpGauges, err := handler.serv.GetAllGauges()
+	if err != nil {
+		return nil, fmt.Errorf("formResponeBody->handler.serv.GetAllGauges(): %w", err)
+	}
+
+	tmpCounters, err := handler.serv.GetAllCounters()
+	if err != nil {
+		return nil, fmt.Errorf("formResponeBody->handler.serv.GetAllCounters(): %w", err)
+	}
+
 	marshal := make(apimodels.ArrMetrics, 0, len(*tmpGauges)+len(*tmpCounters))
 
 	for _, vmr := range *tmpGauges {
@@ -96,12 +110,12 @@ func formResponeBody(handler *SetMetricJSONHandler) *apimodels.ArrMetrics {
 		tmp := apimodels.Metrics{}
 		tmp.ID = vmr.Name
 		tmp.MType = "counter"
-		tmp.Value = &vmr.Value
+		tmp.Delta = &vmr.Value
 
 		marshal = append(marshal, tmp)
 	}
 
-	return &marshal
+	return &marshal, nil
 }
 
 func getReqJSONData(req *http.Request, gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {

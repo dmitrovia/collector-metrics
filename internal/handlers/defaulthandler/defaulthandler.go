@@ -26,11 +26,25 @@ type ViewData struct {
 func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Request) {
 	mapMetrics := make(map[string]string)
 
-	for key, value := range *h.serv.GetAllCounters() {
+	counters, err := h.serv.GetAllCounters()
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	gauges, err := h.serv.GetAllGauges()
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	for key, value := range *counters {
 		mapMetrics[key] = strconv.FormatInt(value.Value, 10)
 	}
 
-	for key, value := range *h.serv.GetAllGauges() {
+	for key, value := range *gauges {
 		mapMetrics[key] = strconv.FormatFloat(value.Value, 'f', -1, 64)
 	}
 

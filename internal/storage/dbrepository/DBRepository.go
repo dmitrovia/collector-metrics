@@ -38,14 +38,14 @@ func (m *DBepository) AddMetrics(gauges map[string]bizmodels.Gauge, counters map
 	for _, gauge := range gauges {
 		err = m.AddGauge(&gauge)
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Errorf("AddMetrics->m.AddGauge %w", err)
 		}
 	}
 
 	for _, counter := range counters {
 		_, err = m.AddCounter(&counter)
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Errorf("AddMetrics->m.AddCounter %w", err)
 		}
 	}
 
@@ -57,12 +57,11 @@ func (m *DBepository) AddMetrics(gauges map[string]bizmodels.Gauge, counters map
 	return nil
 }
 
-func (m *DBepository) GetAllGauges() *map[string]bizmodels.Gauge {
+func (m *DBepository) GetAllGauges() (*map[string]bizmodels.Gauge, error) {
 	var (
 		gauges map[string]bizmodels.Gauge
 		name   string
 		value  float64
-		temp   *bizmodels.Gauge
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), m.waitSecRespDB)
@@ -72,33 +71,32 @@ func (m *DBepository) GetAllGauges() *map[string]bizmodels.Gauge {
 
 	rows, err := m.conn.Query(ctx, "select name, value from gauges")
 	if err != nil {
-		fmt.Printf("Query error: %v", err)
-	} else {
-		defer rows.Close()
+		return nil, fmt.Errorf("GetAllGauges->m.conn.Query %w", err)
+	}
 
-		for rows.Next() {
-			err = rows.Scan(&name, &value)
-			if err != nil {
-				fmt.Printf("Scan error: %v", err)
-			} else {
-				temp = new(bizmodels.Gauge)
-				temp.Name = name
-				temp.Value = value
+	defer rows.Close()
 
-				gauges[name] = *temp
-			}
+	for rows.Next() {
+		err = rows.Scan(&name, &value)
+		if err != nil {
+			fmt.Printf("Scan error: %v", err)
+		} else {
+			temp := new(bizmodels.Gauge)
+			temp.Name = name
+			temp.Value = value
+
+			gauges[name] = *temp
 		}
 	}
 
-	return &gauges
+	return &gauges, nil
 }
 
-func (m *DBepository) GetAllCounters() *map[string]bizmodels.Counter {
+func (m *DBepository) GetAllCounters() (*map[string]bizmodels.Counter, error) {
 	var (
 		counters map[string]bizmodels.Counter
 		name     string
 		value    int64
-		temp     *bizmodels.Counter
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), m.waitSecRespDB)
@@ -108,25 +106,25 @@ func (m *DBepository) GetAllCounters() *map[string]bizmodels.Counter {
 
 	rows, err := m.conn.Query(ctx, "select name, value from counters")
 	if err != nil {
-		fmt.Printf("Query error: %v", err)
-	} else {
-		defer rows.Close()
+		return nil, fmt.Errorf("GetAllCounters->m.conn.Query %w", err)
+	}
 
-		for rows.Next() {
-			err = rows.Scan(&name, &value)
-			if err != nil {
-				fmt.Printf("Scan error: %v", err)
-			} else {
-				temp = new(bizmodels.Counter)
-				temp.Name = name
-				temp.Value = value
+	defer rows.Close()
 
-				counters[name] = *temp
-			}
+	for rows.Next() {
+		err = rows.Scan(&name, &value)
+		if err != nil {
+			fmt.Printf("Scan error: %v", err)
+		} else {
+			temp := new(bizmodels.Counter)
+			temp.Name = name
+			temp.Value = value
+
+			counters[name] = *temp
 		}
 	}
 
-	return &counters
+	return &counters, nil
 }
 
 func (m *DBepository) GetGaugeMetric(name string) (*bizmodels.Gauge, error) {

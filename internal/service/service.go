@@ -21,20 +21,30 @@ type Service interface {
 	SaveInFile(path string) error
 	LoadFromFile(path string) error
 	AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error
-	GetAllGauges() *map[string]bizmodels.Gauge
-	GetAllCounters() *map[string]bizmodels.Counter
+	GetAllGauges() (*map[string]bizmodels.Gauge, error)
+	GetAllCounters() (*map[string]bizmodels.Counter, error)
 }
 
 type DataService struct {
 	repository storage.Repository
 }
 
-func (s *DataService) GetAllGauges() *map[string]bizmodels.Gauge {
-	return s.repository.GetAllGauges()
+func (s *DataService) GetAllGauges() (*map[string]bizmodels.Gauge, error) {
+	gauges, err := s.repository.GetAllGauges()
+	if err != nil {
+		return nil, fmt.Errorf("GetAllGauges->s.repository.GetAllGauges: %w", err)
+	}
+
+	return gauges, nil
 }
 
-func (s *DataService) GetAllCounters() *map[string]bizmodels.Counter {
-	return s.repository.GetAllCounters()
+func (s *DataService) GetAllCounters() (*map[string]bizmodels.Counter, error) {
+	counters, err := s.repository.GetAllCounters()
+	if err != nil {
+		return nil, fmt.Errorf("GetAllGauges->s.repository.GetAllCounters: %w", err)
+	}
+
+	return counters, nil
 }
 
 func (s *DataService) AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
@@ -56,7 +66,12 @@ func (s *DataService) SaveInFile(path string) error {
 
 	defer file.Close()
 
-	for _, counter := range *s.repository.GetAllCounters() {
+	counters, err := s.repository.GetAllCounters()
+	if err != nil {
+		return fmt.Errorf("SaveInFile->s.repository.GetAllCounters: %w", err)
+	}
+
+	for _, counter := range *counters {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = counter.Name
 		reqMetric.MType = "counter"
@@ -75,11 +90,16 @@ func (s *DataService) SaveInFile(path string) error {
 		}
 	}
 
-	for _, counter := range *s.repository.GetAllGauges() {
+	gauges, err := s.repository.GetAllGauges()
+	if err != nil {
+		return fmt.Errorf("SaveInFile->s.repository.GetAllGauges: %w", err)
+	}
+
+	for _, gauge := range *gauges {
 		reqMetric = apimodels.Metrics{}
-		reqMetric.ID = counter.Name
+		reqMetric.ID = gauge.Name
 		reqMetric.MType = "gauge"
-		reqMetric.Value = &counter.Value
+		reqMetric.Value = &gauge.Value
 
 		data, err := json.Marshal(&reqMetric)
 		if err != nil {
@@ -118,12 +138,12 @@ func (s *DataService) LoadFromFile(path string) error {
 		if metric.MType == "gauge" {
 			err := s.repository.AddGauge(&bizmodels.Gauge{Name: metric.ID, Value: *metric.Value})
 			if err != nil {
-				fmt.Println(err)
+				return fmt.Errorf("LoadFromFile->s.repository.AddGauge: %w", err)
 			}
 		} else if metric.MType == "counter" {
 			_, err := s.repository.AddCounter(&bizmodels.Counter{Name: metric.ID, Value: *metric.Delta})
 			if err != nil {
-				fmt.Println(err)
+				return fmt.Errorf("LoadFromFile->s.repository.AddCounter: %w", err)
 			}
 		}
 

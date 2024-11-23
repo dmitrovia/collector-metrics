@@ -1,7 +1,8 @@
 package main
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,7 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dmitrovia/collector-metrics/internal/endpoints"
+	"github.com/dmitrovia/collector-metrics/internal/endpoints/sendmetricsjsonendpoint"
+	"github.com/dmitrovia/collector-metrics/internal/functions/compress"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
@@ -35,12 +37,18 @@ var errGetENV1 = errors.New("POLL_INTERVAL failed converting to int")
 
 var errParseFlags = errors.New("addr is not valid")
 
+var errResponse = errors.New("error response")
+
 type initParams struct {
 	url                 string
 	PORT                string
 	reportInterval      int
 	pollInterval        int
 	validateAddrPattern string
+	reqInternal         int
+	startReqInterval    int
+	countReqRetries     int
+	repeatedReq         bool
 }
 
 func main() {
@@ -66,6 +74,10 @@ func main() {
 	params.url = "http://"
 	params.reportInterval = 10
 	params.pollInterval = 2
+	params.reqInternal = 2
+	params.startReqInterval = 1
+	params.countReqRetries = 3
+	params.repeatedReq = false
 	params.validateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
 	err := initialization(params, httpClient, monitor)
@@ -111,15 +123,91 @@ func send(par *initParams, wg *sync.WaitGroup, httpC *http.Client, gauges *[]biz
 		case <-channelCancel:
 			return
 		case <-time.After(time.Duration(par.reportInterval) * time.Second):
-			go reqMetricsJSON(par.url, httpC, gauges, counters)
+			if !par.repeatedReq {
+				go reqMetricsJSON(par, httpC, gauges, counters)
+			}
 		}
 	}
 }
 
-func reqMetricsJSON(url string, httpC *http.Client, gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) {
-	var reqMetric apimodels.Metrics
+func reqMetricsJSON(par *initParams, httpC *http.Client, gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) {
+	req, err := initReqData(gauges, counters)
+	if err != nil {
+		fmt.Println(err)
 
-	tmpURL := url + "/updates/"
+		return
+	}
+
+	sInterval := par.startReqInterval
+
+	for iter := 1; iter <= par.countReqRetries; iter++ {
+		resp, err := sendmetricsjsonendpoint.SendMetricsJSONEndpoint(req, par.url+"/updates/", httpC)
+		if err != nil {
+			par.repeatedReq = true
+
+			fmt.Println("reqMetricsJSON->sendmetricsjsonendpoint.SendMetricsJSONEndpoint: %w", err)
+
+			time.Sleep(time.Duration(sInterval) * time.Second)
+
+			sInterval += par.reqInternal
+
+			continue
+		}
+
+		_, err = parseResponse(resp)
+		if err != nil {
+			par.repeatedReq = true
+
+			fmt.Println("reqMetricsJSON->parseResponse: %w", err)
+
+			time.Sleep(time.Duration(sInterval) * time.Second)
+
+			sInterval += par.reqInternal
+
+			continue
+		}
+
+		break
+	}
+
+	par.repeatedReq = false
+}
+
+func initReqData(gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) (*bytes.Reader, error) {
+	dataMarshal := getDataSend(gauges, counters)
+
+	metricMarshall, err := json.Marshal(dataMarshal)
+	if err != nil {
+		return nil, err
+	}
+
+	metricCompress, err := compress.DeflateCompress(metricMarshall)
+	if err != nil {
+		return nil, fmt.Errorf("makeRequest->compress.DeflateCompress: %w", err)
+	}
+
+	return bytes.NewReader(metricCompress), nil
+}
+
+func parseResponse(response *http.Response) (*[]byte, error) {
+	defer response.Body.Close()
+
+	if response.StatusCode == http.StatusOK {
+		out, err := compress.DeflateDecompress(response.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return &out, nil
+	}
+
+	fmt.Printf("anscode: %d\n", response.StatusCode)
+
+	return nil, errResponse
+}
+
+func getDataSend(gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) *apimodels.ArrMetrics {
+	var reqMetric apimodels.Metrics
 
 	data := make(apimodels.ArrMetrics, 0, len(*gauges)+len(*counters))
 
@@ -139,10 +227,7 @@ func reqMetricsJSON(url string, httpC *http.Client, gauges *[]bizmodels.Gauge, c
 		data = append(data, reqMetric)
 	}
 
-	err := endpoints.SendMetricsJSONEndpoint(context.Background(), tmpURL, &data, httpC)
-	if err != nil {
-		fmt.Println("reqMetricsJSON->endpoints.SendMetricsJSONEndpoint: %w", err)
-	}
+	return &data
 }
 
 func initialization(params *initParams, httpC *http.Client, mon *bizmodels.Monitor) error {
