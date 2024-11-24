@@ -43,7 +43,7 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	err := getReqJSONData(req, gauges, counters)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricsJSONHandler->getReqJSONData: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -51,7 +51,7 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	err = addMetricToMemStore(h, gauges, counters)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricsJSONHandler->addMetricToMemStore: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -59,7 +59,7 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	marshal, err := formResponeBody(h)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricsJSONHandler->formResponeBody: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -67,7 +67,7 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	metricsMarshall, err := json.Marshal(marshal)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricsJSONHandler->json.Marshal: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -77,7 +77,7 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	_, err = writer.Write(metricsMarshall)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricsJSONHandler->writer.Write: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return

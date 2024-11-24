@@ -65,7 +65,7 @@ func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Requ
 	tmpl, err := template.ParseFiles(Root + "/html/allMetricsTemplate.html")
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		fmt.Println(err)
+		fmt.Println("DefaultHandler->template.ParseFiles: %w", err)
 	} else {
 		writer.Header().Set("Content-Type", "text/html")
 		writer.WriteHeader(http.StatusOK)
@@ -73,7 +73,7 @@ func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Requ
 		err = tmpl.Execute(writer, data)
 		if err != nil {
 			writer.WriteHeader(http.StatusBadRequest)
-			fmt.Println(err)
+			fmt.Println("DefaultHandler->tmpl.Execute: %w", err)
 		}
 	}
 }

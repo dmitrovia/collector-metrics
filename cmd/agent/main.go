@@ -82,7 +82,7 @@ func main() {
 
 	err := initialization(params, httpClient, monitor)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("main->initialization: %w", err)
 		os.Exit(1)
 	}
 
@@ -133,7 +133,7 @@ func send(par *initParams, wg *sync.WaitGroup, httpC *http.Client, gauges *[]biz
 func reqMetricsJSON(par *initParams, httpC *http.Client, gauges *[]bizmodels.Gauge, counters *map[string]bizmodels.Counter) {
 	req, err := initReqData(gauges, counters)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("reqMetricsJSON->initReqData: %w", err)
 
 		return
 	}
@@ -195,7 +195,7 @@ func parseResponse(response *http.Response) (*[]byte, error) {
 	if response.StatusCode == http.StatusOK {
 		out, err := compress.DeflateDecompress(response.Body)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("parseResponse->DeflateDecompress: %w", err)
 		}
 
 		return &out, nil

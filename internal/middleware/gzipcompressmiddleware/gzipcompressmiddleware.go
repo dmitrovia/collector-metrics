@@ -118,7 +118,7 @@ func GzipMiddleware() func(http.Handler) http.Handler {
 				compressReader, err := newCompressReader(req.Body)
 				if err != nil {
 					writer.WriteHeader(http.StatusInternalServerError)
-					fmt.Println(err)
+					fmt.Println("GzipMiddleware->newCompressReader: %w", err)
 
 					return
 				}

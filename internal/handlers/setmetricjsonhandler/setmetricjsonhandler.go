@@ -42,7 +42,7 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	err := getReqJSONData(req, valm)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricJSONHandler->getReqJSONData: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -57,7 +57,7 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	err = addMetricToMemStore(h, valm)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricJSONHandler->addMetricToMemStore: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -78,7 +78,7 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	metricMarshall, err := json.Marshal(dataMarshal)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricJSONHandler->json.Marshal: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -86,7 +86,7 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	_, err = writer.Write(metricMarshall)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SetMetricJSONHandler->writer.Write: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return

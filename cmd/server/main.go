@@ -82,7 +82,7 @@ func main() {
 
 	zapLogger, err := initiate(params)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("main->initiate: %w", err)
 		os.Exit(1)
 	}
 
@@ -90,7 +90,7 @@ func main() {
 
 	conn, dataService, err = initStorage(ctx, params)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("main->initStorage: %w", err)
 		os.Exit(1)
 	}
 
@@ -119,13 +119,13 @@ func main() {
 
 	err = server.Shutdown(ctx)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("main->Shutdown: %w", err)
 		os.Exit(1)
 	}
 
 	err = dataService.SaveInFile(params.FileStoragePath)
 	if err != nil {
-		fmt.Println("Error writing metrics to file: %w", err)
+		fmt.Println("main->SaveInFile: %w", err)
 	}
 }
 
@@ -164,15 +164,11 @@ func useMigrations(par *bizmodels.InitParams) error {
 
 	migrator, err := migrator.MustGetNewMigrator(MigrationsFS, migrationsDir)
 	if err != nil {
-		fmt.Println(err)
-
 		return fmt.Errorf("useMigrations->migrator.MustGetNewMigrator %w", err)
 	}
 
 	conn, err := sql.Open("postgres", par.DatabaseDSN)
 	if err != nil {
-		fmt.Println(err)
-
 		return fmt.Errorf("useMigrations->sql.Open %w", err)
 	}
 
@@ -180,8 +176,6 @@ func useMigrations(par *bizmodels.InitParams) error {
 
 	err = migrator.ApplyMigrations(conn)
 	if err != nil {
-		fmt.Println(err)
-
 		return fmt.Errorf("useMigrations->migrator.ApplyMigrations %w", err)
 	}
 

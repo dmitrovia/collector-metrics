@@ -14,7 +14,7 @@ func SendMetricEndpoint(ctx context.Context, endpoint string, httpC *http.Client
 
 	resp, err := httpC.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SendMetricEndpoint->httpC.Do: %w", err)
 	}
 
 	defer resp.Body.Close()

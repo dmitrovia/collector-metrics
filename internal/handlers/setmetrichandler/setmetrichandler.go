@@ -61,12 +61,12 @@ func addMetricToMemStore(handler *SetMetricHandler, metr *validMetric) {
 	if metr.mtype == "gauge" {
 		err := handler.serv.AddGauge(metr.mname, metr.mvalueFloat)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("addMetricToMemStore->handler.serv.AddGauge: %w", err)
 		}
 	} else if metr.mtype == "counter" {
 		res, err := handler.serv.AddCounter(metr.mname, metr.mvalueInt)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("addMetricToMemStore->handler.serv.AddCounter: %w", err)
 		}
 
 		metr.mvalueInt = res.Value
