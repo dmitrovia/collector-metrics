@@ -12,7 +12,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 )
 
-const timeout = 5
+const timeout = 60
 
 func SendMetricJSONEndpoint(
 	endpoint string,

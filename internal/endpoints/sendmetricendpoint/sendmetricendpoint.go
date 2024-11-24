@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const timeout = 5
+const timeout = 60
 
 func SendMetricEndpoint(
 	endpoint string,

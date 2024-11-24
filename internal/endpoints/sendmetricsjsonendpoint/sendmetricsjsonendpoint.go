@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const timeout = 5
+const timeout = 60
 
 func SendMJSONEndpoint(
 	sendData *bytes.Reader, endp string, client *http.Client,
