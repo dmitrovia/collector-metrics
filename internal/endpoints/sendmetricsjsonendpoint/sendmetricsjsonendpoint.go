@@ -18,7 +18,7 @@ func SendMJSONEndpoint(
 	const encoding = "gzip"
 
 	ctx, cancel := context.WithTimeout(
-		context.Background(), time.Duration(timeout))
+		context.Background(), timeout*time.Second)
 
 	defer cancel()
 

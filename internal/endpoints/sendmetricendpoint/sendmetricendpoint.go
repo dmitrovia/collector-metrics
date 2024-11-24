@@ -16,7 +16,7 @@ func SendMetricEndpoint(
 	const contentTypeSendMetric string = "text/plain"
 
 	ctx, cancel := context.WithTimeout(
-		context.Background(), time.Duration(timeout))
+		context.Background(), timeout*time.Second)
 
 	defer cancel()
 
