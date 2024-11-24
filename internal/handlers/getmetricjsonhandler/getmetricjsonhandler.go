@@ -30,18 +30,18 @@ type GetMetricJSONHandler struct {
 	serv service.Service
 }
 
-func NewGetMetricJSONHandler(s service.Service) *GetMetricJSONHandler {
+func NewGetMJSONHandler(
+	s service.Service,
+) *GetMetricJSONHandler {
 	return &GetMetricJSONHandler{serv: s}
 }
 
-func (h *GetMetricJSONHandler) GetMetricJSONHandler(writer http.ResponseWriter, req *http.Request) {
-	var valMetr *validMetric
-
-	var answerData *ansData
-
-	valMetr = new(validMetric)
-
+func (h *GetMetricJSONHandler) GetMetricJSONHandler(
+	writer http.ResponseWriter, req *http.Request,
+) {
 	writer.Header().Set("Content-Type", "application/json")
+
+	valMetr := new(validMetric)
 
 	err := getReqDataJSON(req, valMetr)
 	if err != nil {
@@ -57,12 +57,13 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(writer http.ResponseWriter, 
 		return
 	}
 
-	answerData = new(ansData)
-	isSetAnsData, status := setAnswerDataForJSON(valMetr, answerData, h)
+	answerData := new(ansData)
+	isSetAnsData, status := setAnswerDataForJSON(
+		valMetr, answerData, h)
+
+	writer.WriteHeader(status)
 
 	if isSetAnsData {
-		writer.WriteHeader(status)
-
 		dataMarshal := apimodels.Metrics{}
 		dataMarshal.ID = valMetr.mname
 		dataMarshal.MType = valMetr.mtype
@@ -77,7 +78,8 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(writer http.ResponseWriter, 
 
 		metricMarshall, err := json.Marshal(dataMarshal)
 		if err != nil {
-			fmt.Println("GetMetricJSONHandler->json.Marshal: %w", err)
+			fmt.Println("GetMetricJSONHandler->json.Marshal: %w",
+				err)
 			writer.WriteHeader(http.StatusBadRequest)
 
 			return
@@ -85,7 +87,8 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(writer http.ResponseWriter, 
 
 		_, err = writer.Write(metricMarshall)
 		if err != nil {
-			fmt.Println("GetMetricJSONHandler->writer.Write: %w", err)
+			fmt.Println("GetMetricJSONHandler->writer.Write: %w",
+				err)
 			writer.WriteHeader(http.StatusBadRequest)
 
 			return
@@ -93,11 +96,11 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(writer http.ResponseWriter, 
 
 		return
 	}
-
-	writer.WriteHeader(status)
 }
 
-func getReqDataJSON(req *http.Request, metric *validMetric) error {
+func getReqDataJSON(req *http.Request,
+	metric *validMetric,
+) error {
 	var result apimodels.Metrics
 
 	bodyD, err := io.ReadAll(req.Body)
@@ -124,7 +127,9 @@ func getReqDataJSON(req *http.Request, metric *validMetric) error {
 	return nil
 }
 
-func isValidMetric(r *http.Request, metric *validMetric) (bool, int) {
+func isValidMetric(r *http.Request,
+	metric *validMetric,
+) (bool, int) {
 	if !validate.IsMethodPost(r.Method) {
 		return false, http.StatusMethodNotAllowed
 	}
@@ -147,7 +152,10 @@ func isValidMetric(r *http.Request, metric *validMetric) (bool, int) {
 	return true, http.StatusOK
 }
 
-func setAnswerDataForJSON(metric *validMetric, ansd *ansData, h *GetMetricJSONHandler) (bool, int) {
+func setAnswerDataForJSON(metric *validMetric,
+	ansd *ansData,
+	h *GetMetricJSONHandler,
+) (bool, int) {
 	if metric.mtype == "gauge" {
 		return setGaugeValueByType(metric, ansd, h)
 	} else if metric.mtype == "counter" {
@@ -157,8 +165,12 @@ func setAnswerDataForJSON(metric *validMetric, ansd *ansData, h *GetMetricJSONHa
 	return false, http.StatusNotFound
 }
 
-func setGaugeValueByType(metric *validMetric, ansd *ansData, h *GetMetricJSONHandler) (bool, int) {
-	metricValue, err := h.serv.GetValueGaugeMetric(metric.mname)
+func setGaugeValueByType(
+	metric *validMetric,
+	ansd *ansData,
+	h *GetMetricJSONHandler,
+) (bool, int) {
+	metricValue, err := h.serv.GetValueGM(metric.mname)
 	if err != nil {
 		return false, http.StatusNotFound
 	}
@@ -168,8 +180,12 @@ func setGaugeValueByType(metric *validMetric, ansd *ansData, h *GetMetricJSONHan
 	return true, http.StatusOK
 }
 
-func setCounterValueByType(metric *validMetric, ansd *ansData, h *GetMetricJSONHandler) (bool, int) {
-	metricValue, err := h.serv.GetValueCounterMetric(metric.mname)
+func setCounterValueByType(
+	metric *validMetric,
+	ansd *ansData,
+	h *GetMetricJSONHandler,
+) (bool, int) {
+	metricValue, err := h.serv.GetValueCM(metric.mname)
 	if err != nil {
 		return false, http.StatusNotFound
 	}

@@ -25,11 +25,16 @@ type GetMetricHandler struct {
 	serv service.Service
 }
 
-func NewGetMetricHandler(s service.Service) *GetMetricHandler {
+func NewGetMetricHandler(
+	s service.Service,
+) *GetMetricHandler {
 	return &GetMetricHandler{serv: s}
 }
 
-func (h *GetMetricHandler) GetMetricHandler(writer http.ResponseWriter, req *http.Request) {
+func (h *GetMetricHandler) GetMetricHandler(
+	writer http.ResponseWriter,
+	req *http.Request,
+) {
 	var valMetr *validMetric
 
 	var answerData *ansData
@@ -46,7 +51,10 @@ func (h *GetMetricHandler) GetMetricHandler(writer http.ResponseWriter, req *htt
 	}
 
 	answerData = new(ansData)
-	isSetAnsData, status := setAnswerData(valMetr, answerData, h)
+	isSetAnsData, status := setAnswerData(
+		valMetr,
+		answerData,
+		h)
 
 	if isSetAnsData {
 		writer.WriteHeader(status)
@@ -65,7 +73,10 @@ func getReqData(r *http.Request, metric *validMetric) {
 	metric.mtype = mux.Vars(r)["metric_type"]
 }
 
-func isValidMetric(r *http.Request, metric *validMetric) (bool, int) {
+func isValidMetric(
+	r *http.Request,
+	metric *validMetric,
+) (bool, int) {
 	if !validate.IsMethodGet(r.Method) {
 		return false, http.StatusMethodNotAllowed
 	}
@@ -88,7 +99,11 @@ func isValidMetric(r *http.Request, metric *validMetric) (bool, int) {
 	return true, http.StatusOK
 }
 
-func setAnswerData(metric *validMetric, ansd *ansData, h *GetMetricHandler) (bool, int) {
+func setAnswerData(
+	metric *validMetric,
+	ansd *ansData,
+	h *GetMetricHandler,
+) (bool, int) {
 	if metric.mtype == "gauge" {
 		return GetStringValueGaugeMetric(ansd, h, metric.mname)
 	} else if metric.mtype == "counter" {
@@ -98,8 +113,12 @@ func setAnswerData(metric *validMetric, ansd *ansData, h *GetMetricHandler) (boo
 	return false, http.StatusNotFound
 }
 
-func GetStringValueGaugeMetric(ansd *ansData, h *GetMetricHandler, mname string) (bool, int) {
-	val, err := h.serv.GetValueGaugeMetric(mname)
+func GetStringValueGaugeMetric(
+	ansd *ansData,
+	h *GetMetricHandler,
+	mname string,
+) (bool, int) {
+	val, err := h.serv.GetValueGM(mname)
 	if err != nil {
 		return false, http.StatusNotFound
 	}
@@ -109,8 +128,12 @@ func GetStringValueGaugeMetric(ansd *ansData, h *GetMetricHandler, mname string)
 	return true, http.StatusOK
 }
 
-func GetStringValueCounterMetric(ansd *ansData, h *GetMetricHandler, mname string) (bool, int) {
-	val, err := h.serv.GetValueCounterMetric(mname)
+func GetStringValueCounterMetric(
+	ansd *ansData,
+	h *GetMetricHandler,
+	mname string,
+) (bool, int) {
+	val, err := h.serv.GetValueCM(mname)
 	if err != nil {
 		return false, http.StatusNotFound
 	}

@@ -7,14 +7,18 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
 
-var errGetValueMetric = errors.New("value by name not found")
+var errGetValueMetric = errors.New(
+	"value by name not found")
 
 type MemoryRepository struct {
 	gauges   map[string]bizmodels.Gauge
 	counters map[string]bizmodels.Counter
 }
 
-func (m *MemoryRepository) AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
+func (m *MemoryRepository) AddMetrics(
+	gauges map[string]bizmodels.Gauge,
+	counters map[string]bizmodels.Counter,
+) error {
 	for _, gauge := range gauges {
 		err := m.AddGauge(&gauge)
 		if err != nil {
@@ -37,15 +41,21 @@ func (m *MemoryRepository) Init() {
 	m.counters = make(map[string]bizmodels.Counter)
 }
 
-func (m *MemoryRepository) GetAllGauges() (*map[string]bizmodels.Gauge, error) {
+func (m *MemoryRepository) GetAllGauges() (
+	*map[string]bizmodels.Gauge, error,
+) {
 	return &m.gauges, nil
 }
 
-func (m *MemoryRepository) GetAllCounters() (*map[string]bizmodels.Counter, error) {
+func (m *MemoryRepository) GetAllCounters() (
+	*map[string]bizmodels.Counter, error,
+) {
 	return &m.counters, nil
 }
 
-func (m *MemoryRepository) GetGaugeMetric(name string) (*bizmodels.Gauge, error) {
+func (m *MemoryRepository) GetGaugeMetric(
+	name string,
+) (*bizmodels.Gauge, error) {
 	val, ok := m.gauges[name]
 	if ok {
 		return &val, nil
@@ -54,7 +64,9 @@ func (m *MemoryRepository) GetGaugeMetric(name string) (*bizmodels.Gauge, error)
 	return nil, errGetValueMetric
 }
 
-func (m *MemoryRepository) GetCounterMetric(name string) (*bizmodels.Counter, error) {
+func (m *MemoryRepository) GetCounterMetric(
+	name string,
+) (*bizmodels.Counter, error) {
 	val, ok := m.counters[name]
 	if ok {
 		return &val, nil
@@ -63,13 +75,17 @@ func (m *MemoryRepository) GetCounterMetric(name string) (*bizmodels.Counter, er
 	return nil, errGetValueMetric
 }
 
-func (m *MemoryRepository) AddGauge(gauge *bizmodels.Gauge) error {
+func (m *MemoryRepository) AddGauge(
+	gauge *bizmodels.Gauge,
+) error {
 	m.gauges[gauge.Name] = *gauge
 
 	return nil
 }
 
-func (m *MemoryRepository) AddCounter(counter *bizmodels.Counter) (*bizmodels.Counter, error) {
+func (m *MemoryRepository) AddCounter(
+	counter *bizmodels.Counter,
+) (*bizmodels.Counter, error) {
 	val, ok := m.counters[counter.Name]
 
 	var temp *bizmodels.Counter

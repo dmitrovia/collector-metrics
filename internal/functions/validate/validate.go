@@ -6,7 +6,10 @@ import (
 	"regexp"
 )
 
-func IsMatchesTemplate(addr string, pattern string) (bool, error) {
+func IsMatchesTemplate(
+	addr string,
+	pattern string,
+) (bool, error) {
 	res, err := MatchString(pattern, addr)
 	if err != nil {
 		return false, err

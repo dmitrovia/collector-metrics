@@ -16,7 +16,9 @@ type compressWriter struct {
 	zw *gzip.Writer
 }
 
-func newCompressWriter(w http.ResponseWriter) *compressWriter {
+func newCompressWriter(
+	w http.ResponseWriter,
+) *compressWriter {
 	return &compressWriter{
 		w:  w,
 		zw: gzip.NewWriter(w),
@@ -58,7 +60,9 @@ type compressReader struct {
 	zr *gzip.Reader
 }
 
-func newCompressReader(reader io.ReadCloser) (*compressReader, error) {
+func newCompressReader(
+	reader io.ReadCloser,
+) (*compressReader, error) {
 	zipReader, err := gzip.NewReader(reader)
 	if err != nil {
 		return nil, fmt.Errorf("newCompressReader: %w", err)
@@ -91,7 +95,9 @@ func (c *compressReader) Close() error {
 
 func GzipMiddleware() func(http.Handler) http.Handler {
 	handler := func(hand http.Handler) http.Handler {
-		gzipFn := func(writer http.ResponseWriter, req *http.Request) {
+		gzipFn := func(
+			writer http.ResponseWriter, req *http.Request,
+		) {
 			var availableCT []string
 
 			defWriter := writer
@@ -104,7 +110,10 @@ func GzipMiddleware() func(http.Handler) http.Handler {
 
 			availableCT = []string{"application/json", "text/html"}
 
-			supportsGzip := strings.Contains(acceptEncoding, "gzip") && (slices.Contains(availableCT, accCT) || slices.Contains(availableCT, accCT1))
+			supportsGzip := strings.Contains(
+				acceptEncoding, "gzip") && (slices.Contains(
+				availableCT, accCT) || slices.Contains(
+				availableCT, accCT1))
 			if supportsGzip {
 				cw := newCompressWriter(writer)
 				defWriter = cw
@@ -118,7 +127,8 @@ func GzipMiddleware() func(http.Handler) http.Handler {
 				compressReader, err := newCompressReader(req.Body)
 				if err != nil {
 					writer.WriteHeader(http.StatusInternalServerError)
-					fmt.Println("GzipMiddleware->newCompressReader: %w", err)
+					fmt.Println("GzipMiddleware->newCompressReader: %w",
+						err)
 
 					return
 				}

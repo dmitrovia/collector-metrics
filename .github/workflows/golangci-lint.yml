@@ -2,8 +2,6 @@ name: golangci-lint
 on: 
   push:
     branches:
-      - main
-      - master
       - iter1
       - iter2
       - iter3
@@ -19,8 +17,6 @@ on:
       - iter13
   pull_request:
     branches:
-      - main
-      - master
       - iter1
       - iter2
       - iter3

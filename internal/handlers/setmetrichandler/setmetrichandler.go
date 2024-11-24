@@ -24,11 +24,15 @@ type validMetric struct {
 	mvalueInt   int64
 }
 
-func NewSetMetricHandler(serv service.Service) *SetMetricHandler {
+func NewSetMetricHandler(
+	serv service.Service,
+) *SetMetricHandler {
 	return &SetMetricHandler{serv: serv}
 }
 
-func (h *SetMetricHandler) SetMetricHandler(writer http.ResponseWriter, req *http.Request) {
+func (h *SetMetricHandler) SetMetricHandler(
+	writer http.ResponseWriter, req *http.Request,
+) {
 	var valm *validMetric
 
 	var Body string
@@ -57,23 +61,32 @@ func getReqData(r *http.Request, m *validMetric) {
 	m.mvalue = mux.Vars(r)["metric_value"]
 }
 
-func addMetricToMemStore(handler *SetMetricHandler, metr *validMetric) {
+func addMetricToMemStore(
+	handler *SetMetricHandler, metr *validMetric,
+) {
 	if metr.mtype == "gauge" {
 		err := handler.serv.AddGauge(metr.mname, metr.mvalueFloat)
 		if err != nil {
-			fmt.Println("addMetricToMemStore->handler.serv.AddGauge: %w", err)
+			fmt.Println(
+				"addMetricToMemStore->addMetricToMemStore: %w",
+				err)
 		}
 	} else if metr.mtype == "counter" {
-		res, err := handler.serv.AddCounter(metr.mname, metr.mvalueInt)
+		res, err := handler.serv.AddCounter(
+			metr.mname, metr.mvalueInt)
 		if err != nil {
-			fmt.Println("addMetricToMemStore->handler.serv.AddCounter: %w", err)
+			fmt.Println("addMetricToMemStore->AddCounter: %w",
+				err)
 		}
 
 		metr.mvalueInt = res.Value
 	}
 }
 
-func isValidMetric(r *http.Request, metric *validMetric) (bool, int) {
+func isValidMetric(
+	r *http.Request,
+	metric *validMetric,
+) (bool, int) {
 	if !validate.IsMethodPost(r.Method) {
 		return false, http.StatusMethodNotAllowed
 	}

@@ -6,44 +6,45 @@ type Gauge struct {
 	Name  string
 	Value float64
 }
-
 type Counter struct {
 	Name  string
 	Value int64
 }
 
-type Monitor struct {
-	Alloc         Gauge
-	TotalAlloc    Gauge
-	BuckHashSys   Gauge
-	Frees         Gauge
-	Mallocs       Gauge
-	Sys           Gauge
-	GCCPUFraction Gauge
-	GCSys         Gauge
-	HeapAlloc     Gauge
-	HeapIdle      Gauge
-	HeapInuse     Gauge
-	HeapObjects   Gauge
-	HeapReleased  Gauge
-	HeapSys       Gauge
-	LastGC        Gauge
-	Lookups       Gauge
-	MCacheInuse   Gauge
-	MCacheSys     Gauge
-	MSpanInuse    Gauge
-	MSpanSys      Gauge
-	NextGC        Gauge
-	NumForcedGC   Gauge
-	NumGC         Gauge
-	OtherSys      Gauge
-	PauseTotalNs  Gauge
-	StackInuse    Gauge
-	StackSys      Gauge
+type (
+	Monitor struct {
+		Alloc         Gauge
+		TotalAlloc    Gauge
+		BuckHashSys   Gauge
+		Frees         Gauge
+		Mallocs       Gauge
+		Sys           Gauge
+		GCCPUFraction Gauge
+		GCSys         Gauge
+		HeapAlloc     Gauge
+		HeapIdle      Gauge
+		HeapInuse     Gauge
+		HeapObjects   Gauge
+		HeapReleased  Gauge
+		HeapSys       Gauge
+		LastGC        Gauge
+		Lookups       Gauge
+		MCacheInuse   Gauge
+		MCacheSys     Gauge
+		MSpanInuse    Gauge
+		MSpanSys      Gauge
+		NextGC        Gauge
+		NumForcedGC   Gauge
+		NumGC         Gauge
+		OtherSys      Gauge
+		PauseTotalNs  Gauge
+		StackInuse    Gauge
+		StackSys      Gauge
 
-	PollCount   Counter
-	RandomValue Gauge
-}
+		PollCount   Counter
+		RandomValue Gauge
+	}
+)
 
 func (m *Monitor) Init() {
 	m.Alloc = Gauge{Name: "Alloc", Value: 0}
@@ -86,4 +87,16 @@ type InitParams struct {
 	Restore             bool
 	DatabaseDSN         string
 	WaitSecRespDB       time.Duration
+}
+
+type InitParamsAgent struct {
+	URL              string
+	PORT             string
+	ReportInterval   int
+	PollInterval     int
+	ValidAddrPattern string
+	ReqInternal      int
+	StartReqInterval int
+	CountReqRetries  int
+	RepeatedReq      bool
 }

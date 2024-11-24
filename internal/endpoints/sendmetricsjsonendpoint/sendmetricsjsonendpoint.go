@@ -5,25 +5,41 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 )
 
-func SendMetricsJSONEndpoint(sendData *bytes.Reader, endp string, httpC *http.Client) (*http.Response, error) {
+const timeout = 5
+
+func SendMJSONEndpoint(
+	sendData *bytes.Reader, endp string, client *http.Client,
+) (*http.Response, error) {
 	const contentTypeSendMetric string = "application/json"
 
 	const encoding = "gzip"
 
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, endp, sendData)
+	ctx, cancel := context.WithTimeout(
+		context.Background(), time.Duration(timeout))
+
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodPost, endp, sendData)
 	if err != nil {
-		return nil, fmt.Errorf("SendMetricsJSONEndpoint->http.NewRequestWithContext: %w", err)
+		return nil,
+			fmt.Errorf(
+				"SendMJSONEndpoint->http.NewRequestWithContext: %w",
+				err)
 	}
 
 	req.Header.Set("Content-Encoding", encoding)
 	req.Header.Set("Accept-Encoding", encoding)
 	req.Header.Set("Content-Type", contentTypeSendMetric)
 
-	resp, err := httpC.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("SendMetricsJSONEndpoint->httpC.Do: %w", err)
+		return nil,
+			fmt.Errorf("SendMJSONEndpoint->client.Do: %w",
+				err)
 	}
 
 	return resp, nil

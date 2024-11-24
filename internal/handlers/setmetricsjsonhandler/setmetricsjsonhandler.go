@@ -21,7 +21,9 @@ const metrics string = "gauge|counter"
 
 var errGetReqDataJSON = errors.New("data is empty")
 
-func NewSetMetricsJSONHandler(serv service.Service) *SetMetricJSONHandler {
+func NewSetMsJSONHandler(
+	serv service.Service,
+) *SetMetricJSONHandler {
 	return &SetMetricJSONHandler{serv: serv}
 }
 
@@ -31,7 +33,9 @@ func DeSerialize(slice interface{}, r io.Reader) error {
 	return e.Decode(slice)
 }
 
-func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter, req *http.Request) {
+func (h *SetMetricJSONHandler) SetMetricsJSONHandler(
+	writer http.ResponseWriter, req *http.Request,
+) {
 	var gauges map[string]bizmodels.Gauge
 
 	var counters map[string]bizmodels.Counter
@@ -43,7 +47,8 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	err := getReqJSONData(req, gauges, counters)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->getReqJSONData: %w", err)
+		fmt.Println("SetMetricsJSONHandler->getReqJSONData: %w",
+			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -51,7 +56,9 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	err = addMetricToMemStore(h, gauges, counters)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->addMetricToMemStore: %w", err)
+		fmt.Println(
+			"SetMetricsJSONHandler->addMetricToMemStore: %w",
+			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -59,7 +66,8 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	marshal, err := formResponeBody(h)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->formResponeBody: %w", err)
+		fmt.Println("SetMetricsJSONHandler->formResponeBody: %w",
+			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -67,7 +75,8 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	metricsMarshall, err := json.Marshal(marshal)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->json.Marshal: %w", err)
+		fmt.Println("SetMetricsJSONHandler->json.Marshal: %w",
+			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -77,25 +86,34 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(writer http.ResponseWriter,
 
 	_, err = writer.Write(metricsMarshall)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->writer.Write: %w", err)
+		fmt.Println("SetMetricsJSONHandler->writer.Write: %w",
+			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 }
 
-func formResponeBody(handler *SetMetricJSONHandler) (*apimodels.ArrMetrics, error) {
+func formResponeBody(
+	handler *SetMetricJSONHandler,
+) (*apimodels.ArrMetrics, error) {
 	tmpGauges, err := handler.serv.GetAllGauges()
 	if err != nil {
-		return nil, fmt.Errorf("formResponeBody->handler.serv.GetAllGauges(): %w", err)
+		return nil,
+			fmt.Errorf("formResponeBody->GetAllGauges: %w",
+				err)
 	}
 
 	tmpCounters, err := handler.serv.GetAllCounters()
 	if err != nil {
-		return nil, fmt.Errorf("formResponeBody->handler.serv.GetAllCounters(): %w", err)
+		return nil,
+			fmt.Errorf("formResponeBody->GetAllCounters: %w",
+				err)
 	}
 
-	marshal := make(apimodels.ArrMetrics, 0, len(*tmpGauges)+len(*tmpCounters))
+	marshal := make(apimodels.ArrMetrics,
+		0,
+		len(*tmpGauges)+len(*tmpCounters))
 
 	for _, vmr := range *tmpGauges {
 		tmp := apimodels.Metrics{}
@@ -118,7 +136,10 @@ func formResponeBody(handler *SetMetricJSONHandler) (*apimodels.ArrMetrics, erro
 	return &marshal, nil
 }
 
-func getReqJSONData(req *http.Request, gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
+func getReqJSONData(req *http.Request,
+	gauges map[string]bizmodels.Gauge,
+	counters map[string]bizmodels.Counter,
+) error {
 	var results apimodels.ArrMetrics
 
 	/*err := DeSerialize(&result, req.Body)
@@ -142,7 +163,8 @@ func getReqJSONData(req *http.Request, gauges map[string]bizmodels.Gauge, counte
 
 	err = json.Unmarshal(bodyD, &results)
 	if err != nil {
-		return fmt.Errorf("getReqJSONData->json.Unmarshal: %w", err)
+		return fmt.Errorf("getReqJSONData->json.Unmarshal: %w",
+			err)
 	}
 
 	for _, res := range results {
@@ -155,7 +177,10 @@ func getReqJSONData(req *http.Request, gauges map[string]bizmodels.Gauge, counte
 	return nil
 }
 
-func addValidMetric(res *apimodels.Metrics, gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) {
+func addValidMetric(res *apimodels.Metrics,
+	gauges map[string]bizmodels.Gauge,
+	counters map[string]bizmodels.Counter,
+) {
 	if res.MType == "gauge" {
 		gauge := new(bizmodels.Gauge)
 
@@ -182,16 +207,23 @@ func addValidMetric(res *apimodels.Metrics, gauges map[string]bizmodels.Gauge, c
 	}
 }
 
-func addMetricToMemStore(handler *SetMetricJSONHandler, gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
+func addMetricToMemStore(
+	handler *SetMetricJSONHandler,
+	gauges map[string]bizmodels.Gauge,
+	counters map[string]bizmodels.Counter,
+) error {
 	err := handler.serv.AddMetrics(gauges, counters)
 	if err != nil {
-		return fmt.Errorf("addMetricToMemStore->handler.serv.AddMetrics: %w", err)
+		return fmt.Errorf("addMetricToMemStore->AddMetrics: %w",
+			err)
 	}
 
 	return nil
 }
 
-func isValidJSONMetric(r *http.Request, metric *apimodels.Metrics) bool {
+func isValidJSONMetric(
+	r *http.Request, metric *apimodels.Metrics,
+) bool {
 	if !validate.IsMethodPost(r.Method) {
 		return false
 	}

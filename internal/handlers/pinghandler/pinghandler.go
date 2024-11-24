@@ -14,18 +14,24 @@ type PingHandler struct {
 	params *bizmodels.InitParams
 }
 
-func NewPingHandler(serv service.Service, par *bizmodels.InitParams) *PingHandler {
+func NewPingHandler(
+	serv service.Service, par *bizmodels.InitParams,
+) *PingHandler {
 	return &PingHandler{serv: serv, params: par}
 }
 
-func (h *PingHandler) PingHandler(writer http.ResponseWriter, req *http.Request) {
-	ctx, cancel := context.WithTimeout(req.Context(), h.params.WaitSecRespDB)
+func (h *PingHandler) PingHandler(
+	writer http.ResponseWriter, req *http.Request,
+) {
+	ctx, cancel := context.WithTimeout(
+		req.Context(), h.params.WaitSecRespDB)
 
 	defer cancel()
 
 	conn, err := pgx.Connect(ctx, h.params.DatabaseDSN)
 	if err != nil {
-		// fmt.Fprintf(os.Stderr, "Unable to connect to database: %w\n", err)
+		// fmt.Fprintf(os.Stderr,
+		// "Unable to connect to database: %w\n", err)
 		writer.WriteHeader(http.StatusInternalServerError)
 
 		return

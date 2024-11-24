@@ -23,7 +23,9 @@ type ViewData struct {
 	Metrics map[string]string
 }
 
-func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Request) {
+func (h *DefaultHandler) DefaultHandler(
+	writer http.ResponseWriter, _ *http.Request,
+) {
 	mapMetrics := make(map[string]string)
 
 	counters, err := h.serv.GetAllCounters()
@@ -45,7 +47,8 @@ func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Requ
 	}
 
 	for key, value := range *gauges {
-		mapMetrics[key] = strconv.FormatFloat(value.Value, 'f', -1, 64)
+		mapMetrics[key] = strconv.FormatFloat(
+			value.Value, 'f', -1, 64)
 	}
 
 	data := ViewData{
@@ -60,12 +63,14 @@ func (h *DefaultHandler) DefaultHandler(writer http.ResponseWriter, _ *http.Requ
 		return
 	}
 
-	Root := filepath.Join(filepath.Dir(path), "../..")
+	Root := filepath.Join(filepath.Dir(path), "../../../")
 
-	tmpl, err := template.ParseFiles(Root + "/html/allMetricsTemplate.html")
+	tmpl, err := template.ParseFiles(
+		Root + "/web/template/allMetricsTemplate.html")
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		fmt.Println("DefaultHandler->template.ParseFiles: %w", err)
+		fmt.Println("DefaultHandler->template.ParseFiles: %w",
+			err)
 	} else {
 		writer.Header().Set("Content-Type", "text/html")
 		writer.WriteHeader(http.StatusOK)

@@ -4,17 +4,31 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 )
 
-func SendMetricEndpoint(ctx context.Context, endpoint string, httpC *http.Client) {
+const timeout = 5
+
+func SendMetricEndpoint(
+	endpoint string,
+	client *http.Client,
+) {
 	const contentTypeSendMetric string = "text/plain"
 
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
+	ctx, cancel := context.WithTimeout(
+		context.Background(), time.Duration(timeout))
+
+	defer cancel()
+
+	req, _ := http.NewRequestWithContext(
+		ctx, http.MethodPost,
+		endpoint,
+		nil)
 	req.Header.Set("Content-Type", contentTypeSendMetric)
 
-	resp, err := httpC.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("SendMetricEndpoint->httpC.Do: %w", err)
+		fmt.Println("SendMetricEndpoint->client.Do: %w", err)
 	}
 
 	defer resp.Body.Close()

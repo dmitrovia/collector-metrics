@@ -7,8 +7,11 @@ type Repository interface {
 	GetGaugeMetric(mname string) (*bizmodels.Gauge, error)
 	GetCounterMetric(mname string) (*bizmodels.Counter, error)
 	AddGauge(gauge *bizmodels.Gauge) error
-	AddCounter(counter *bizmodels.Counter) (*bizmodels.Counter, error)
+	AddCounter(
+		counter *bizmodels.Counter) (*bizmodels.Counter, error)
 	GetAllGauges() (*map[string]bizmodels.Gauge, error)
 	GetAllCounters() (*map[string]bizmodels.Counter, error)
-	AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error
+	AddMetrics(
+		gauges map[string]bizmodels.Gauge,
+		counters map[string]bizmodels.Counter) error
 }

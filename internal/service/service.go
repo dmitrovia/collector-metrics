@@ -11,44 +11,57 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/storage"
 )
 
-const fmode os.FileMode = 0o666
+const fmd os.FileMode = 0o666
 
 type Service interface {
 	AddGauge(mname string, mvalue float64) error
-	AddCounter(mname string, mvalue int64) (*bizmodels.Counter, error)
-	GetValueGaugeMetric(mname string) (float64, error)
-	GetValueCounterMetric(mname string) (int64, error)
-	SaveInFile(path string) error
-	LoadFromFile(path string) error
-	AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error
+	AddCounter(
+		mname string,
+		mvalue int64) (*bizmodels.Counter, error)
+	GetValueGM(mname string) (float64, error)
+	GetValueCM(mname string) (int64, error)
+	SaveInFile(pth string) error
+	LoadFromFile(pth string) error
+	AddMetrics(
+		gms map[string]bizmodels.Gauge,
+		cms map[string]bizmodels.Counter) error
 	GetAllGauges() (*map[string]bizmodels.Gauge, error)
 	GetAllCounters() (*map[string]bizmodels.Counter, error)
 }
 
-type DataService struct {
+type DS struct {
 	repository storage.Repository
 }
 
-func (s *DataService) GetAllGauges() (*map[string]bizmodels.Gauge, error) {
+func (s *DS) GetAllGauges() (
+	*map[string]bizmodels.Gauge, error,
+) {
 	gauges, err := s.repository.GetAllGauges()
 	if err != nil {
-		return nil, fmt.Errorf("GetAllGauges->s.repository.GetAllGauges: %w", err)
+		return nil, fmt.Errorf("GetAllGauges->GetAllGauges: %w",
+			err)
 	}
 
 	return gauges, nil
 }
 
-func (s *DataService) GetAllCounters() (*map[string]bizmodels.Counter, error) {
+func (s *DS) GetAllCounters() (
+	*map[string]bizmodels.Counter, error,
+) {
 	counters, err := s.repository.GetAllCounters()
 	if err != nil {
-		return nil, fmt.Errorf("GetAllGauges->s.repository.GetAllCounters: %w", err)
+		return nil, fmt.Errorf("GetAllGauges->GetAllCounters: %w",
+			err)
 	}
 
 	return counters, nil
 }
 
-func (s *DataService) AddMetrics(gauges map[string]bizmodels.Gauge, counters map[string]bizmodels.Counter) error {
-	err := s.repository.AddMetrics(gauges, counters)
+func (s *DS) AddMetrics(
+	gms map[string]bizmodels.Gauge,
+	cms map[string]bizmodels.Counter,
+) error {
+	err := s.repository.AddMetrics(gms, cms)
 	if err != nil {
 		return fmt.Errorf("DataService->AddMetrics: %w", err)
 	}
@@ -56,10 +69,10 @@ func (s *DataService) AddMetrics(gauges map[string]bizmodels.Gauge, counters map
 	return nil
 }
 
-func (s *DataService) SaveInFile(path string) error {
+func (s *DS) SaveInFile(pth string) error {
 	var reqMetric apimodels.Metrics
 
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, fmode)
+	file, err := os.OpenFile(pth, os.O_WRONLY|os.O_CREATE, fmd)
 	if err != nil {
 		return fmt.Errorf("SaveInFile->os.OpenFile: %w", err)
 	}
@@ -68,7 +81,8 @@ func (s *DataService) SaveInFile(path string) error {
 
 	counters, err := s.repository.GetAllCounters()
 	if err != nil {
-		return fmt.Errorf("SaveInFile->s.repository.GetAllCounters: %w", err)
+		return fmt.Errorf("SaveInFile->GetAllCounters: %w",
+			err)
 	}
 
 	for _, counter := range *counters {
@@ -92,7 +106,8 @@ func (s *DataService) SaveInFile(path string) error {
 
 	gauges, err := s.repository.GetAllGauges()
 	if err != nil {
-		return fmt.Errorf("SaveInFile->s.repository.GetAllGauges: %w", err)
+		return fmt.Errorf("SaveInFile->GetAllGauges: %w",
+			err)
 	}
 
 	for _, gauge := range *gauges {
@@ -117,8 +132,8 @@ func (s *DataService) SaveInFile(path string) error {
 	return nil
 }
 
-func (s *DataService) LoadFromFile(path string) error {
-	file, err := os.OpenFile(path, os.O_RDONLY|os.O_EXCL, fmode)
+func (s *DS) LoadFromFile(pth string) error {
+	file, err := os.OpenFile(pth, os.O_RDONLY|os.O_EXCL, fmd)
 	if err != nil {
 		return fmt.Errorf("LoadFromFile->os.OpenFile: %w", err)
 	}
@@ -128,22 +143,32 @@ func (s *DataService) LoadFromFile(path string) error {
 
 	for scanner.Scan() {
 		data := scanner.Bytes()
-		metric := apimodels.Metrics{}
+		tmpm := apimodels.Metrics{}
 
-		err = json.Unmarshal(data, &metric)
+		err = json.Unmarshal(data, &tmpm)
 		if err != nil {
 			return err
 		}
 
-		if metric.MType == "gauge" {
-			err := s.repository.AddGauge(&bizmodels.Gauge{Name: metric.ID, Value: *metric.Value})
-			if err != nil {
-				return fmt.Errorf("LoadFromFile->s.repository.AddGauge: %w", err)
+		if tmpm.MType == "gauge" {
+			gauge := bizmodels.Gauge{
+				Name:  tmpm.ID,
+				Value: *tmpm.Value,
 			}
-		} else if metric.MType == "counter" {
-			_, err := s.repository.AddCounter(&bizmodels.Counter{Name: metric.ID, Value: *metric.Delta})
+
+			err := s.repository.AddGauge(&gauge)
 			if err != nil {
-				return fmt.Errorf("LoadFromFile->s.repository.AddCounter: %w", err)
+				return fmt.Errorf("LoadFromFile->AddGauge: %w", err)
+			}
+		} else if tmpm.MType == "counter" {
+			counter := bizmodels.Counter{
+				Name:  tmpm.ID,
+				Value: *tmpm.Delta,
+			}
+
+			_, err := s.repository.AddCounter(&counter)
+			if err != nil {
+				return fmt.Errorf("LoadFromFile->AddCounter: %w", err)
 			}
 		}
 
@@ -155,42 +180,49 @@ func (s *DataService) LoadFromFile(path string) error {
 	return nil
 }
 
-func (s *DataService) AddGauge(mname string, mvalue float64) error {
-	err := s.repository.AddGauge(&bizmodels.Gauge{Name: mname, Value: mvalue})
+func (s *DS) AddGauge(mname string, mvalue float64) error {
+	gauge := bizmodels.Gauge{Name: mname, Value: mvalue}
+
+	err := s.repository.AddGauge(&gauge)
 	if err != nil {
-		return fmt.Errorf("AddGauge->s.repository.AddGauge %w", err)
+		return fmt.Errorf("AddGauge->AddGauge %w", err)
 	}
 
 	return nil
 }
 
-func (s *DataService) AddCounter(mname string, mvalue int64) (*bizmodels.Counter, error) {
-	res, err := s.repository.AddCounter(&bizmodels.Counter{Name: mname, Value: mvalue})
+func (s *DS) AddCounter(
+	n string,
+	v int64,
+) (*bizmodels.Counter, error) {
+	counter := bizmodels.Counter{Name: n, Value: v}
+
+	res, err := s.repository.AddCounter(&counter)
 	if err != nil {
-		return nil, fmt.Errorf("AddCounter->.repository.AddCounter %w", err)
+		return nil, fmt.Errorf("AddCounter->AddCounter %w", err)
 	}
 
 	return res, nil
 }
 
-func (s *DataService) GetValueGaugeMetric(mname string) (float64, error) {
+func (s *DS) GetValueGM(mname string) (float64, error) {
 	val, err := s.repository.GetGaugeMetric(mname)
 	if err != nil {
-		return 0, fmt.Errorf("GetValueGaugeMetric: %w", err)
+		return 0, fmt.Errorf("GetValueGM: %w", err)
 	}
 
 	return val.Value, nil
 }
 
-func (s *DataService) GetValueCounterMetric(mname string) (int64, error) {
+func (s *DS) GetValueCM(mname string) (int64, error) {
 	val, err := s.repository.GetCounterMetric(mname)
 	if err != nil {
-		return 0, fmt.Errorf("GetValueCounterMetric: %w", err)
+		return 0, fmt.Errorf("GetValueCM: %w", err)
 	}
 
 	return val.Value, nil
 }
 
-func NewMemoryService(repository storage.Repository) *DataService {
-	return &DataService{repository: repository}
+func NewMemoryService(repository storage.Repository) *DS {
+	return &DS{repository: repository}
 }

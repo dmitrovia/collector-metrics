@@ -27,7 +27,7 @@ linters-settings:
             desc: Should be replaced by standard lib errors package
 
   lll:
-    line-length: 140
+    line-length: 60
     tab-width: 1
 
   exhaustruct:

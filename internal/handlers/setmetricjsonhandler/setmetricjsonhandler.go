@@ -12,7 +12,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
 
-type SetMetricJSONHandler struct {
+type SetMJSONHandler struct {
 	serv service.Service
 }
 
@@ -27,28 +27,27 @@ type validMetric struct {
 	mvalueInt   int64
 }
 
-func NewSetMetricJSONHandler(serv service.Service) *SetMetricJSONHandler {
-	return &SetMetricJSONHandler{serv: serv}
+func NewSetMJH(s service.Service) *SetMJSONHandler {
+	return &SetMJSONHandler{serv: s}
 }
 
-func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, req *http.Request) {
-	var valm *validMetric
-
-	dataMarshal := apimodels.Metrics{}
-
-	valm = new(validMetric)
+func (h *SetMJSONHandler) SetMJSONHandler(
+	writer http.ResponseWriter,
+	req *http.Request,
+) {
+	valm := new(validMetric)
 
 	writer.Header().Set("Content-Type", "application/json")
 
 	err := getReqJSONData(req, valm)
 	if err != nil {
-		fmt.Println("SetMetricJSONHandler->getReqJSONData: %w", err)
+		fmt.Println("SetMJSONHandler->getReqJSONData: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	isValid, status := isValidJSONMetric(req, valm)
+	isValid, status := isValidM(req, valm)
 	if !isValid {
 		writer.WriteHeader(status)
 
@@ -57,13 +56,36 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 
 	err = addMetricToMemStore(h, valm)
 	if err != nil {
-		fmt.Println("SetMetricJSONHandler->addMetricToMemStore: %w", err)
+		fmt.Println("SetMJSONHandler->addMetricToMemStore: %w",
+			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
 	writer.WriteHeader(status)
+
+	dataMarshal := formResponeBody(valm)
+
+	metricMarshall, err := json.Marshal(dataMarshal)
+	if err != nil {
+		fmt.Println("SetMJSONHandler->json.Marshal: %w", err)
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+
+	_, err = writer.Write(metricMarshall)
+	if err != nil {
+		fmt.Println("SetMJSONHandler->writer.Write: %w", err)
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return
+	}
+}
+
+func formResponeBody(valm *validMetric) *apimodels.Metrics {
+	dataMarshal := apimodels.Metrics{}
 
 	dataMarshal.ID = valm.mname
 	dataMarshal.MType = valm.mtype
@@ -76,24 +98,13 @@ func (h *SetMetricJSONHandler) SetMetricJSONHandler(writer http.ResponseWriter, 
 		dataMarshal.Value = &valm.mvalueFloat
 	}
 
-	metricMarshall, err := json.Marshal(dataMarshal)
-	if err != nil {
-		fmt.Println("SetMetricJSONHandler->json.Marshal: %w", err)
-		writer.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
-
-	_, err = writer.Write(metricMarshall)
-	if err != nil {
-		fmt.Println("SetMetricJSONHandler->writer.Write: %w", err)
-		writer.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
+	return &dataMarshal
 }
 
-func getReqJSONData(req *http.Request, metric *validMetric) error {
+func getReqJSONData(
+	req *http.Request,
+	metric *validMetric,
+) error {
 	var result apimodels.Metrics
 
 	bodyD, err := io.ReadAll(req.Body)
@@ -128,16 +139,22 @@ func getReqJSONData(req *http.Request, metric *validMetric) error {
 	return nil
 }
 
-func addMetricToMemStore(handler *SetMetricJSONHandler, vmet *validMetric) error {
+func addMetricToMemStore(
+	handler *SetMJSONHandler,
+	vmet *validMetric,
+) error {
 	if vmet.mtype == "gauge" {
 		err := handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
 		if err != nil {
-			return fmt.Errorf("addMetricToMemStore->handler.serv.AddGauge: %w", err)
+			return fmt.Errorf("addMetricToMemStore->AddGauge: %w",
+				err)
 		}
 	} else if vmet.mtype == "counter" {
-		res, err := handler.serv.AddCounter(vmet.mname, vmet.mvalueInt)
+		res, err := handler.serv.AddCounter(
+			vmet.mname, vmet.mvalueInt)
 		if err != nil {
-			return fmt.Errorf("addMetricToMemStore->handler.serv.AddCounter: %w", err)
+			return fmt.Errorf("addMetricToMemStore->AddCounter: %w",
+				err)
 		}
 
 		vmet.mvalueInt = res.Value
@@ -146,7 +163,9 @@ func addMetricToMemStore(handler *SetMetricJSONHandler, vmet *validMetric) error
 	return nil
 }
 
-func isValidJSONMetric(r *http.Request, metric *validMetric) (bool, int) {
+func isValidM(r *http.Request,
+	metric *validMetric,
+) (bool, int) {
 	if !validate.IsMethodPost(r.Method) {
 		return false, http.StatusMethodNotAllowed
 	}

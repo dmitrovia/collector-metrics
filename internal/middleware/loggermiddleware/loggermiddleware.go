@@ -24,10 +24,13 @@ type ResponseWriter interface {
 	WriteHeader(statusCode int)
 }
 
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
+func (r *loggingResponseWriter) Write(
+	b []byte,
+) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	if err != nil {
-		return 0, fmt.Errorf("loggingResponseWriterWrite: %w", err)
+		return 0, fmt.Errorf("loggingResponseWriterWrite: %w",
+			err)
 	}
 
 	r.responseData.size += size
@@ -35,14 +38,20 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, nil
 }
 
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
+func (r *loggingResponseWriter) WriteHeader(
+	statusCode int,
+) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }
 
-func RequestLogger(zapLogger *zap.Logger) func(http.Handler) http.Handler {
+func RequestLogger(
+	zapLogger *zap.Logger,
+) func(http.Handler) http.Handler {
 	handler := func(hand http.Handler) http.Handler {
-		logFn := func(writer http.ResponseWriter, req *http.Request) {
+		logFn := func(writer http.ResponseWriter,
+			req *http.Request,
+		) {
 			start := time.Now()
 
 			responseData := &responseData{
