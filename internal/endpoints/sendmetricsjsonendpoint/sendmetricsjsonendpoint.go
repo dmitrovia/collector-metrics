@@ -1,29 +1,26 @@
 package sendmetricsjsonendpoint
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
 
 const timeout = 60
 
 func SendMJSONEndpoint(
-	sendData *bytes.Reader, endp string, client *http.Client,
+	epSettings *bizmodels.EndpointSettings,
 ) (*http.Response, error) {
-	const contentTypeSendMetric string = "application/json"
-
-	const encoding = "gzip"
-
 	ctx, cancel := context.WithTimeout(
 		context.Background(), timeout*time.Second)
 
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(
-		ctx, http.MethodPost, endp, sendData)
+		ctx, http.MethodPost, epSettings.URL, epSettings.SendData)
 	if err != nil {
 		return nil,
 			fmt.Errorf(
@@ -31,11 +28,15 @@ func SendMJSONEndpoint(
 				err)
 	}
 
-	req.Header.Set("Content-Encoding", encoding)
-	req.Header.Set("Accept-Encoding", encoding)
-	req.Header.Set("Content-Type", contentTypeSendMetric)
+	req.Header.Set("Content-Encoding", epSettings.Encoding)
+	req.Header.Set("Accept-Encoding", epSettings.Encoding)
+	req.Header.Set("Content-Type", epSettings.ContentType)
 
-	resp, err := client.Do(req)
+	if epSettings.Hash != "" {
+		req.Header.Set("Hashsha256", epSettings.Hash)
+	}
+
+	resp, err := epSettings.Client.Do(req)
 	if err != nil {
 		return nil,
 			fmt.Errorf("SendMJSONEndpoint->client.Do: %w",

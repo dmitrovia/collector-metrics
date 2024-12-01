@@ -1,6 +1,10 @@
 package bizmodels
 
-import "time"
+import (
+	"bytes"
+	"net/http"
+	"time"
+)
 
 type Gauge struct {
 	Name  string
@@ -87,6 +91,7 @@ type InitParams struct {
 	Restore             bool
 	DatabaseDSN         string
 	WaitSecRespDB       time.Duration
+	Key                 string
 }
 
 type InitParamsAgent struct {
@@ -99,4 +104,14 @@ type InitParamsAgent struct {
 	StartReqInterval int
 	CountReqRetries  int
 	RepeatedReq      bool
+	Key              string
+}
+
+type EndpointSettings struct {
+	SendData    *bytes.Reader
+	URL         string
+	Client      *http.Client
+	Hash        string
+	Encoding    string
+	ContentType string
 }

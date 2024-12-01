@@ -64,6 +64,8 @@ const zapLogLevel = "info"
 
 const defPostgreConnURL = ""
 
+const defKeyHashSha256 = "defaultKey"
+
 //go:embed db/migrations/*.sql
 var MigrationsFS embed.FS
 
@@ -215,6 +217,9 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	flag.StringVar(&par.FileStoragePath,
 		"f", temp, "Directory for saving metrics.")
 
+	flag.StringVar(&par.Key,
+		"k", defKeyHashSha256,
+		"key for signatures for the SHA256 algorithm.")
 	flag.StringVar(&par.DatabaseDSN,
 		"d", defPostgreConnURL, "database connection address.")
 	flag.BoolVar(&par.Restore,
@@ -236,7 +241,7 @@ func InitiateServer(
 ) {
 	mux := mux.NewRouter()
 
-	initPostMethods(mux, mser, zapLogger)
+	initPostMethods(mux, mser, zapLogger, par)
 	initGetMethods(mux, mser, zapLogger, par)
 
 	*server = http.Server{
@@ -290,10 +295,12 @@ func initPostMethods(
 	mux *mux.Router,
 	dse *service.DS,
 	zapLogger *zap.Logger,
+	par *bizmodels.InitParams,
 ) {
 	hSet := setmetrichandler.NewSetMetricHandler(dse)
 	hJSONSet := setmetricjsonhandler.NewSetMJH(dse)
-	hJSONSets := setmetricsjsonhandler.NewSetMsJSONHandler(dse)
+	hJSONSets := setmetricsjsonhandler.NewSetMsJSONHandler(
+		dse, par)
 	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(dse)
 
 	setMMux := mux.Methods(http.MethodPost).Subrouter()
@@ -320,7 +327,8 @@ func initPostMethods(
 	setMsJSONMux.HandleFunc(
 		"/updates/",
 		hJSONSets.SetMetricsJSONHandler)
-	setMsJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
+	setMsJSONMux.Use(
+		gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 }
 
@@ -361,6 +369,11 @@ func setInitParams(params *bizmodels.InitParams) error {
 
 	envRA := os.Getenv("ADDRESS")
 	envSI := os.Getenv("STORE_INTERVAL")
+	key := os.Getenv("KEY")
+
+	if key != "" {
+		params.Key = key
+	}
 
 	if envRA != "" {
 		params.PORT = envRA

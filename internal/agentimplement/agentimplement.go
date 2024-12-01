@@ -2,6 +2,7 @@ package agentimplement
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/dmitrovia/collector-metrics/internal/endpoints/sendmetricsjsonendpoint"
 	"github.com/dmitrovia/collector-metrics/internal/functions/compress"
+	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
@@ -24,6 +26,8 @@ import (
 )
 
 const defPORT string = "localhost:8080"
+
+const defKeyHashSha256 = "defaultKey"
 
 const defPollInterval int = 2
 
@@ -98,19 +102,26 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	gauges *[]bizmodels.Gauge,
 	counters *map[string]bizmodels.Counter,
 ) {
-	req, err := initReqData(gauges, counters)
+	settings := new(bizmodels.EndpointSettings)
+	settings.Client = client
+	settings.ContentType = "application/json"
+	settings.Encoding = "gzip"
+	settings.URL = par.URL + "/updates/"
+
+	req, err := initReqData(gauges, counters, settings, par)
 	if err != nil {
 		fmt.Println("reqMetricsJSON->initReqData: %w", err)
 
 		return
 	}
 
+	settings.SendData = req
+
 	sInterval := par.StartReqInterval
 
 	for iter := 1; iter <= par.CountReqRetries; iter++ {
 		resp, err := sendmetricsjsonendpoint.SendMJSONEndpoint(
-			req, par.URL+"/updates/",
-			client)
+			settings)
 		if err != nil {
 			par.RepeatedReq = true
 
@@ -145,6 +156,8 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 
 func initReqData(gauges *[]bizmodels.Gauge,
 	counters *map[string]bizmodels.Counter,
+	settings *bizmodels.EndpointSettings,
+	params *bizmodels.InitParamsAgent,
 ) (*bytes.Reader, error) {
 	dataMarshal := getDataSend(gauges, counters)
 
@@ -158,6 +171,19 @@ func initReqData(gauges *[]bizmodels.Gauge,
 	if err != nil {
 		return nil, fmt.Errorf("initReqData->DeflateCompress: %w",
 			err)
+	}
+
+	if params.Key != "" {
+		tHash, err := hash.MakeHashSHA256(&metricMarshall,
+			params.Key)
+		if err != nil {
+			return nil, fmt.Errorf("initReqData->MakeHashSHA256: %w",
+				err)
+		}
+
+		encodedStr := hex.EncodeToString(tHash)
+
+		settings.Hash = encodedStr
 	}
 
 	return bytes.NewReader(metricCompress), nil
@@ -247,6 +273,11 @@ func Initialization(params *bizmodels.InitParamsAgent,
 func getENV(params *bizmodels.InitParamsAgent) error {
 	var err error
 
+	key := os.Getenv("KEY")
+	if key != "" {
+		params.Key = key
+	}
+
 	envRunAddr := os.Getenv("ADDRESS")
 
 	if envRunAddr != "" {
@@ -290,6 +321,9 @@ func getENV(params *bizmodels.InitParamsAgent) error {
 func parseFlags(params *bizmodels.InitParamsAgent) error {
 	var err error
 
+	flag.StringVar(&params.Key,
+		"k", defKeyHashSha256,
+		"key for signatures for the SHA256 algorithm.")
 	flag.StringVar(&params.PORT,
 		"a",
 		defPORT,

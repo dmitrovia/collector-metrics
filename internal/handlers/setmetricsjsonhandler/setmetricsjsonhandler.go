@@ -1,12 +1,15 @@
 package setmetricsjsonhandler
 
 import (
+	"crypto/hmac"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
@@ -14,17 +17,21 @@ import (
 )
 
 type SetMetricJSONHandler struct {
-	serv service.Service
+	serv   service.Service
+	params *bizmodels.InitParams
 }
 
 const metrics string = "gauge|counter"
 
 var errGetReqDataJSON = errors.New("data is empty")
 
+var errHashDoesNotMatch = errors.New("hash does not match")
+
 func NewSetMsJSONHandler(
 	serv service.Service,
+	par *bizmodels.InitParams,
 ) *SetMetricJSONHandler {
-	return &SetMetricJSONHandler{serv: serv}
+	return &SetMetricJSONHandler{serv: serv, params: par}
 }
 
 func DeSerialize(slice interface{}, r io.Reader) error {
@@ -36,16 +43,14 @@ func DeSerialize(slice interface{}, r io.Reader) error {
 func (h *SetMetricJSONHandler) SetMetricsJSONHandler(
 	writer http.ResponseWriter, req *http.Request,
 ) {
-	var gauges map[string]bizmodels.Gauge
-
-	var counters map[string]bizmodels.Counter
-
 	writer.Header().Set("Content-Type", "application/json")
 
-	gauges = make(map[string]bizmodels.Gauge)
-	counters = make(map[string]bizmodels.Counter)
+	gauges := make(map[string]bizmodels.Gauge)
+	counters := make(map[string]bizmodels.Counter)
 
-	err := getReqJSONData(req, gauges, counters)
+	writer.WriteHeader(http.StatusOK)
+
+	err := getReqJSONData(req, gauges, counters, h.params)
 	if err != nil {
 		fmt.Println("SetMetricsJSONHandler->getReqJSONData: %w",
 			err)
@@ -73,18 +78,16 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(
 		return
 	}
 
-	metricsMarshall, err := json.Marshal(marshal)
+	err = addHash(writer, marshal, h.params.Key)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->json.Marshal: %w",
+		fmt.Println("SetMetricsJSONHandler->addHash: %w",
 			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	writer.WriteHeader(http.StatusOK)
-
-	_, err = writer.Write(metricsMarshall)
+	_, err = writer.Write(*marshal)
 	if err != nil {
 		fmt.Println("SetMetricsJSONHandler->writer.Write: %w",
 			err)
@@ -96,7 +99,7 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(
 
 func formResponeBody(
 	handler *SetMetricJSONHandler,
-) (*apimodels.ArrMetrics, error) {
+) (*[]byte, error) {
 	tmpGauges, err := handler.serv.GetAllGauges()
 	if err != nil {
 		return nil,
@@ -133,20 +136,22 @@ func formResponeBody(
 		marshal = append(marshal, tmp)
 	}
 
-	return &marshal, nil
+	metricsMarshall, err := json.Marshal(marshal)
+	if err != nil {
+		return nil,
+			fmt.Errorf("formResponeBody->Marshal: %w",
+				err)
+	}
+
+	return &metricsMarshall, nil
 }
 
 func getReqJSONData(req *http.Request,
 	gauges map[string]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
+	params *bizmodels.InitParams,
 ) error {
 	var results apimodels.ArrMetrics
-
-	/*err := DeSerialize(&result, req.Body)
-	if err != nil {
-		return fmt.Errorf("getReqJSONData->DeSerialize: %w", err)
-	}
-	defer req.Body.Close()*/
 
 	bodyD, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -156,6 +161,13 @@ func getReqJSONData(req *http.Request,
 	}
 
 	defer req.Body.Close()
+
+	err = checkHash(&bodyD,
+		req.Header.Get("Hashsha256"), params.Key)
+	if err != nil {
+		return fmt.Errorf("getReqJSONData->checkHash: %w",
+			err)
+	}
 
 	if len(bodyD) == 0 {
 		return fmt.Errorf("getReqJSONData: %w", errGetReqDataJSON)
@@ -173,6 +185,53 @@ func getReqJSONData(req *http.Request,
 			addValidMetric(&res, gauges, counters)
 		}
 	}
+
+	return nil
+}
+
+func checkHash(dataReq *[]byte,
+	hashReq string,
+	key string,
+) error {
+	if key == "" || hashReq == "" {
+		return nil
+	}
+
+	tHash, err := hash.MakeHashSHA256(dataReq,
+		key)
+	if err != nil {
+		return fmt.Errorf("checkHash->MakeHashSHA256: %w",
+			err)
+	}
+
+	decoded, err := hex.DecodeString(hashReq)
+	if err != nil {
+		return fmt.Errorf("checkHash->DecodeString: %w",
+			err)
+	}
+
+	if !hmac.Equal(tHash, decoded) {
+		return errHashDoesNotMatch
+	}
+
+	return nil
+}
+
+func addHash(writer http.ResponseWriter,
+	dataResp *[]byte, key string,
+) error {
+	if key == "" {
+		return nil
+	}
+
+	tHash, err := hash.MakeHashSHA256(dataResp,
+		key)
+	if err != nil {
+		return fmt.Errorf("addHash->MakeHashSHA256: %w",
+			err)
+	}
+
+	writer.Header().Set("Hashsha256", string(tHash))
 
 	return nil
 }
