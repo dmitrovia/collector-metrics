@@ -23,9 +23,13 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 const defPORT string = "localhost:8080"
+
+const validAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
 const defKeyHashSha256 = "defaultKey"
 
@@ -33,7 +37,9 @@ const defPollInterval int = 2
 
 const defReportInterval int = 10
 
-const metricGaugeCount int = 27
+const metricGaugeCount int = 30
+
+const defCountJobs int = 3
 
 var errGetENV = errors.New(
 	"REPORT_INTERVAL failed converting to int")
@@ -41,17 +47,37 @@ var errGetENV = errors.New(
 var errGetENV1 = errors.New(
 	"POLL_INTERVAL failed converting to int")
 
+var errGetENV2 = errors.New(
+	"RATE_LIMIT failed converting to int")
+
 var errParseFlags = errors.New("addr is not valid")
 
 var errResponse = errors.New("error response")
 
-func Collect(mod *bizmodels.Monitor,
-	par *bizmodels.InitParamsAgent,
+func worker(jobs <-chan bizmodels.JobData) {
+	for event := range jobs {
+		switch event.Event {
+		case "setValuesMonitor":
+			fmt.Println(event)
+			setValuesMonitor(event.Mon, event.Mutex)
+		case "setMonitorFromGoPsUtil":
+			fmt.Println(event)
+			setMonitorFromGoPsUtil(event.Mon, event.Mutex)
+		case "reqMetricsJSON":
+			fmt.Println(event)
+			reqMetricsJSON(event.Par, event.Client, event.Mon)
+		}
+	}
+}
+
+func Collect(par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
-	gauges *[]bizmodels.Gauge,
-	cnts *map[string]bizmodels.Counter,
+	mon *bizmodels.Monitor,
+	jobs chan bizmodels.JobData,
 ) {
 	defer wg.Done()
+
+	var mutex sync.Mutex
 
 	channelCancel := make(chan os.Signal, 1)
 	signal.Notify(channelCancel,
@@ -65,7 +91,22 @@ func Collect(mod *bizmodels.Monitor,
 			return
 		case <-time.After(
 			time.Duration(par.PollInterval) * time.Second):
-			setValuesMonitor(mod, gauges, cnts)
+			dataChan := new(bizmodels.JobData)
+			dataChan.Event = "setValuesMonitor"
+			dataChan.Mutex = &mutex
+			dataChan.Mon = mon
+
+			jobs <- *dataChan
+			go worker(jobs)
+
+			dataChan1 := new(bizmodels.JobData)
+			dataChan1.Event = "setMonitorFromGoPsUtil"
+			dataChan1.Mutex = &mutex
+			dataChan1.Mon = mon
+
+			jobs <- *dataChan1
+
+			go worker(jobs)
 		}
 	}
 }
@@ -73,8 +114,8 @@ func Collect(mod *bizmodels.Monitor,
 func Send(par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
 	client *http.Client,
-	gauges *[]bizmodels.Gauge,
-	counters *map[string]bizmodels.Counter,
+	mon *bizmodels.Monitor,
+	jobs chan bizmodels.JobData,
 ) {
 	defer wg.Done()
 
@@ -91,24 +132,77 @@ func Send(par *bizmodels.InitParamsAgent,
 		case <-time.After(
 			time.Duration(par.ReportInterval) * time.Second):
 			if !par.RepeatedReq {
-				go reqMetricsJSON(par, client, gauges, counters)
+				dataChan := new(bizmodels.JobData)
+				dataChan.Event = "reqMetricsJSON"
+				dataChan.Mon = mon
+				dataChan.Par = par
+				dataChan.Client = client
+
+				jobs <- *dataChan
+				go worker(jobs)
 			}
 		}
 	}
 }
 
+func fillMetrics(mon *bizmodels.Monitor,
+	gauges *[]bizmodels.Gauge,
+	counters map[string]bizmodels.Counter,
+) {
+	counters["PollCount"] = mon.PollCount
+
+	*gauges = append(
+		*gauges,
+		mon.TotalMemory,
+		mon.FreeMemory,
+		mon.CPUutilization1,
+		mon.Alloc,
+		mon.BuckHashSys,
+		mon.Frees,
+		mon.GCCPUFraction,
+		mon.GCSys,
+		mon.HeapAlloc,
+		mon.HeapIdle,
+		mon.HeapInuse,
+		mon.HeapObjects,
+		mon.HeapReleased,
+		mon.HeapSys,
+		mon.LastGC,
+		mon.Lookups,
+		mon.MCacheInuse,
+		mon.MCacheInuse,
+		mon.MCacheSys,
+		mon.MSpanInuse,
+		mon.MSpanSys,
+		mon.Mallocs,
+		mon.NextGC,
+		mon.NumForcedGC,
+		mon.NumGC,
+		mon.OtherSys,
+		mon.PauseTotalNs,
+		mon.StackInuse,
+		mon.StackSys,
+		mon.Sys,
+		mon.TotalAlloc,
+		mon.RandomValue)
+}
+
 func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	client *http.Client,
-	gauges *[]bizmodels.Gauge,
-	counters *map[string]bizmodels.Counter,
+	mon *bizmodels.Monitor,
 ) {
+	gauges := make([]bizmodels.Gauge, 0, metricGaugeCount)
+	counters := make(map[string]bizmodels.Counter, 1)
+
+	fillMetrics(mon, &gauges, counters)
+
 	settings := new(bizmodels.EndpointSettings)
 	settings.Client = client
 	settings.ContentType = "application/json"
 	settings.Encoding = "gzip"
 	settings.URL = par.URL + "/updates/"
 
-	req, err := initReqData(gauges, counters, settings, par)
+	req, err := initReqData(&gauges, &counters, settings, par)
 	if err != nil {
 		fmt.Println("reqMetricsJSON->initReqData: %w", err)
 
@@ -251,9 +345,13 @@ func Initialization(params *bizmodels.InitParamsAgent,
 	params.StartReqInterval = 1
 	params.CountReqRetries = 3
 	params.RepeatedReq = false
-	params.ValidAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
 	err = parseFlags(params)
+	if err != nil {
+		return err
+	}
+
+	err = getIntervalsEnv(params)
 	if err != nil {
 		return err
 	}
@@ -270,19 +368,45 @@ func Initialization(params *bizmodels.InitParamsAgent,
 	return err
 }
 
-func getENV(params *bizmodels.InitParamsAgent) error {
-	var err error
+func getIntervalsEnv(
+	params *bizmodels.InitParamsAgent,
+) error {
+	envReportInterval := os.Getenv("REPORT_INTERVAL")
+	envPollInterval := os.Getenv("POLL_INTERVAL")
 
+	if envReportInterval != "" {
+		value, err := strconv.Atoi(envReportInterval)
+		if err != nil {
+			return errGetENV
+		}
+
+		params.ReportInterval = value
+	}
+
+	if envPollInterval != "" {
+		value, err := strconv.Atoi(envPollInterval)
+		if err != nil {
+			return errGetENV1
+		}
+
+		params.PollInterval = value
+	}
+
+	return nil
+}
+
+func getENV(params *bizmodels.InitParamsAgent) error {
 	key := os.Getenv("KEY")
+	envRunAddr := os.Getenv("ADDRESS")
+	envRateLimit := os.Getenv("RATE_LIMIT")
+
 	if key != "" {
 		params.Key = key
 	}
 
-	envRunAddr := os.Getenv("ADDRESS")
-
 	if envRunAddr != "" {
 		res, err := validate.IsMatchesTemplate(envRunAddr,
-			params.ValidAddrPattern)
+			validAddrPattern)
 		if err != nil {
 			return fmt.Errorf("getENV: %w", err)
 		}
@@ -294,28 +418,16 @@ func getENV(params *bizmodels.InitParamsAgent) error {
 		params.PORT = envRunAddr
 	}
 
-	envReportInterval := os.Getenv("REPORT_INTERVAL")
-
-	if envReportInterval != "" {
-		value, err := strconv.Atoi(envReportInterval)
+	if envRateLimit != "" {
+		value, err := strconv.Atoi(envRateLimit)
 		if err != nil {
-			return errGetENV
+			return errGetENV2
 		}
 
-		params.ReportInterval = value
+		params.RateLimit = value
 	}
 
-	envPollInterval := os.Getenv("POLL_INTERVAL")
-	if envPollInterval != "" {
-		value, err := strconv.Atoi(envPollInterval)
-		if err != nil {
-			return errGetENV1
-		}
-
-		params.PollInterval = value
-	}
-
-	return err
+	return nil
 }
 
 func parseFlags(params *bizmodels.InitParamsAgent) error {
@@ -332,13 +444,17 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 		"p",
 		defPollInterval,
 		"Frequency of sending metrics to the server.")
+	flag.IntVar(&params.RateLimit,
+		"l",
+		defCountJobs,
+		"maximum number of goroutines.")
 	flag.IntVar(&params.ReportInterval,
 		"r", defReportInterval,
 		"Frequency of polling metrics from the runtime package.")
 	flag.Parse()
 
 	res, err := validate.IsMatchesTemplate(params.PORT,
-		params.ValidAddrPattern)
+		validAddrPattern)
 
 	if err != nil && !res {
 		return errParseFlags
@@ -347,12 +463,29 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	return nil
 }
 
+func setMonitorFromGoPsUtil(mon *bizmodels.Monitor,
+	mutex *sync.Mutex,
+) {
+	virtMem, _ := mem.VirtualMemory()
+
+	cores, _ := cpu.Info()
+
+	mutex.Lock()
+	mon.TotalMemory.Value = float64(virtMem.Total)
+	mon.FreeMemory.Value = float64(virtMem.Free)
+
+	for _, core := range cores {
+		mon.CPUutilization1.Value += float64(core.CPU)
+	}
+	mutex.Unlock()
+}
+
 func setValuesMonitor(mon *bizmodels.Monitor,
-	gauges *[]bizmodels.Gauge,
-	counters *map[string]bizmodels.Counter,
+	mutex *sync.Mutex,
 ) {
 	const maxRandomValue int64 = 1000
 
+	mutex.Lock()
 	writeFromMemory(mon)
 
 	mon.PollCount.Value++
@@ -360,44 +493,8 @@ func setValuesMonitor(mon *bizmodels.Monitor,
 	tmpCounters := make(map[string]bizmodels.Counter, 1)
 	tmpCounters["PollCount"] = mon.PollCount
 
-	tmpGauges := make([]bizmodels.Gauge, 0, metricGaugeCount)
-
 	mon.RandomValue.Value = random.RandF64(maxRandomValue)
-
-	tmpGauges = append(
-		tmpGauges,
-		mon.Alloc,
-		mon.BuckHashSys,
-		mon.Frees,
-		mon.GCCPUFraction,
-		mon.GCSys,
-		mon.HeapAlloc,
-		mon.HeapIdle,
-		mon.HeapInuse,
-		mon.HeapObjects,
-		mon.HeapReleased,
-		mon.HeapSys,
-		mon.LastGC,
-		mon.Lookups,
-		mon.MCacheInuse,
-		mon.MCacheInuse,
-		mon.MCacheSys,
-		mon.MSpanInuse,
-		mon.MSpanSys,
-		mon.Mallocs,
-		mon.NextGC,
-		mon.NumForcedGC,
-		mon.NumGC,
-		mon.OtherSys,
-		mon.PauseTotalNs,
-		mon.StackInuse,
-		mon.StackSys,
-		mon.Sys,
-		mon.TotalAlloc,
-		mon.RandomValue)
-
-	*gauges = tmpGauges
-	*counters = tmpCounters
+	mutex.Unlock()
 }
 
 func writeFromMemory(mon *bizmodels.Monitor) {

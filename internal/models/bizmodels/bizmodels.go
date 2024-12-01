@@ -3,6 +3,7 @@ package bizmodels
 import (
 	"bytes"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -17,33 +18,36 @@ type Counter struct {
 
 type (
 	Monitor struct {
-		Alloc         Gauge
-		TotalAlloc    Gauge
-		BuckHashSys   Gauge
-		Frees         Gauge
-		Mallocs       Gauge
-		Sys           Gauge
-		GCCPUFraction Gauge
-		GCSys         Gauge
-		HeapAlloc     Gauge
-		HeapIdle      Gauge
-		HeapInuse     Gauge
-		HeapObjects   Gauge
-		HeapReleased  Gauge
-		HeapSys       Gauge
-		LastGC        Gauge
-		Lookups       Gauge
-		MCacheInuse   Gauge
-		MCacheSys     Gauge
-		MSpanInuse    Gauge
-		MSpanSys      Gauge
-		NextGC        Gauge
-		NumForcedGC   Gauge
-		NumGC         Gauge
-		OtherSys      Gauge
-		PauseTotalNs  Gauge
-		StackInuse    Gauge
-		StackSys      Gauge
+		Alloc           Gauge
+		TotalAlloc      Gauge
+		BuckHashSys     Gauge
+		Frees           Gauge
+		Mallocs         Gauge
+		Sys             Gauge
+		GCCPUFraction   Gauge
+		GCSys           Gauge
+		HeapAlloc       Gauge
+		HeapIdle        Gauge
+		HeapInuse       Gauge
+		HeapObjects     Gauge
+		HeapReleased    Gauge
+		HeapSys         Gauge
+		LastGC          Gauge
+		Lookups         Gauge
+		MCacheInuse     Gauge
+		MCacheSys       Gauge
+		MSpanInuse      Gauge
+		MSpanSys        Gauge
+		NextGC          Gauge
+		NumForcedGC     Gauge
+		NumGC           Gauge
+		OtherSys        Gauge
+		PauseTotalNs    Gauge
+		StackInuse      Gauge
+		StackSys        Gauge
+		TotalMemory     Gauge
+		FreeMemory      Gauge
+		CPUutilization1 Gauge
 
 		PollCount   Counter
 		RandomValue Gauge
@@ -51,6 +55,10 @@ type (
 )
 
 func (m *Monitor) Init() {
+	m.Alloc = Gauge{Name: "TotalMemory", Value: 0}
+	m.BuckHashSys = Gauge{Name: "FreeMemory", Value: 0}
+	m.Frees = Gauge{Name: "CPUutilization1", Value: 0}
+
 	m.Alloc = Gauge{Name: "Alloc", Value: 0}
 	m.BuckHashSys = Gauge{Name: "BuckHashSys", Value: 0}
 	m.Frees = Gauge{Name: "Frees", Value: 0}
@@ -99,12 +107,12 @@ type InitParamsAgent struct {
 	PORT             string
 	ReportInterval   int
 	PollInterval     int
-	ValidAddrPattern string
 	ReqInternal      int
 	StartReqInterval int
 	CountReqRetries  int
 	RepeatedReq      bool
 	Key              string
+	RateLimit        int
 }
 
 type EndpointSettings struct {
@@ -114,4 +122,12 @@ type EndpointSettings struct {
 	Hash        string
 	Encoding    string
 	ContentType string
+}
+
+type JobData struct {
+	Event  string
+	Mutex  *sync.Mutex
+	Par    *InitParamsAgent
+	Client *http.Client
+	Mon    *Monitor
 }

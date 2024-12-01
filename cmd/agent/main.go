@@ -14,8 +14,6 @@ func main() {
 	waitGroup := new(sync.WaitGroup)
 	monitor := new(bizmodels.Monitor)
 	client := new(http.Client)
-	gauges := new([]bizmodels.Gauge)
-	counters := new(map[string]bizmodels.Counter)
 	params := new(bizmodels.InitParamsAgent)
 
 	err := agentimplement.Initialization(
@@ -29,12 +27,15 @@ func main() {
 
 	waitGroup.Add(1)
 
+	jobs := make(chan bizmodels.JobData, params.RateLimit)
+
+	defer close(jobs)
+
 	go agentimplement.Collect(
-		monitor,
 		params,
 		waitGroup,
-		gauges,
-		counters)
+		monitor,
+		jobs)
 
 	waitGroup.Add(1)
 
@@ -42,7 +43,8 @@ func main() {
 		params,
 		waitGroup,
 		client,
-		gauges,
-		counters)
+		monitor,
+		jobs)
+
 	waitGroup.Wait()
 }
