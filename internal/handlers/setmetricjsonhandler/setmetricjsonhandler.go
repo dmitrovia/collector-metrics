@@ -9,14 +9,13 @@ import (
 
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
 
 type SetMJSONHandler struct {
 	serv service.Service
 }
-
-const metrics string = "gauge|counter"
 
 var errGetReqDataJSON = errors.New("data is empty")
 
@@ -90,11 +89,11 @@ func formResponeBody(valm *validMetric) *apimodels.Metrics {
 	dataMarshal.ID = valm.mname
 	dataMarshal.MType = valm.mtype
 
-	if valm.mtype == "counter" {
+	if valm.mtype == bizmodels.CounterName {
 		dataMarshal.Delta = &valm.mvalueInt
 	}
 
-	if valm.mtype == "gauge" {
+	if valm.mtype == bizmodels.GaugeName {
 		dataMarshal.Value = &valm.mvalueFloat
 	}
 
@@ -143,13 +142,13 @@ func addMetricToMemStore(
 	handler *SetMJSONHandler,
 	vmet *validMetric,
 ) error {
-	if vmet.mtype == "gauge" {
+	if vmet.mtype == bizmodels.GaugeName {
 		err := handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
 		if err != nil {
 			return fmt.Errorf("addMetricToMemStore->AddGauge: %w",
 				err)
 		}
-	} else if vmet.mtype == "counter" {
+	} else if vmet.mtype == bizmodels.CounterName {
 		res, err := handler.serv.AddCounter(
 			vmet.mname, vmet.mvalueInt)
 		if err != nil {
@@ -179,7 +178,7 @@ func isValidM(r *http.Request,
 		return false, http.StatusNotFound
 	}
 
-	pattern = "^" + metrics + "$"
+	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
 
 	if !res {

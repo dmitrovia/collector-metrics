@@ -1,4 +1,4 @@
-package setmetricsjsonhandler
+package sender
 
 import (
 	"crypto/hmac"
@@ -21,8 +21,6 @@ type SetMetricJSONHandler struct {
 	params *bizmodels.InitParams
 }
 
-const metrics string = "gauge|counter"
-
 var errGetReqDataJSON = errors.New("data is empty")
 
 var errHashDoesNotMatch = errors.New("hash does not match")
@@ -32,12 +30,6 @@ func NewSetMsJSONHandler(
 	par *bizmodels.InitParams,
 ) *SetMetricJSONHandler {
 	return &SetMetricJSONHandler{serv: serv, params: par}
-}
-
-func DeSerialize(slice interface{}, r io.Reader) error {
-	e := json.NewDecoder(r)
-
-	return e.Decode(slice)
 }
 
 func (h *SetMetricJSONHandler) SetMetricsJSONHandler(
@@ -121,7 +113,7 @@ func formResponeBody(
 	for _, vmr := range *tmpGauges {
 		tmp := apimodels.Metrics{}
 		tmp.ID = vmr.Name
-		tmp.MType = "gauge"
+		tmp.MType = bizmodels.GaugeName
 		tmp.Value = &vmr.Value
 
 		marshal = append(marshal, tmp)
@@ -130,7 +122,7 @@ func formResponeBody(
 	for _, vmr := range *tmpCounters {
 		tmp := apimodels.Metrics{}
 		tmp.ID = vmr.Name
-		tmp.MType = "counter"
+		tmp.MType = bizmodels.CounterName
 		tmp.Delta = &vmr.Value
 
 		marshal = append(marshal, tmp)
@@ -240,13 +232,13 @@ func addValidMetric(res *apimodels.Metrics,
 	gauges map[string]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
 ) {
-	if res.MType == "gauge" {
+	if res.MType == bizmodels.GaugeName {
 		gauge := new(bizmodels.Gauge)
 
 		gauge.Name = res.ID
 		gauge.Value = *res.Value
 		gauges[res.ID] = *gauge
-	} else if res.MType == "counter" {
+	} else if res.MType == bizmodels.CounterName {
 		val, ok := counters[res.ID]
 
 		var temp *bizmodels.Counter
@@ -296,7 +288,7 @@ func isValidJSONMetric(
 		return false
 	}
 
-	pattern = "^" + metrics + "$"
+	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.MType, pattern)
 
 	return res

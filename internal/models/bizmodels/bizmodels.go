@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+const GaugeName string = "gauge"
+
+const CounterName string = "counter"
+
+const MetricsPattern = "gauge|counter"
+
 type Gauge struct {
 	Name  string
 	Value float64

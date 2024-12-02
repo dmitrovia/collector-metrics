@@ -1,6 +1,7 @@
 package memoryrepository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -16,18 +17,19 @@ type MemoryRepository struct {
 }
 
 func (m *MemoryRepository) AddMetrics(
+	ctx *context.Context,
 	gauges map[string]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
 ) error {
 	for _, gauge := range gauges {
-		err := m.AddGauge(&gauge)
+		err := m.AddGauge(ctx, &gauge)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddGauge: %w", err)
 		}
 	}
 
 	for _, counter := range counters {
-		_, err := m.AddCounter(&counter)
+		_, err := m.AddCounter(ctx, &counter)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddCounter: %w", err)
 		}
@@ -41,19 +43,22 @@ func (m *MemoryRepository) Init() {
 	m.counters = make(map[string]bizmodels.Counter)
 }
 
-func (m *MemoryRepository) GetAllGauges() (
+func (m *MemoryRepository) GetAllGauges(
+	_ *context.Context) (
 	*map[string]bizmodels.Gauge, error,
 ) {
 	return &m.gauges, nil
 }
 
-func (m *MemoryRepository) GetAllCounters() (
+func (m *MemoryRepository) GetAllCounters(
+	_ *context.Context) (
 	*map[string]bizmodels.Counter, error,
 ) {
 	return &m.counters, nil
 }
 
 func (m *MemoryRepository) GetGaugeMetric(
+	_ *context.Context,
 	name string,
 ) (*bizmodels.Gauge, error) {
 	val, ok := m.gauges[name]
@@ -65,6 +70,7 @@ func (m *MemoryRepository) GetGaugeMetric(
 }
 
 func (m *MemoryRepository) GetCounterMetric(
+	_ *context.Context,
 	name string,
 ) (*bizmodels.Counter, error) {
 	val, ok := m.counters[name]
@@ -76,6 +82,7 @@ func (m *MemoryRepository) GetCounterMetric(
 }
 
 func (m *MemoryRepository) AddGauge(
+	_ *context.Context,
 	gauge *bizmodels.Gauge,
 ) error {
 	m.gauges[gauge.Name] = *gauge
@@ -84,6 +91,7 @@ func (m *MemoryRepository) AddGauge(
 }
 
 func (m *MemoryRepository) AddCounter(
+	_ *context.Context,
 	counter *bizmodels.Counter,
 ) (*bizmodels.Counter, error) {
 	val, ok := m.counters[counter.Name]

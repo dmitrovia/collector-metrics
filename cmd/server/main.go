@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
@@ -26,7 +25,8 @@ func main() {
 	zapLogger, err := si.Initiate(params)
 	if err != nil {
 		fmt.Println("main->initiate: %w", err)
-		os.Exit(1)
+
+		return
 	}
 
 	ctx, cancel := context.WithTimeout(
@@ -35,36 +35,37 @@ func main() {
 	conn, dataService, err = si.InitStorage(ctx, params)
 	if err != nil {
 		fmt.Println("main->initStorage: %w", err)
-		os.Exit(1)
+
+		return
 	}
+
+	if conn != nil {
+		defer conn.Close(ctx)
+	}
+
+	defer cancel()
 
 	si.InitiateServer(params, dataService, server, zapLogger)
 
 	err = si.UseMigrations(params)
 	if err != nil {
-		if conn != nil {
-			conn.Close(ctx)
-		}
+		fmt.Println("main->UseMigrations: %w", err)
 
-		cancel()
-		os.Exit(1)
+		return
 	}
 
 	go si.RunServer(server)
 
-	waitGroup.Add(1)
-
 	go si.SaveMetrics(dataService, params, waitGroup)
-	waitGroup.Wait()
 
-	if conn != nil {
-		conn.Close(ctx)
-	}
+	waitGroup.Add(1)
+	waitGroup.Wait()
 
 	err = server.Shutdown(ctx)
 	if err != nil {
 		fmt.Println("main->Shutdown: %w", err)
-		os.Exit(1)
+
+		return
 	}
 
 	err = dataService.SaveInFile(params.FileStoragePath)

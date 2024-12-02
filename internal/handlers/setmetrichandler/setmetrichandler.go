@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/gorilla/mux"
 )
@@ -13,8 +14,6 @@ import (
 type SetMetricHandler struct {
 	serv service.Service
 }
-
-const metrics string = "gauge|counter"
 
 type validMetric struct {
 	mtype       string
@@ -64,14 +63,14 @@ func getReqData(r *http.Request, m *validMetric) {
 func addMetricToMemStore(
 	handler *SetMetricHandler, metr *validMetric,
 ) {
-	if metr.mtype == "gauge" {
+	if metr.mtype == bizmodels.GaugeName {
 		err := handler.serv.AddGauge(metr.mname, metr.mvalueFloat)
 		if err != nil {
 			fmt.Println(
 				"addMetricToMemStore->addMetricToMemStore: %w",
 				err)
 		}
-	} else if metr.mtype == "counter" {
+	} else if metr.mtype == bizmodels.CounterName {
 		res, err := handler.serv.AddCounter(
 			metr.mname, metr.mvalueInt)
 		if err != nil {
@@ -100,7 +99,7 @@ func isValidMetric(
 		return false, http.StatusNotFound
 	}
 
-	pattern = "^" + metrics + "$"
+	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
 
 	if !res {
@@ -115,9 +114,9 @@ func isValidMetric(
 }
 
 func isValidMeticValue(m *validMetric) bool {
-	if m.mtype == "gauge" {
+	if m.mtype == bizmodels.GaugeName {
 		return isValidGaugeValue(m)
-	} else if m.mtype == "counter" {
+	} else if m.mtype == bizmodels.CounterName {
 		return isValidCounterValue(m)
 	}
 

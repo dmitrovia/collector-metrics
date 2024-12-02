@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
 	"github.com/gorilla/mux"
@@ -28,10 +30,6 @@ const tmpstr string = "111111111111111111111111111111111111"
 
 const tmpstr1 string = "111111111111111111111111111111111.0"
 
-const cou string = "counter"
-
-const gaug string = "gauge"
-
 const name string = "Name"
 
 const post string = "POST"
@@ -49,15 +47,15 @@ type testData struct {
 func getTestData() *[]testData {
 	return &[]testData{
 		{
-			meth: post, tn: "1", mt: gaug, mn: name,
+			meth: post, tn: "1", mt: bizmodels.GaugeName, mn: name,
 			mv: "1.0", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "2", mt: cou, mn: name,
+			meth: post, tn: "2", mt: bizmodels.CounterName, mn: name,
 			mv: "1", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "3", mt: cou, mn: name,
+			meth: post, tn: "3", mt: bizmodels.CounterName, mn: name,
 			mv: "1", expcod: stok, exbody: "",
 		},
 		{
@@ -65,43 +63,45 @@ func getTestData() *[]testData {
 			mv: "1", expcod: bdreq, exbody: "",
 		},
 		{
-			meth: post, tn: "5", mt: cou, mn: name,
+			meth: post, tn: "5", mt: bizmodels.CounterName, mn: name,
 			mv: tmpstr, expcod: bdreq, exbody: "",
 		},
 		{
-			meth: post, tn: "6", mt: cou, mn: name,
+			meth: post, tn: "6", mt: bizmodels.CounterName, mn: name,
 			mv: "-1", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "7", mt: cou, mn: name,
+			meth: post, tn: "7", mt: bizmodels.CounterName, mn: name,
 			mv: "-1.1", expcod: bdreq, exbody: "",
 		},
 		{
-			meth: post, tn: "8", mt: gaug, mn: name,
+			meth: post, tn: "8", mt: bizmodels.GaugeName, mn: name,
 			mv: tmpstr1, expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "10", mt: gaug, mn: name,
+			meth: post, tn: "10", mt: bizmodels.GaugeName, mn: name,
 			mv: "-1.5", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "11", mt: gaug, mn: name,
+			meth: post, tn: "11", mt: bizmodels.GaugeName, mn: name,
 			mv: "-1", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "12", mt: gaug, mn: name,
+			meth: post, tn: "12", mt: bizmodels.GaugeName, mn: name,
 			mv: "5", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "13", mt: cou, mn: "_Name123_",
+			meth: post, tn: "13",
+			mt: bizmodels.CounterName, mn: "_Name123_",
 			mv: "1", expcod: nfnd, exbody: "",
 		},
 		{
-			meth: "PATCH", tn: "14", mt: cou, mn: name,
+			meth: "PATCH", tn: "14",
+			mt: bizmodels.CounterName, mn: name,
 			mv: "1", expcod: nallwd, exbody: "",
 		},
 		{
-			meth: post, tn: "15", mt: gaug, mn: name,
+			meth: post, tn: "15", mt: bizmodels.GaugeName, mn: name,
 			mv: "ASD", expcod: bdreq, exbody: "",
 		},
 	}
@@ -114,7 +114,9 @@ func SetMetricHandler(t *testing.T) {
 
 	testCases := getTestData()
 
-	MemoryService := service.NewMemoryService(memStorage)
+	MemoryService := service.NewMemoryService(memStorage,
+		time.Duration(5))
+
 	memStorage.Init()
 
 	handler := setmetrichandler.NewSetMetricHandler(

@@ -58,13 +58,10 @@ func worker(jobs <-chan bizmodels.JobData) {
 	for event := range jobs {
 		switch event.Event {
 		case "setValuesMonitor":
-			fmt.Println(event)
 			setValuesMonitor(event.Mon, event.Mutex)
 		case "setMonitorFromGoPsUtil":
-			fmt.Println(event)
 			setMonitorFromGoPsUtil(event.Mon, event.Mutex)
 		case "reqMetricsJSON":
-			fmt.Println(event)
 			reqMetricsJSON(event.Par, event.Client, event.Mon)
 		}
 	}
@@ -314,7 +311,7 @@ func getDataSend(gauges *[]bizmodels.Gauge,
 	for _, metric := range *counters {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = metric.Name
-		reqMetric.MType = "counter"
+		reqMetric.MType = bizmodels.CounterName
 		reqMetric.Delta = &metric.Value
 		data = append(data, reqMetric)
 	}
@@ -322,7 +319,7 @@ func getDataSend(gauges *[]bizmodels.Gauge,
 	for _, metric := range *gauges {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = metric.Name
-		reqMetric.MType = "gauge"
+		reqMetric.MType = bizmodels.GaugeName
 		reqMetric.Value = &metric.Value
 		data = append(data, reqMetric)
 	}
@@ -331,12 +328,9 @@ func getDataSend(gauges *[]bizmodels.Gauge,
 }
 
 func Initialization(params *bizmodels.InitParamsAgent,
-	client *http.Client,
 	mon *bizmodels.Monitor,
 ) error {
 	var err error
-
-	*client = http.Client{}
 
 	params.URL = "http://"
 	params.ReportInterval = 10
@@ -493,7 +487,13 @@ func setValuesMonitor(mon *bizmodels.Monitor,
 	tmpCounters := make(map[string]bizmodels.Counter, 1)
 	tmpCounters["PollCount"] = mon.PollCount
 
-	mon.RandomValue.Value = random.RandF64(maxRandomValue)
+	rand, err := random.RandF64(maxRandomValue)
+	if err != nil {
+		fmt.Println("setValuesMonitor->random.RandF64: %w", err)
+	} else {
+		mon.RandomValue.Value = rand
+	}
+
 	mutex.Unlock()
 }
 

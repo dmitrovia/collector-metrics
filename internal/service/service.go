@@ -2,9 +2,11 @@ package service
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
@@ -30,13 +32,19 @@ type Service interface {
 }
 
 type DS struct {
-	repository storage.Repository
+	repository  storage.Repository
+	ctxDuration time.Duration
 }
 
 func (s *DS) GetAllGauges() (
 	*map[string]bizmodels.Gauge, error,
 ) {
-	gauges, err := s.repository.GetAllGauges()
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
+	gauges, err := s.repository.GetAllGauges(&ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetAllGauges->GetAllGauges: %w",
 			err)
@@ -48,7 +56,12 @@ func (s *DS) GetAllGauges() (
 func (s *DS) GetAllCounters() (
 	*map[string]bizmodels.Counter, error,
 ) {
-	counters, err := s.repository.GetAllCounters()
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
+	counters, err := s.repository.GetAllCounters(&ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetAllGauges->GetAllCounters: %w",
 			err)
@@ -61,7 +74,12 @@ func (s *DS) AddMetrics(
 	gms map[string]bizmodels.Gauge,
 	cms map[string]bizmodels.Counter,
 ) error {
-	err := s.repository.AddMetrics(gms, cms)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
+	err := s.repository.AddMetrics(&ctx, gms, cms)
 	if err != nil {
 		return fmt.Errorf("DataService->AddMetrics: %w", err)
 	}
@@ -70,7 +88,10 @@ func (s *DS) AddMetrics(
 }
 
 func (s *DS) SaveInFile(pth string) error {
-	var reqMetric apimodels.Metrics
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
 
 	file, err := os.OpenFile(pth, os.O_WRONLY|os.O_CREATE, fmd)
 	if err != nil {
@@ -79,16 +100,42 @@ func (s *DS) SaveInFile(pth string) error {
 
 	defer file.Close()
 
-	counters, err := s.repository.GetAllCounters()
+	counters, err := s.repository.GetAllCounters(&ctx)
 	if err != nil {
 		return fmt.Errorf("SaveInFile->GetAllCounters: %w",
 			err)
 	}
 
+	err = saveCounters(file, counters)
+	if err != nil {
+		return fmt.Errorf("SaveInFile->saveCounters: %w",
+			err)
+	}
+
+	gauges, err := s.repository.GetAllGauges(&ctx)
+	if err != nil {
+		return fmt.Errorf("SaveInFile->GetAllGauges: %w",
+			err)
+	}
+
+	err = saveGauges(file, gauges)
+	if err != nil {
+		return fmt.Errorf("SaveInFile->saveGauges: %w",
+			err)
+	}
+
+	return nil
+}
+
+func saveCounters(file *os.File,
+	counters *map[string]bizmodels.Counter,
+) error {
+	var reqMetric apimodels.Metrics
+
 	for _, counter := range *counters {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = counter.Name
-		reqMetric.MType = "counter"
+		reqMetric.MType = bizmodels.CounterName
 		reqMetric.Delta = &counter.Value
 
 		data, err := json.Marshal(&reqMetric)
@@ -104,16 +151,18 @@ func (s *DS) SaveInFile(pth string) error {
 		}
 	}
 
-	gauges, err := s.repository.GetAllGauges()
-	if err != nil {
-		return fmt.Errorf("SaveInFile->GetAllGauges: %w",
-			err)
-	}
+	return nil
+}
+
+func saveGauges(file *os.File,
+	gauges *map[string]bizmodels.Gauge,
+) error {
+	var reqMetric apimodels.Metrics
 
 	for _, gauge := range *gauges {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = gauge.Name
-		reqMetric.MType = "gauge"
+		reqMetric.MType = bizmodels.GaugeName
 		reqMetric.Value = &gauge.Value
 
 		data, err := json.Marshal(&reqMetric)
@@ -133,6 +182,11 @@ func (s *DS) SaveInFile(pth string) error {
 }
 
 func (s *DS) LoadFromFile(pth string) error {
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
 	file, err := os.OpenFile(pth, os.O_RDONLY|os.O_EXCL, fmd)
 	if err != nil {
 		return fmt.Errorf("LoadFromFile->os.OpenFile: %w", err)
@@ -150,23 +204,23 @@ func (s *DS) LoadFromFile(pth string) error {
 			return err
 		}
 
-		if tmpm.MType == "gauge" {
+		if tmpm.MType == bizmodels.GaugeName {
 			gauge := bizmodels.Gauge{
 				Name:  tmpm.ID,
 				Value: *tmpm.Value,
 			}
 
-			err := s.repository.AddGauge(&gauge)
+			err := s.repository.AddGauge(&ctx, &gauge)
 			if err != nil {
 				return fmt.Errorf("LoadFromFile->AddGauge: %w", err)
 			}
-		} else if tmpm.MType == "counter" {
+		} else if tmpm.MType == bizmodels.CounterName {
 			counter := bizmodels.Counter{
 				Name:  tmpm.ID,
 				Value: *tmpm.Delta,
 			}
 
-			_, err := s.repository.AddCounter(&counter)
+			_, err := s.repository.AddCounter(&ctx, &counter)
 			if err != nil {
 				return fmt.Errorf("LoadFromFile->AddCounter: %w", err)
 			}
@@ -181,9 +235,14 @@ func (s *DS) LoadFromFile(pth string) error {
 }
 
 func (s *DS) AddGauge(mname string, mvalue float64) error {
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
 	gauge := bizmodels.Gauge{Name: mname, Value: mvalue}
 
-	err := s.repository.AddGauge(&gauge)
+	err := s.repository.AddGauge(&ctx, &gauge)
 	if err != nil {
 		return fmt.Errorf("AddGauge->AddGauge %w", err)
 	}
@@ -192,12 +251,17 @@ func (s *DS) AddGauge(mname string, mvalue float64) error {
 }
 
 func (s *DS) AddCounter(
-	n string,
-	v int64,
+	name string,
+	value int64,
 ) (*bizmodels.Counter, error) {
-	counter := bizmodels.Counter{Name: n, Value: v}
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
 
-	res, err := s.repository.AddCounter(&counter)
+	counter := bizmodels.Counter{Name: name, Value: value}
+
+	res, err := s.repository.AddCounter(&ctx, &counter)
 	if err != nil {
 		return nil, fmt.Errorf("AddCounter->AddCounter %w", err)
 	}
@@ -206,7 +270,12 @@ func (s *DS) AddCounter(
 }
 
 func (s *DS) GetValueGM(mname string) (float64, error) {
-	val, err := s.repository.GetGaugeMetric(mname)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
+	val, err := s.repository.GetGaugeMetric(&ctx, mname)
 	if err != nil {
 		return 0, fmt.Errorf("GetValueGM: %w", err)
 	}
@@ -215,7 +284,12 @@ func (s *DS) GetValueGM(mname string) (float64, error) {
 }
 
 func (s *DS) GetValueCM(mname string) (int64, error) {
-	val, err := s.repository.GetCounterMetric(mname)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
+	val, err := s.repository.GetCounterMetric(&ctx, mname)
 	if err != nil {
 		return 0, fmt.Errorf("GetValueCM: %w", err)
 	}
@@ -223,6 +297,8 @@ func (s *DS) GetValueCM(mname string) (int64, error) {
 	return val.Value, nil
 }
 
-func NewMemoryService(repository storage.Repository) *DS {
-	return &DS{repository: repository}
+func NewMemoryService(repository storage.Repository,
+	ctxDur time.Duration,
+) *DS {
+	return &DS{repository: repository, ctxDuration: ctxDur}
 }

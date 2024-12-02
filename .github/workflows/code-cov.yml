@@ -1,23 +1,6 @@
 name: test-and-coverage
 
 on: 
-  push:
-    branches:
-      - iter1
-      - iter2
-      - iter3
-      - iter4
-      - iter5
-      - iter6
-      - iter7
-      - iter8
-      - iter9
-      - iter10
-      - iter11
-      - iter12
-      - iter13
-      - iter14
-       - iter15
   pull_request:
     branches:
       - iter1
@@ -34,7 +17,7 @@ on:
       - iter12
       - iter13
       - iter14
-       - iter15
+      - iter15
 
 jobs:
   build:

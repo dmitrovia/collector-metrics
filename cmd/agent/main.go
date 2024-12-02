@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"sync"
 
 	"github.com/dmitrovia/collector-metrics/internal/agentimplement"
@@ -18,11 +17,11 @@ func main() {
 
 	err := agentimplement.Initialization(
 		params,
-		client,
 		monitor)
 	if err != nil {
 		fmt.Println("main->initialization: %w", err)
-		os.Exit(1)
+
+		return
 	}
 
 	waitGroup.Add(1)

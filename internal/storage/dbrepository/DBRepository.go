@@ -3,24 +3,20 @@ package dbrepository
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/jackc/pgx/v5"
 )
 
 type DBepository struct {
-	databaseDSN   string
-	waitSecRespDB time.Duration
-	conn          *pgx.Conn
+	databaseDSN string
+	conn        *pgx.Conn
 }
 
 func (m *DBepository) Initiate(
 	dsn string,
-	waitSecRespDB time.Duration,
 	conn *pgx.Conn,
 ) {
-	m.waitSecRespDB = waitSecRespDB
 	m.databaseDSN = dsn
 	m.conn = conn
 }
@@ -29,34 +25,30 @@ func (m *DBepository) Init() {
 }
 
 func (m *DBepository) AddMetrics(
+	ctx *context.Context,
 	gauges map[string]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
 ) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		m.waitSecRespDB)
-	defer cancel()
-
-	tranz, err := m.conn.Begin(ctx)
+	tranz, err := m.conn.Begin(*ctx)
 	if err != nil {
 		return fmt.Errorf("AddMetrics->m.conn.Begin %w", err)
 	}
 
 	for _, gauge := range gauges {
-		err = m.AddGauge(&gauge)
+		err = m.AddGauge(ctx, &gauge)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddGauge %w", err)
 		}
 	}
 
 	for _, counter := range counters {
-		_, err = m.AddCounter(&counter)
+		_, err = m.AddCounter(ctx, &counter)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddCounter %w", err)
 		}
 	}
 
-	err = tranz.Commit(ctx)
+	err = tranz.Commit(*ctx)
 	if err != nil {
 		return fmt.Errorf("AddMetrics->tranz.Commit %w", err)
 	}
@@ -64,7 +56,7 @@ func (m *DBepository) AddMetrics(
 	return nil
 }
 
-func (m *DBepository) GetAllGauges() (
+func (m *DBepository) GetAllGauges(ctx *context.Context) (
 	*map[string]bizmodels.Gauge,
 	error,
 ) {
@@ -74,15 +66,10 @@ func (m *DBepository) GetAllGauges() (
 		value  float64
 	)
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		m.waitSecRespDB)
-	defer cancel()
-
 	gauges = make(map[string]bizmodels.Gauge)
 
 	rows, err := m.conn.Query(
-		ctx,
+		*ctx,
 		"select name, value from gauges")
 	if err != nil {
 		return nil, fmt.Errorf("GetAllGauges->m.conn.Query %w",
@@ -107,7 +94,7 @@ func (m *DBepository) GetAllGauges() (
 	return &gauges, nil
 }
 
-func (m *DBepository) GetAllCounters() (
+func (m *DBepository) GetAllCounters(ctx *context.Context) (
 	*map[string]bizmodels.Counter,
 	error,
 ) {
@@ -117,14 +104,10 @@ func (m *DBepository) GetAllCounters() (
 		value    int64
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(),
-		m.waitSecRespDB)
-	defer cancel()
-
 	counters = make(map[string]bizmodels.Counter)
 
 	rows, err := m.conn.Query(
-		ctx,
+		*ctx,
 		"select name, value from counters")
 	if err != nil {
 		return nil, fmt.Errorf("GetAllCounters->m.conn.Query %w",
@@ -150,6 +133,7 @@ func (m *DBepository) GetAllCounters() (
 }
 
 func (m *DBepository) GetGaugeMetric(
+	ctx *context.Context,
 	name string,
 ) (*bizmodels.Gauge, error) {
 	var temp *bizmodels.Gauge
@@ -158,15 +142,10 @@ func (m *DBepository) GetGaugeMetric(
 
 	var value float64
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		m.waitSecRespDB)
-	defer cancel()
-
 	temp = new(bizmodels.Gauge)
 
 	err := m.conn.QueryRow(
-		ctx,
+		*ctx,
 		"select name, value from gauges where name=$1",
 		name).Scan(&nameMetric, &value)
 	if err != nil {
@@ -181,6 +160,7 @@ func (m *DBepository) GetGaugeMetric(
 }
 
 func (m *DBepository) GetCounterMetric(
+	ctx *context.Context,
 	name string,
 ) (*bizmodels.Counter, error) {
 	var temp *bizmodels.Counter
@@ -189,15 +169,10 @@ func (m *DBepository) GetCounterMetric(
 
 	var value int64
 
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		m.waitSecRespDB)
-	defer cancel()
-
 	temp = new(bizmodels.Counter)
 
 	err := m.conn.QueryRow(
-		ctx,
+		*ctx,
 		"select name, value from counters where name=$1",
 		name).Scan(&nameMetric, &value)
 	if err != nil {
@@ -213,15 +188,11 @@ func (m *DBepository) GetCounterMetric(
 }
 
 func (m *DBepository) AddGauge(
+	ctx *context.Context,
 	gauge *bizmodels.Gauge,
 ) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		m.waitSecRespDB)
-	defer cancel()
-
 	rows, err := m.conn.Exec(
-		ctx,
+		*ctx,
 		"UPDATE gauges SET value = $1 where name=$2",
 		gauge.Value,
 		gauge.Name)
@@ -231,7 +202,7 @@ func (m *DBepository) AddGauge(
 
 	if rows.RowsAffected() == 0 {
 		_, err := m.conn.Exec(
-			ctx,
+			*ctx,
 			"INSERT INTO gauges (name, value) VALUES ($1, $2)",
 			gauge.Name,
 			gauge.Value)
@@ -244,14 +215,10 @@ func (m *DBepository) AddGauge(
 }
 
 func (m *DBepository) AddCounter(
+	ctx *context.Context,
 	counter *bizmodels.Counter,
 ) (*bizmodels.Counter, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		m.waitSecRespDB)
-	defer cancel()
-
-	rows, err := m.conn.Exec(ctx,
+	rows, err := m.conn.Exec(*ctx,
 		"UPDATE counters SET value = value + $1 where name=$2",
 		counter.Value,
 		counter.Name)
@@ -263,7 +230,7 @@ func (m *DBepository) AddCounter(
 
 	if rows.RowsAffected() == 0 {
 		_, err := m.conn.Exec(
-			ctx,
+			*ctx,
 			"INSERT INTO counters (name, value) VALUES ($1, $2)",
 			counter.Name,
 			counter.Value)
@@ -276,7 +243,7 @@ func (m *DBepository) AddCounter(
 		return counter, nil
 	}
 
-	temp, err := m.GetCounterMetric(counter.Name)
+	temp, err := m.GetCounterMetric(ctx, counter.Name)
 	if err != nil {
 		return nil,
 			fmt.Errorf("AddCounter->m.GetCounterMetric %w",

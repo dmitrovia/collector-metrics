@@ -6,11 +6,10 @@ import (
 	"strconv"
 
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/gorilla/mux"
 )
-
-const metrics string = "gauge|counter"
 
 type validMetric struct {
 	mtype string
@@ -89,7 +88,7 @@ func isValidMetric(
 		return false, http.StatusNotFound
 	}
 
-	pattern = "^" + metrics + "$"
+	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
 
 	if !res {
@@ -104,9 +103,9 @@ func setAnswerData(
 	ansd *ansData,
 	h *GetMetricHandler,
 ) (bool, int) {
-	if metric.mtype == "gauge" {
+	if metric.mtype == bizmodels.GaugeName {
 		return GetStringValueGaugeMetric(ansd, h, metric.mname)
-	} else if metric.mtype == "counter" {
+	} else if metric.mtype == bizmodels.CounterName {
 		return GetStringValueCounterMetric(ansd, h, metric.mname)
 	}
 

@@ -9,10 +9,9 @@ import (
 
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
-
-const metrics string = "gauge|counter"
 
 var errGetReqDataJSON = errors.New("data is empty")
 
@@ -68,11 +67,11 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(
 		dataMarshal.ID = valMetr.mname
 		dataMarshal.MType = valMetr.mtype
 
-		if valMetr.mtype == "counter" {
+		if valMetr.mtype == bizmodels.CounterName {
 			dataMarshal.Delta = &answerData.mvalueInt
 		}
 
-		if valMetr.mtype == "gauge" {
+		if valMetr.mtype == bizmodels.GaugeName {
 			dataMarshal.Value = &answerData.mvalueFloat
 		}
 
@@ -142,7 +141,7 @@ func isValidMetric(r *http.Request,
 		return false, http.StatusNotFound
 	}
 
-	pattern = "^" + metrics + "$"
+	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
 
 	if !res {
@@ -156,16 +155,16 @@ func setAnswerDataForJSON(metric *validMetric,
 	ansd *ansData,
 	h *GetMetricJSONHandler,
 ) (bool, int) {
-	if metric.mtype == "gauge" {
-		return setGaugeValueByType(metric, ansd, h)
-	} else if metric.mtype == "counter" {
-		return setCounterValueByType(metric, ansd, h)
+	if metric.mtype == bizmodels.GaugeName {
+		return setGaugeValueToAnswer(metric, ansd, h)
+	} else if metric.mtype == bizmodels.CounterName {
+		return setCounterValueToAnswer(metric, ansd, h)
 	}
 
 	return false, http.StatusNotFound
 }
 
-func setGaugeValueByType(
+func setGaugeValueToAnswer(
 	metric *validMetric,
 	ansd *ansData,
 	h *GetMetricJSONHandler,
@@ -180,7 +179,7 @@ func setGaugeValueByType(
 	return true, http.StatusOK
 }
 
-func setCounterValueByType(
+func setCounterValueToAnswer(
 	metric *validMetric,
 	ansd *ansData,
 	h *GetMetricJSONHandler,

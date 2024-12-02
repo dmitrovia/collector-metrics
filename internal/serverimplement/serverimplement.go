@@ -24,9 +24,9 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/notallowedhandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/pinghandler"
+	"github.com/dmitrovia/collector-metrics/internal/handlers/sender"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
-	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricsjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
@@ -81,7 +81,8 @@ func InitStorage(
 	memStorage = new(memoryrepository.MemoryRepository)
 
 	if par.DatabaseDSN != "" {
-		datas := service.NewMemoryService(DBStorage)
+		datas := service.NewMemoryService(DBStorage,
+			par.WaitSecRespDB)
 
 		dbConn, err := pgx.Connect(ctx, par.DatabaseDSN)
 		if err != nil {
@@ -90,13 +91,14 @@ func InitStorage(
 					err)
 		}
 
-		DBStorage.Initiate(par.DatabaseDSN,
-			par.WaitSecRespDB, dbConn)
+		DBStorage.Initiate(par.DatabaseDSN, dbConn)
 
 		return dbConn, datas, nil
 	}
 
-	datas := service.NewMemoryService(memStorage)
+	datas := service.NewMemoryService(memStorage,
+		par.WaitSecRespDB)
+
 	memStorage.Init()
 
 	return nil, datas, nil
@@ -299,7 +301,7 @@ func initPostMethods(
 ) {
 	hSet := setmetrichandler.NewSetMetricHandler(dse)
 	hJSONSet := setmetricjsonhandler.NewSetMJH(dse)
-	hJSONSets := setmetricsjsonhandler.NewSetMsJSONHandler(
+	hJSONSets := sender.NewSetMsJSONHandler(
 		dse, par)
 	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(dse)
 

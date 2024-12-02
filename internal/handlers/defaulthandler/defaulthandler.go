@@ -1,15 +1,17 @@
 package defaulthandler
 
 import (
+	"embed"
 	"fmt"
 	"html/template"
 	"net/http"
-	"path/filepath"
-	"runtime"
 	"strconv"
 
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
+
+//go:embed web
+var metricsTemplate embed.FS
 
 type DefaultHandler struct {
 	serv service.Service
@@ -55,18 +57,8 @@ func (h *DefaultHandler) DefaultHandler(
 		Metrics: mapMetrics,
 	}
 
-	_, path, _, ok := runtime.Caller(0)
-
-	if !ok {
-		writer.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
-
-	Root := filepath.Join(filepath.Dir(path), "../../../")
-
-	tmpl, err := template.ParseFiles(
-		Root + "/web/template/allMetricsTemplate.html")
+	tmpl, err := template.ParseFS(metricsTemplate,
+		"web/template/allMetricsTemplate.html")
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 		fmt.Println("DefaultHandler->template.ParseFiles: %w",

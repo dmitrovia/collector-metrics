@@ -1,3 +1,3 @@
-DROP TABLE IF EXISTS gauges;
+DROP TABLE gauges;
 
-DROP TABLE IF EXISTS counters;
+DROP TABLE counters;
