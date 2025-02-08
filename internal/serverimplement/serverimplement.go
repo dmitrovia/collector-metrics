@@ -36,13 +36,13 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/storage/dbrepository"
 	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
 
-const rTimeout = 15
+const rTimeout = 60
 
-const wTimeout = 15
+const wTimeout = 60
 
 const iTimeout = 60
 
@@ -62,7 +62,9 @@ const migrationsDir = "db/migrations"
 
 const zapLogLevel = "info"
 
-const defPostgreConnURL = ""
+const defPostgreConnURL = "postgres://postgres:postgres" +
+	"@localhost" +
+	":5432/praktikum?sslmode=disable"
 
 const defKeyHashSha256 = "defaultKey"
 
@@ -71,7 +73,7 @@ var MigrationsFS embed.FS
 
 func InitStorage(
 	ctx context.Context, par *bizmodels.InitParams,
-) (*pgx.Conn, *service.DS, error) {
+) (*pgxpool.Pool, *service.DS, error) {
 	var (
 		memStorage *memoryrepository.MemoryRepository
 		DBStorage  *dbrepository.DBepository
@@ -84,7 +86,7 @@ func InitStorage(
 		datas := service.NewMemoryService(DBStorage,
 			par.WaitSecRespDB)
 
-		dbConn, err := pgx.Connect(ctx, par.DatabaseDSN)
+		dbConn, err := pgxpool.New(ctx, par.DatabaseDSN)
 		if err != nil {
 			return nil, nil,
 				fmt.Errorf("initStorage->pgx.Connect %w",
@@ -274,6 +276,8 @@ func initGetMethods(
 	hDefault := defaulthandler.NewDefaultHandler(dse)
 	hNotAllowed := notallowedhandler.NotAllowedHandler{}
 
+	// mux.PathPrefix("/debug/").Handler(http.DefaultServeMux)
+
 	getMMux := mux.Methods(http.MethodGet).Subrouter()
 	getMMux.HandleFunc(
 		"/value/{metric_type}/{metric_name}",
@@ -305,7 +309,7 @@ func initPostMethods(
 		dse, par)
 	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(dse)
 
-	setMMux := mux.Methods(http.MethodPost).Subrouter()
+	setMMux := mux.Methods(http.MethodPost).Subrouter() // 94.5
 	setMMux.HandleFunc(
 		"/update/{metric_type}/{metric_name}/{metric_value}",
 		hSet.SetMetricHandler)
@@ -318,7 +322,7 @@ func initPostMethods(
 	getMJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 
-	setMJSONMux := mux.Methods(http.MethodPost).Subrouter()
+	setMJSONMux := mux.Methods(http.MethodPost).Subrouter() // 80.4
 	setMJSONMux.HandleFunc(
 		"/update/",
 		hJSONSet.SetMJSONHandler)

@@ -46,21 +46,14 @@ func (h *SetMJSONHandler) SetMJSONHandler(
 		return
 	}
 
-	isValid, status := isValidM(req, valm)
+	isValid, status := isValidM(valm)
 	if !isValid {
 		writer.WriteHeader(status)
 
 		return
 	}
 
-	err = addMetricToMemStore(h, valm)
-	if err != nil {
-		fmt.Println("SetMJSONHandler->addMetricToMemStore: %w",
-			err)
-		writer.WriteHeader(http.StatusBadRequest)
-
-		return
-	}
+	addMetricToMemStore(h, valm)
 
 	writer.WriteHeader(status)
 
@@ -141,34 +134,19 @@ func getReqJSONData(
 func addMetricToMemStore(
 	handler *SetMJSONHandler,
 	vmet *validMetric,
-) error {
+) {
 	if vmet.mtype == bizmodels.GaugeName {
-		err := handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
-		if err != nil {
-			return fmt.Errorf("addMetricToMemStore->AddGauge: %w",
-				err)
-		}
+		_ = handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
 	} else if vmet.mtype == bizmodels.CounterName {
-		res, err := handler.serv.AddCounter(
+		res, _ := handler.serv.AddCounter(
 			vmet.mname, vmet.mvalueInt)
-		if err != nil {
-			return fmt.Errorf("addMetricToMemStore->AddCounter: %w",
-				err)
-		}
 
 		vmet.mvalueInt = res.Value
 	}
-
-	return nil
 }
 
-func isValidM(r *http.Request,
-	metric *validMetric,
+func isValidM(metric *validMetric,
 ) (bool, int) {
-	if !validate.IsMethodPost(r.Method) {
-		return false, http.StatusMethodNotAllowed
-	}
-
 	var pattern string
 
 	pattern = "^[0-9a-zA-Z/ ]{1,40}$"

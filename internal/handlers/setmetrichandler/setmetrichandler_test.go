@@ -107,23 +107,29 @@ func getTestData() *[]testData {
 	}
 }
 
-func SetMetricHandler(t *testing.T) {
+func TestSetMetricHandler(t *testing.T) {
 	t.Helper()
+	t.Parallel()
 
 	memStorage := new(memoryrepository.MemoryRepository)
+	memStorage.Init()
 
 	testCases := getTestData()
 
 	MemoryService := service.NewMemoryService(memStorage,
 		time.Duration(5))
-
-	memStorage.Init()
-
 	handler := setmetrichandler.NewSetMetricHandler(
 		MemoryService)
 
+	router := mux.NewRouter()
+	router.HandleFunc(
+		"/update/{metric_type}/{metric_name}/{metric_value}",
+		handler.SetMetricHandler)
+
 	for _, test := range *testCases {
 		t.Run(http.MethodPost, func(t *testing.T) {
+			t.Parallel()
+
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				test.meth,
@@ -135,9 +141,6 @@ func SetMetricHandler(t *testing.T) {
 			req.Header.Set("Content-Type", "text/plain")
 
 			newr := httptest.NewRecorder()
-			router := mux.NewRouter()
-			router.HandleFunc("/update/{mt}/{mn}/{mv}",
-				handler.SetMetricHandler)
 			router.ServeHTTP(newr, req)
 			status := newr.Code
 			body, _ := io.ReadAll(newr.Body)

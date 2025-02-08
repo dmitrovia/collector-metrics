@@ -6,16 +6,18 @@ import (
 	"net/http"
 	"sync"
 
+	_ "net/http/pprof" // подключаем пакет pprof
+
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	si "github.com/dmitrovia/collector-metrics/internal/serverimplement"
 	"github.com/dmitrovia/collector-metrics/internal/service"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
 	var (
 		dataService *service.DS
-		conn        *pgx.Conn
+		conn        *pgxpool.Pool
 	)
 
 	server := new(http.Server)
@@ -40,7 +42,7 @@ func main() {
 	}
 
 	if conn != nil {
-		defer conn.Close(ctx)
+		defer conn.Close()
 	}
 
 	defer cancel()

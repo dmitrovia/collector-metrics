@@ -172,7 +172,7 @@ func getReqJSONData(req *http.Request,
 	}
 
 	for _, res := range results {
-		isValid := isValidJSONMetric(req, &res)
+		isValid := isValidJSONMetric(&res)
 		if isValid {
 			addValidMetric(&res, gauges, counters)
 		}
@@ -272,13 +272,8 @@ func addMetricToMemStore(
 	return nil
 }
 
-func isValidJSONMetric(
-	r *http.Request, metric *apimodels.Metrics,
+func isValidJSONMetric(metric *apimodels.Metrics,
 ) bool {
-	if !validate.IsMethodPost(r.Method) {
-		return false
-	}
-
 	var pattern string
 
 	pattern = "^[0-9a-zA-Z/ ]{1,40}$"

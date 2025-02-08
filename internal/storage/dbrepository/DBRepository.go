@@ -5,17 +5,17 @@ import (
 	"fmt"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type DBepository struct {
 	databaseDSN string
-	conn        *pgx.Conn
+	conn        *pgxpool.Pool
 }
 
 func (m *DBepository) Initiate(
 	dsn string,
-	conn *pgx.Conn,
+	conn *pgxpool.Pool,
 ) {
 	m.databaseDSN = dsn
 	m.conn = conn
@@ -29,28 +29,18 @@ func (m *DBepository) AddMetrics(
 	gauges map[string]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
 ) error {
-	tranz, err := m.conn.Begin(*ctx)
-	if err != nil {
-		return fmt.Errorf("AddMetrics->m.conn.Begin %w", err)
-	}
-
 	for _, gauge := range gauges {
-		err = m.AddGauge(ctx, &gauge)
+		err := m.AddGauge(ctx, &gauge)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddGauge %w", err)
 		}
 	}
 
 	for _, counter := range counters {
-		_, err = m.AddCounter(ctx, &counter)
+		_, err := m.AddCounter(ctx, &counter)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddCounter %w", err)
 		}
-	}
-
-	err = tranz.Commit(*ctx)
-	if err != nil {
-		return fmt.Errorf("AddMetrics->tranz.Commit %w", err)
 	}
 
 	return nil
