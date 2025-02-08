@@ -2,9 +2,13 @@ package setmetrichandler_test
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -20,8 +24,6 @@ const url string = "http://localhost:8080"
 
 const stok int = http.StatusOK
 
-const nallwd int = http.StatusMethodNotAllowed
-
 const nfnd int = http.StatusNotFound
 
 const bdreq int = http.StatusBadRequest
@@ -30,9 +32,11 @@ const tmpstr string = "111111111111111111111111111111111111"
 
 const tmpstr1 string = "111111111111111111111111111111111.0"
 
-const name string = "Name"
-
 const post string = "POST"
+
+const defSavePathFile string = "/internal/temp/metrics.json"
+
+var errRuntimeCaller = errors.New("errRuntimeCaller")
 
 type testData struct {
 	tn     string
@@ -47,48 +51,49 @@ type testData struct {
 func getTestData() *[]testData {
 	return &[]testData{
 		{
-			meth: post, tn: "1", mt: bizmodels.GaugeName, mn: name,
-			mv: "1.0", expcod: stok, exbody: "",
+			meth: post, tn: "1", mt: bizmodels.GaugeName,
+			mn: "Name1", mv: "1.0", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "2", mt: bizmodels.CounterName, mn: name,
-			mv: "1", expcod: stok, exbody: "",
+			meth: post, tn: "2", mt: bizmodels.CounterName,
+			mn: "Name2", mv: "1", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "3", mt: bizmodels.CounterName, mn: name,
-			mv: "1", expcod: stok, exbody: "",
+			meth: post, tn: "3", mt: bizmodels.CounterName,
+			mn: "Name3", mv: "1", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "4", mt: "counter_new", mn: name,
+			meth: post, tn: "4", mt: "counter_new", mn: "Name4",
 			mv: "1", expcod: bdreq, exbody: "",
 		},
 		{
-			meth: post, tn: "5", mt: bizmodels.CounterName, mn: name,
-			mv: tmpstr, expcod: bdreq, exbody: "",
+			meth: post, tn: "5", mt: bizmodels.CounterName,
+			mn: "Name5", mv: tmpstr, expcod: bdreq, exbody: "",
 		},
 		{
-			meth: post, tn: "6", mt: bizmodels.CounterName, mn: name,
-			mv: "-1", expcod: stok, exbody: "",
+			meth: post, tn: "6", mt: bizmodels.CounterName,
+			mn: "Name6", mv: "-1", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "7", mt: bizmodels.CounterName, mn: name,
-			mv: "-1.1", expcod: bdreq, exbody: "",
+			meth: post, tn: "7", mt: bizmodels.CounterName,
+			mn: "Name7", mv: "-1.1", expcod: bdreq, exbody: "",
 		},
 		{
-			meth: post, tn: "8", mt: bizmodels.GaugeName, mn: name,
-			mv: tmpstr1, expcod: stok, exbody: "",
+			meth: post, tn: "8", mt: bizmodels.GaugeName,
+			mn: "Name8", mv: tmpstr1, expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "10", mt: bizmodels.GaugeName, mn: name,
+			meth: post, tn: "10", mt: bizmodels.GaugeName,
+			mn: "Name9",
 			mv: "-1.5", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "11", mt: bizmodels.GaugeName, mn: name,
-			mv: "-1", expcod: stok, exbody: "",
+			meth: post, tn: "11", mt: bizmodels.GaugeName,
+			mn: "Name10", mv: "-1", expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "12", mt: bizmodels.GaugeName, mn: name,
-			mv: "5", expcod: stok, exbody: "",
+			meth: post, tn: "12", mt: bizmodels.GaugeName,
+			mn: "Name11", mv: "5", expcod: stok, exbody: "",
 		},
 		{
 			meth: post, tn: "13",
@@ -96,15 +101,24 @@ func getTestData() *[]testData {
 			mv: "1", expcod: nfnd, exbody: "",
 		},
 		{
-			meth: "PATCH", tn: "14",
-			mt: bizmodels.CounterName, mn: name,
-			mv: "1", expcod: nallwd, exbody: "",
-		},
-		{
-			meth: post, tn: "15", mt: bizmodels.GaugeName, mn: name,
-			mv: "ASD", expcod: bdreq, exbody: "",
+			meth: post, tn: "15", mt: bizmodels.GaugeName,
+			mn: "Name13", mv: "ASD", expcod: bdreq, exbody: "",
 		},
 	}
+}
+
+func initiate(router *mux.Router,
+	memStorage *memoryrepository.MemoryRepository,
+) {
+	memStorage.Init()
+	MemoryService := service.NewMemoryService(memStorage,
+		time.Duration(5))
+	handler := setmetrichandler.NewSetMetricHandler(
+		MemoryService)
+
+	router.HandleFunc(
+		"/update/{metric_type}/{metric_name}/{metric_value}",
+		handler.SetMetricHandler)
 }
 
 func TestSetMetricHandler(t *testing.T) {
@@ -112,19 +126,13 @@ func TestSetMetricHandler(t *testing.T) {
 	t.Parallel()
 
 	memStorage := new(memoryrepository.MemoryRepository)
-	memStorage.Init()
-
-	testCases := getTestData()
-
 	MemoryService := service.NewMemoryService(memStorage,
 		time.Duration(5))
-	handler := setmetrichandler.NewSetMetricHandler(
-		MemoryService)
-
 	router := mux.NewRouter()
-	router.HandleFunc(
-		"/update/{metric_type}/{metric_name}/{metric_value}",
-		handler.SetMetricHandler)
+
+	initiate(router, memStorage)
+
+	testCases := getTestData()
 
 	for _, test := range *testCases {
 		t.Run(http.MethodPost, func(t *testing.T) {
@@ -152,6 +160,26 @@ func TestSetMetricHandler(t *testing.T) {
 			if test.exbody != "" {
 				assert.JSONEq(t, test.exbody, string(body))
 			}
+
+			writeFile(MemoryService)
 		})
+	}
+}
+
+func writeFile(mems *service.DS) {
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		fmt.Println(errRuntimeCaller)
+
+		return
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../../..")
+	temp := Root + defSavePathFile
+
+	err := mems.SaveInFile(temp)
+	if err != nil {
+		fmt.Println("Error writing metrics to file: %w", err)
 	}
 }

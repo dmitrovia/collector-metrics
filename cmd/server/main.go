@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"sync"
 
-	_ "net/http/pprof" // подключаем пакет pprof
-
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	si "github.com/dmitrovia/collector-metrics/internal/serverimplement"
 	"github.com/dmitrovia/collector-metrics/internal/service"

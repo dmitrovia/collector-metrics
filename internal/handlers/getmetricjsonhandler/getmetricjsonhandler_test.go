@@ -1,17 +1,20 @@
-package setmetricjsonhandler_test
+package getmetricjsonhandler_test
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
-	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
+	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
@@ -27,17 +30,17 @@ const url string = "http://localhost:8080"
 
 const stok int = http.StatusOK
 
-const nallwd int = http.StatusMethodNotAllowed
-
 const nfnd int = http.StatusNotFound
 
 const bdreq int = http.StatusBadRequest
 
-const tmpstr int64 = 999999999999999999
-
 const tmpstr1 float64 = 111111111111111111111111111111111.0
 
 const post string = "POST"
+
+var errRuntimeCaller = errors.New("errRuntimeCaller")
+
+const defSavePathFile string = "/internal/temp/metrics.json"
 
 type testData struct {
 	tn     string
@@ -65,92 +68,107 @@ func getTestData() *[]testData {
 			mn: "Name3", delta: 1, expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "4", mt: bizmodels.GaugeName,
-			mn: "Name4", value: tmpstr1, expcod: stok, exbody: "",
+			meth: post, tn: "4", mt: "counter_new", mn: "Name4",
+			delta: 1, expcod: bdreq, exbody: "",
 		},
 		{
-			meth: post, tn: "5", mt: bizmodels.CounterName,
-			mn: "Name5", delta: tmpstr, expcod: stok, exbody: "",
-		},
-		{
-			meth: post, tn: "6", mt: "counter_new", mn: "Name6",
-			value: 1, expcod: bdreq, exbody: "",
-		},
-		{
-			meth: post, tn: "7", mt: bizmodels.CounterName,
-			mn: "Name7", delta: -1, expcod: stok, exbody: "",
+			meth: post, tn: "6", mt: bizmodels.CounterName,
+			mn: "Name6", delta: -1, expcod: stok, exbody: "",
 		},
 		{
 			meth: post, tn: "8", mt: bizmodels.GaugeName,
-			mn: "Name8", value: -1.5, expcod: stok, exbody: "",
-		},
-		{
-			meth: post, tn: "9", mt: bizmodels.GaugeName,
-			mn: "Name9", value: -1, expcod: stok, exbody: "",
+			mn: "Name8", value: tmpstr1, expcod: stok, exbody: "",
 		},
 		{
 			meth: post, tn: "10", mt: bizmodels.GaugeName,
-			mn: "Name10", value: 5, expcod: stok, exbody: "",
+			mn:    "Name9",
+			value: -1.5, expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "11",
-			mt: bizmodels.CounterName, mn: "_Name123_",
-			value: 1, expcod: nfnd, exbody: "",
+			meth: post, tn: "11", mt: bizmodels.GaugeName,
+			mn: "Name10", value: -1, expcod: stok, exbody: "",
 		},
 		{
-			meth: "PATCH", tn: "12",
-			mt: bizmodels.CounterName, mn: "Name11",
-			value: 1, expcod: nallwd, exbody: "",
+			meth: post, tn: "12", mt: bizmodels.GaugeName,
+			mn: "Name11", value: 5, expcod: stok, exbody: "",
 		},
 		{
 			meth: post, tn: "13",
-			mt: bizmodels.CounterName, mn: "",
-			value: 0, delta: 0, expcod: nfnd, exbody: "",
+			mt: bizmodels.CounterName, mn: "_Name123_",
+			delta: 1, expcod: nfnd, exbody: "",
+		},
+		{
+			meth: post, tn: "14",
+			mt: bizmodels.CounterName, mn: "gggf4",
+			delta: 1, expcod: nfnd, exbody: "",
+		},
+		{
+			meth: post, tn: "15",
+			mt: bizmodels.GaugeName, mn: "fghgf44",
+			delta: 1, expcod: nfnd, exbody: "",
 		},
 	}
 }
 
 func initiate(
-	memStorage *memoryrepository.MemoryRepository,
 	mux *mux.Router,
+	service *service.DS,
+	memStorage *memoryrepository.MemoryRepository,
 ) error {
 	memStorage.Init()
 
-	MemoryService := service.NewMemoryService(memStorage,
-		time.Duration(5))
-
-	hJSONSet := setmetricjsonhandler.NewSetMJH(MemoryService)
+	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(
+		service)
 
 	zapLogger, err := logger.Initialize("info")
 	if err != nil {
 		return fmt.Errorf("initiate: %w", err)
 	}
 
-	setMJSONMux := mux.Methods(http.MethodPost).Subrouter()
-	setMJSONMux.HandleFunc(
-		"/update/",
-		hJSONSet.SetMJSONHandler)
-	setMJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
+	getMJSONMux := mux.Methods(http.MethodPost).Subrouter()
+	getMJSONMux.HandleFunc(
+		"/value/",
+		hJSONGet.GetMetricJSONHandler)
+	getMJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 
 	return nil
 }
 
-func TestSetMetricJSONHandler(t *testing.T) {
+func LoadFile(mems *service.DS) {
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		fmt.Println(errRuntimeCaller)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../../..")
+	temp := Root + defSavePathFile
+
+	err := mems.LoadFromFile(temp)
+	if err != nil {
+		fmt.Println("Error reading metrics from file: %w", err)
+	}
+}
+
+func TestGetMetricJSONHandler(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 
-	testCases := getTestData()
-
 	memStorage := new(memoryrepository.MemoryRepository)
+	testCases := getTestData()
+	MemoryService := service.NewMemoryService(memStorage,
+		time.Duration(5))
 	mux := mux.NewRouter()
 
-	err := initiate(memStorage, mux)
+	err := initiate(mux, MemoryService, memStorage)
 	if err != nil {
 		fmt.Println(err)
 
 		return
 	}
+
+	LoadFile(MemoryService)
 
 	for _, test := range *testCases {
 		t.Run(http.MethodPost, func(t *testing.T) {
@@ -166,7 +184,7 @@ func TestSetMetricJSONHandler(t *testing.T) {
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				test.meth,
-				url+"/update/", reqData)
+				url+"/value/", reqData)
 			if err != nil {
 				t.Fatal(err)
 			}

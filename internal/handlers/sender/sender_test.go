@@ -25,10 +25,10 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/dbrepository"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/rand"
 )
 
 const url string = "http://localhost:8080"
@@ -62,7 +62,7 @@ func getTestData() *[]testData {
 		{Name: "Name4", Value: 0},
 		{Name: "Name5", Value: 7456},
 		{Name: "Name6", Value: -1},
-		{Name: RandStringRunes(10), Value: 0},
+		{Name: uuid.New().String(), Value: 0},
 	}
 
 	tempC1 := []bizmodels.Counter{
@@ -79,7 +79,7 @@ func getTestData() *[]testData {
 		{Name: "Name4", Value: 0},
 		{Name: "Name5", Value: 7456.3231},
 		{Name: "Name6", Value: -1.0},
-		{Name: RandStringRunes(10), Value: 0},
+		{Name: uuid.New().String(), Value: 0},
 	}
 
 	tempG1 := []bizmodels.Gauge{
@@ -185,7 +185,7 @@ func initiate(
 	return nil
 }
 
-func TestSetMetricHandler(t *testing.T) {
+func TestSender(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 
@@ -307,16 +307,4 @@ func getDataSend(testD *testData,
 	}
 
 	return &data
-}
-
-func RandStringRunes(n int) string {
-	letterRunes := []rune(
-		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	tmp := make([]rune, n)
-
-	for i := range tmp {
-		tmp[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-
-	return string(tmp)
 }

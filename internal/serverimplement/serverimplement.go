@@ -309,7 +309,7 @@ func initPostMethods(
 		dse, par)
 	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(dse)
 
-	setMMux := mux.Methods(http.MethodPost).Subrouter() // 94.5
+	setMMux := mux.Methods(http.MethodPost).Subrouter()
 	setMMux.HandleFunc(
 		"/update/{metric_type}/{metric_name}/{metric_value}",
 		hSet.SetMetricHandler)
@@ -322,7 +322,7 @@ func initPostMethods(
 	getMJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 
-	setMJSONMux := mux.Methods(http.MethodPost).Subrouter() // 80.4
+	setMJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	setMJSONMux.HandleFunc(
 		"/update/",
 		hJSONSet.SetMJSONHandler)
