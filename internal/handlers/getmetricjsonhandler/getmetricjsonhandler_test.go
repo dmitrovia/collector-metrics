@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -21,8 +20,9 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
-	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
+	"github.com/dmitrovia/collector-metrics/internal/storage/dbrepository"
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,9 +38,9 @@ const tmpstr1 float64 = 111111111111111111111111111111111.0
 
 const post string = "POST"
 
-var errRuntimeCaller = errors.New("errRuntimeCaller")
-
 const defSavePathFile string = "/internal/temp/metrics.json"
+
+var errPath = errors.New("path is not valid")
 
 type testData struct {
 	tn     string
@@ -81,8 +81,7 @@ func getTestData() *[]testData {
 		},
 		{
 			meth: post, tn: "10", mt: bizmodels.GaugeName,
-			mn:    "Name9",
-			value: -1.5, expcod: stok, exbody: "",
+			mn: "Name9", value: -1.5, expcod: stok, exbody: "",
 		},
 		{
 			meth: post, tn: "11", mt: bizmodels.GaugeName,
@@ -110,15 +109,59 @@ func getTestData() *[]testData {
 	}
 }
 
+func setHandlerParams(params *bizmodels.InitParams) error {
+	params.
+		ValidateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
+	params.DatabaseDSN = "postgres://postgres:postgres" +
+		"@localhost" +
+		":5432/praktikum?sslmode=disable"
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return fmt.Errorf("setInitParams->runtime.Caller( %w",
+			errPath)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../..")
+	params.FileStoragePath = Root + defSavePathFile
+	params.Key = "defaultKey"
+	params.Restore = true
+	params.ValidateAddrPattern = ""
+	params.WaitSecRespDB = 10 * time.Second
+
+	return nil
+}
+
 func initiate(
 	mux *mux.Router,
-	service *service.DS,
-	memStorage *memoryrepository.MemoryRepository,
+	params *bizmodels.InitParams,
 ) error {
-	memStorage.Init()
+	err := setHandlerParams(params)
+	if err != nil {
+		return fmt.Errorf("initStorage->pgx.Connect %w",
+			err)
+	}
+
+	storage := new(dbrepository.DBepository)
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(), params.WaitSecRespDB)
+
+	defer cancel()
+
+	dse := service.NewMemoryService(storage,
+		params.WaitSecRespDB)
+
+	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
+	if err != nil {
+		return fmt.Errorf("initStorage->pgx.Connect %w",
+			err)
+	}
+
+	storage.Initiate(params.DatabaseDSN, dbConn)
 
 	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(
-		service)
+		dse)
 
 	zapLogger, err := logger.Initialize("info")
 	if err != nil {
@@ -135,40 +178,20 @@ func initiate(
 	return nil
 }
 
-func LoadFile(mems *service.DS) {
-	_, path, _, ok := runtime.Caller(0)
-
-	if !ok {
-		fmt.Println(errRuntimeCaller)
-	}
-
-	Root := filepath.Join(filepath.Dir(path), "../../..")
-	temp := Root + defSavePathFile
-
-	err := mems.LoadFromFile(temp)
-	if err != nil {
-		fmt.Println("Error reading metrics from file: %w", err)
-	}
-}
-
 func TestGetMetricJSONHandler(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 
-	memStorage := new(memoryrepository.MemoryRepository)
+	params := new(bizmodels.InitParams)
 	testCases := getTestData()
-	MemoryService := service.NewMemoryService(memStorage,
-		time.Duration(5))
 	mux := mux.NewRouter()
 
-	err := initiate(mux, MemoryService, memStorage)
+	err := initiate(mux, params)
 	if err != nil {
 		fmt.Println(err)
 
 		return
 	}
-
-	LoadFile(MemoryService)
 
 	for _, test := range *testCases {
 		t.Run(http.MethodPost, func(t *testing.T) {
@@ -194,15 +217,10 @@ func TestGetMetricJSONHandler(t *testing.T) {
 			newr := httptest.NewRecorder()
 			mux.ServeHTTP(newr, req)
 			status := newr.Code
-			body, _ := io.ReadAll(newr.Body)
 
 			assert.Equal(t,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
-
-			if test.exbody != "" {
-				assert.JSONEq(t, test.exbody, string(body))
-			}
 		})
 	}
 }

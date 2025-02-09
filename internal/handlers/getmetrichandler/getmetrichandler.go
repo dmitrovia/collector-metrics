@@ -42,7 +42,7 @@ func (h *GetMetricHandler) GetMetricHandler(
 
 	getReqData(req, valMetr)
 
-	isValid, status := isValidMetric(req, valMetr)
+	isValid, status := isValidMetric(valMetr)
 	if !isValid {
 		writer.WriteHeader(status)
 
@@ -73,13 +73,8 @@ func getReqData(r *http.Request, metric *validMetric) {
 }
 
 func isValidMetric(
-	r *http.Request,
 	metric *validMetric,
 ) (bool, int) {
-	if !validate.IsMethodGet(r.Method) {
-		return false, http.StatusMethodNotAllowed
-	}
-
 	var pattern string
 	pattern = "^[0-9a-zA-Z/ ]{1,40}$"
 	res, _ := validate.IsMatchesTemplate(metric.mname, pattern)

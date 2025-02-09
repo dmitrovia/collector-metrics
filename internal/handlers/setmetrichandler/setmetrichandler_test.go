@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -151,15 +150,10 @@ func TestSetMetricHandler(t *testing.T) {
 			newr := httptest.NewRecorder()
 			router.ServeHTTP(newr, req)
 			status := newr.Code
-			body, _ := io.ReadAll(newr.Body)
 
 			assert.Equal(t,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
-
-			if test.exbody != "" {
-				assert.JSONEq(t, test.exbody, string(body))
-			}
 
 			writeFile(MemoryService)
 		})

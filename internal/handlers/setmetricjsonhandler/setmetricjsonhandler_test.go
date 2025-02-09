@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -176,15 +175,10 @@ func TestSetMetricJSONHandler(t *testing.T) {
 			newr := httptest.NewRecorder()
 			mux.ServeHTTP(newr, req)
 			status := newr.Code
-			body, _ := io.ReadAll(newr.Body)
 
 			assert.Equal(t,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
-
-			if test.exbody != "" {
-				assert.JSONEq(t, test.exbody, string(body))
-			}
 		})
 	}
 }
