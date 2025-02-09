@@ -2,12 +2,8 @@ package setmetrichandler_test
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -32,10 +28,6 @@ const tmpstr string = "111111111111111111111111111111111111"
 const tmpstr1 string = "111111111111111111111111111111111.0"
 
 const post string = "POST"
-
-const defSavePathFile string = "/internal/temp/metrics.json"
-
-var errRuntimeCaller = errors.New("errRuntimeCaller")
 
 type testData struct {
 	tn     string
@@ -125,8 +117,6 @@ func TestSetMetricHandler(t *testing.T) {
 	t.Parallel()
 
 	memStorage := new(memoryrepository.MemoryRepository)
-	MemoryService := service.NewMemoryService(memStorage,
-		time.Duration(5))
 	router := mux.NewRouter()
 
 	initiate(router, memStorage)
@@ -154,26 +144,6 @@ func TestSetMetricHandler(t *testing.T) {
 			assert.Equal(t,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
-
-			writeFile(MemoryService)
 		})
-	}
-}
-
-func writeFile(mems *service.DS) {
-	_, path, _, ok := runtime.Caller(0)
-
-	if !ok {
-		fmt.Println(errRuntimeCaller)
-
-		return
-	}
-
-	Root := filepath.Join(filepath.Dir(path), "../../..")
-	temp := Root + defSavePathFile
-
-	err := mems.SaveInFile(temp)
-	if err != nil {
-		fmt.Println("Error writing metrics to file: %w", err)
 	}
 }

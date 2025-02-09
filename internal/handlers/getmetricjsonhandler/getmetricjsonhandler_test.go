@@ -32,10 +32,6 @@ const stok int = http.StatusOK
 
 const nfnd int = http.StatusNotFound
 
-const bdreq int = http.StatusBadRequest
-
-const tmpstr1 float64 = 111111111111111111111111111111111.0
-
 const post string = "POST"
 
 const defSavePathFile string = "/internal/temp/metrics.json"
@@ -53,58 +49,103 @@ type testData struct {
 	meth   string
 }
 
-func getTestData() *[]testData {
-	return &[]testData{
+func getTestData() []testData {
+	return []testData{
 		{
 			meth: post, tn: "1", mt: bizmodels.GaugeName,
-			mn: "Name1", value: 1.0, expcod: stok, exbody: "",
+			mn: "Name1", value: 1, expcod: stok,
 		},
 		{
 			meth: post, tn: "2", mt: bizmodels.CounterName,
-			mn: "Name2", delta: 1, expcod: stok, exbody: "",
+			mn: "Name1", delta: 1, expcod: stok,
 		},
 		{
 			meth: post, tn: "3", mt: bizmodels.CounterName,
-			mn: "Name3", delta: 1, expcod: stok, exbody: "",
+			mn: "Name__22", delta: 1, expcod: nfnd,
 		},
 		{
-			meth: post, tn: "4", mt: "counter_new", mn: "Name4",
-			delta: 1, expcod: bdreq, exbody: "",
+			meth: post, tn: "4", mt: bizmodels.CounterName,
+			mn: "Name__22****1", delta: 1, expcod: nfnd,
+		},
+		{
+			meth: post, tn: "5", mt: bizmodels.CounterName,
+			mn: "Name2", delta: 999999999, expcod: stok,
 		},
 		{
 			meth: post, tn: "6", mt: bizmodels.CounterName,
-			mn: "Name6", delta: -1, expcod: stok, exbody: "",
+			mn: "Name2", delta: -999999999, expcod: stok,
 		},
 		{
-			meth: post, tn: "8", mt: bizmodels.GaugeName,
-			mn: "Name8", value: tmpstr1, expcod: stok, exbody: "",
+			meth: post, tn: "7", mt: bizmodels.CounterName,
+			mn: "Name4", delta: 0, expcod: stok,
 		},
 		{
-			meth: post, tn: "10", mt: bizmodels.GaugeName,
-			mn: "Name9", value: -1.5, expcod: stok, exbody: "",
+			meth: post, tn: "8", mt: bizmodels.CounterName,
+			mn: "Name5", delta: 7456, expcod: stok,
 		},
+		{
+			meth: post, tn: "9", mt: bizmodels.CounterName,
+			mn: "Name6", delta: -1, expcod: stok,
+		},
+		{
+			meth: post, tn: "10", mt: bizmodels.CounterName,
+			mn: "Name343", delta: 555, expcod: stok,
+		},
+		{
+			meth: post, tn: "10", mt: bizmodels.CounterName,
+			mn: "Name58888", delta: 555, expcod: nfnd,
+		},
+	}
+}
+
+func getTD2() []testData {
+	return []testData{
 		{
 			meth: post, tn: "11", mt: bizmodels.GaugeName,
-			mn: "Name10", value: -1, expcod: stok, exbody: "",
+			mn: "Name1", value: 1.0, expcod: stok, exbody: "",
 		},
 		{
 			meth: post, tn: "12", mt: bizmodels.GaugeName,
-			mn: "Name11", value: 5, expcod: stok, exbody: "",
+			mn: "Name1", value: 1.0, expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "13",
-			mt: bizmodels.CounterName, mn: "_Name123_",
-			delta: 1, expcod: nfnd, exbody: "",
+			meth: post, tn: "13", mt: bizmodels.GaugeName,
+			mn: "Name__22", value: 1.0, expcod: nfnd, exbody: "",
 		},
 		{
-			meth: post, tn: "14",
-			mt: bizmodels.CounterName, mn: "gggf4",
-			delta: 1, expcod: nfnd, exbody: "",
+			meth: post, tn: "14", mt: bizmodels.GaugeName,
+			mn: "Name__22****1", value: 1.0, expcod: nfnd,
+			exbody: "",
 		},
 		{
-			meth: post, tn: "15",
-			mt: bizmodels.GaugeName, mn: "fghgf44",
-			delta: 1, expcod: nfnd, exbody: "",
+			meth: post, tn: "15", mt: bizmodels.GaugeName,
+			mn: "Name2", value: 999999999.62,
+			expcod: stok, exbody: "",
+		},
+		{
+			meth: post, tn: "16", mt: bizmodels.GaugeName,
+			mn: "Name2", value: -999999999.38,
+			expcod: stok, exbody: "",
+		},
+		{
+			meth: post, tn: "17", mt: bizmodels.GaugeName,
+			mn: "Name4", value: 0, expcod: stok, exbody: "",
+		},
+		{
+			meth: post, tn: "18", mt: bizmodels.GaugeName,
+			mn: "Name5", value: 7456.3231, expcod: stok, exbody: "",
+		},
+		{
+			meth: post, tn: "19", mt: bizmodels.GaugeName,
+			mn: "Name6", value: -1, expcod: stok, exbody: "",
+		},
+		{
+			meth: post, tn: "20", mt: bizmodels.GaugeName,
+			mn: "Name343", value: 555, expcod: stok, exbody: "",
+		},
+		{
+			meth: post, tn: "20", mt: bizmodels.GaugeName,
+			mn: "Name58888", value: 555, expcod: nfnd, exbody: "",
 		},
 	}
 }
@@ -183,7 +224,11 @@ func TestGetMetricJSONHandler(t *testing.T) {
 	t.Parallel()
 
 	params := new(bizmodels.InitParams)
-	testCases := getTestData()
+
+	result := make([]testData, 0)
+	result = append(result, getTestData()...)
+	result = append(result, getTD2()...)
+
 	mux := mux.NewRouter()
 
 	err := initiate(mux, params)
@@ -193,7 +238,7 @@ func TestGetMetricJSONHandler(t *testing.T) {
 		return
 	}
 
-	for _, test := range *testCases {
+	for _, test := range result {
 		t.Run(http.MethodPost, func(t *testing.T) {
 			t.Parallel()
 

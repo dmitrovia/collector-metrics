@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -237,6 +238,13 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	return nil
 }
 
+func AttachProfiler(router *mux.Router) {
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+}
+
 func InitiateServer(
 	par *bizmodels.InitParams,
 	mser *service.DS,
@@ -244,6 +252,7 @@ func InitiateServer(
 	zapLogger *zap.Logger,
 ) {
 	mux := mux.NewRouter()
+	AttachProfiler(mux)
 
 	initPostMethods(mux, mser, zapLogger, par)
 	initGetMethods(mux, mser, zapLogger, par)

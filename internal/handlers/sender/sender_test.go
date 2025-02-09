@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -24,7 +25,6 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/dbrepository"
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -57,11 +57,12 @@ func getTestData() *[]testData {
 		{Name: "Name__22", Value: 1},
 		{Name: "Name__22****1", Value: 1},
 		{Name: "Name2", Value: 999999999},
-		{Name: "Name3", Value: -999999999},
+		{Name: "Name2", Value: -999999999},
 		{Name: "Name4", Value: 0},
 		{Name: "Name5", Value: 7456},
 		{Name: "Name6", Value: -1},
-		{Name: uuid.New().String(), Value: 0},
+		{Name: "Name343", Value: 555},
+		{Name: randomString(5), Value: 0},
 	}
 
 	tempC1 := []bizmodels.Counter{
@@ -78,7 +79,8 @@ func getTestData() *[]testData {
 		{Name: "Name4", Value: 0},
 		{Name: "Name5", Value: 7456.3231},
 		{Name: "Name6", Value: -1.0},
-		{Name: uuid.New().String(), Value: 0},
+		{Name: "Name343", Value: 555},
+		{Name: randomString(5), Value: 0},
 	}
 
 	tempG1 := []bizmodels.Gauge{
@@ -301,4 +303,16 @@ func getDataSend(testD *testData,
 	}
 
 	return &data
+}
+
+func randomString(n int) string {
+	letters := []rune(
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(b)
 }
