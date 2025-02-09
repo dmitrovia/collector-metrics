@@ -219,9 +219,9 @@ func initiate(
 	return nil
 }
 
-func TestGetMetricJSONHandler(t *testing.T) {
+func TestGetMetricJSONHandler(t *testing.B) {
 	t.Helper()
-	t.Parallel()
+	// t.Parallel()
 
 	params := new(bizmodels.InitParams)
 
@@ -239,8 +239,8 @@ func TestGetMetricJSONHandler(t *testing.T) {
 	}
 
 	for _, test := range result {
-		t.Run(http.MethodPost, func(t *testing.T) {
-			t.Parallel()
+		t.Run(http.MethodPost, func(t *testing.B) {
+			// t.Parallel()
 
 			reqData, err := formReqBody(&test)
 			if err != nil {

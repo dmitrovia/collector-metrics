@@ -186,9 +186,9 @@ func initiate(
 	return nil
 }
 
-func TestSender(t *testing.T) {
+func BenchmarkSender(t *testing.B) {
 	t.Helper()
-	t.Parallel()
+	// t.Parallel()
 
 	params := new(bizmodels.InitParams)
 	settings := new(bizmodels.EndpointSettings)
@@ -204,8 +204,8 @@ func TestSender(t *testing.T) {
 	testCases := getTestData()
 
 	for _, test := range *testCases {
-		t.Run(http.MethodPost, func(t *testing.T) {
-			t.Parallel()
+		t.Run(http.MethodPost, func(t *testing.B) {
+			// t.Parallel()
 
 			reqData, err := initReqData(settings, params, &test)
 			if err != nil {

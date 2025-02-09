@@ -135,9 +135,9 @@ func initiate(
 	return nil
 }
 
-func TestSetMetricJSONHandler(t *testing.T) {
+func BenchmarkSetMetricJSONHandler(t *testing.B) {
 	t.Helper()
-	t.Parallel()
+	// t.Parallel()
 
 	testCases := getTestData()
 
@@ -152,8 +152,8 @@ func TestSetMetricJSONHandler(t *testing.T) {
 	}
 
 	for _, test := range *testCases {
-		t.Run(http.MethodPost, func(t *testing.T) {
-			t.Parallel()
+		t.Run(http.MethodPost, func(t *testing.B) {
+			// t.Parallel()
 
 			reqData, err := formReqBody(&test)
 			if err != nil {

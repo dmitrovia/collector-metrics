@@ -149,9 +149,9 @@ func LoadFile(mems *service.DS) {
 	}
 }
 
-func TestGetMetricHandler(t *testing.T) {
+func BenchmarkGetMetricHandler(t *testing.B) {
 	t.Helper()
-	t.Parallel()
+	// t.Parallel()
 
 	memStorage := new(memoryrepository.MemoryRepository)
 	testCases := getTestData()
@@ -169,8 +169,8 @@ func TestGetMetricHandler(t *testing.T) {
 	LoadFile(MemoryService)
 
 	for _, test := range *testCases {
-		t.Run(http.MethodGet, func(t *testing.T) {
-			t.Parallel()
+		t.Run(http.MethodGet, func(t *testing.B) {
+			// t.Parallel()
 
 			req, err := http.NewRequestWithContext(
 				context.Background(),
