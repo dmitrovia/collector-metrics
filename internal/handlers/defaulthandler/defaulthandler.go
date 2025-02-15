@@ -44,11 +44,11 @@ func (h *DefaultHandler) DefaultHandler(
 		return
 	}
 
-	for key, value := range *counters {
+	for key, value := range counters {
 		mapMetrics[key] = strconv.FormatInt(value.Value, 10)
 	}
 
-	for key, value := range *gauges {
+	for key, value := range gauges {
 		mapMetrics[key] = strconv.FormatFloat(
 			value.Value, 'f', -1, 64)
 	}

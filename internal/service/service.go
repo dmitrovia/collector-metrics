@@ -27,8 +27,8 @@ type Service interface {
 	AddMetrics(
 		gms map[string]bizmodels.Gauge,
 		cms map[string]bizmodels.Counter) error
-	GetAllGauges() (*map[string]bizmodels.Gauge, error)
-	GetAllCounters() (*map[string]bizmodels.Counter, error)
+	GetAllGauges() (map[string]bizmodels.Gauge, error)
+	GetAllCounters() (map[string]bizmodels.Counter, error)
 }
 
 type DS struct {
@@ -37,7 +37,7 @@ type DS struct {
 }
 
 func (s *DS) GetAllGauges() (
-	*map[string]bizmodels.Gauge, error,
+	map[string]bizmodels.Gauge, error,
 ) {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -54,7 +54,7 @@ func (s *DS) GetAllGauges() (
 }
 
 func (s *DS) GetAllCounters() (
-	*map[string]bizmodels.Counter, error,
+	map[string]bizmodels.Counter, error,
 ) {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -128,11 +128,11 @@ func (s *DS) SaveInFile(pth string) error {
 }
 
 func saveCounters(file *os.File,
-	counters *map[string]bizmodels.Counter,
+	counters map[string]bizmodels.Counter,
 ) error {
 	var reqMetric apimodels.Metrics
 
-	for _, counter := range *counters {
+	for _, counter := range counters {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = counter.Name
 		reqMetric.MType = bizmodels.CounterName
@@ -155,11 +155,11 @@ func saveCounters(file *os.File,
 }
 
 func saveGauges(file *os.File,
-	gauges *map[string]bizmodels.Gauge,
+	gauges map[string]bizmodels.Gauge,
 ) error {
 	var reqMetric apimodels.Metrics
 
-	for _, gauge := range *gauges {
+	for _, gauge := range gauges {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = gauge.Name
 		reqMetric.MType = bizmodels.GaugeName

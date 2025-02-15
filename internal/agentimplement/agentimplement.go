@@ -199,7 +199,7 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	settings.Encoding = "gzip"
 	settings.URL = par.URL + "/updates/"
 
-	req, err := initReqData(&gauges, &counters, settings, par)
+	req, err := initReqData(&gauges, counters, settings, par)
 	if err != nil {
 		fmt.Println("reqMetricsJSON->initReqData: %w", err)
 
@@ -246,7 +246,7 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 }
 
 func initReqData(gauges *[]bizmodels.Gauge,
-	counters *map[string]bizmodels.Counter,
+	counters map[string]bizmodels.Counter,
 	settings *bizmodels.EndpointSettings,
 	params *bizmodels.InitParamsAgent,
 ) (*bytes.Reader, error) {
@@ -300,15 +300,15 @@ func parseResponse(
 }
 
 func getDataSend(gauges *[]bizmodels.Gauge,
-	counters *map[string]bizmodels.Counter,
+	counters map[string]bizmodels.Counter,
 ) *apimodels.ArrMetrics {
 	var reqMetric apimodels.Metrics
 
 	data := make(apimodels.ArrMetrics,
 		0,
-		len(*gauges)+len(*counters))
+		len(*gauges)+len(counters))
 
-	for _, metric := range *counters {
+	for _, metric := range counters {
 		reqMetric = apimodels.Metrics{}
 		reqMetric.ID = metric.Name
 		reqMetric.MType = bizmodels.CounterName

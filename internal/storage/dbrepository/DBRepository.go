@@ -47,7 +47,7 @@ func (m *DBepository) AddMetrics(
 }
 
 func (m *DBepository) GetAllGauges(ctx *context.Context) (
-	*map[string]bizmodels.Gauge,
+	map[string]bizmodels.Gauge,
 	error,
 ) {
 	var (
@@ -81,11 +81,11 @@ func (m *DBepository) GetAllGauges(ctx *context.Context) (
 		}
 	}
 
-	return &gauges, nil
+	return gauges, nil
 }
 
 func (m *DBepository) GetAllCounters(ctx *context.Context) (
-	*map[string]bizmodels.Counter,
+	map[string]bizmodels.Counter,
 	error,
 ) {
 	var (
@@ -119,7 +119,7 @@ func (m *DBepository) GetAllCounters(ctx *context.Context) (
 		}
 	}
 
-	return &counters, nil
+	return counters, nil
 }
 
 func (m *DBepository) GetGaugeMetric(

@@ -45,16 +45,16 @@ func (m *MemoryRepository) Init() {
 
 func (m *MemoryRepository) GetAllGauges(
 	_ *context.Context) (
-	*map[string]bizmodels.Gauge, error,
+	map[string]bizmodels.Gauge, error,
 ) {
-	return &m.gauges, nil
+	return m.gauges, nil
 }
 
 func (m *MemoryRepository) GetAllCounters(
 	_ *context.Context) (
-	*map[string]bizmodels.Counter, error,
+	map[string]bizmodels.Counter, error,
 ) {
-	return &m.counters, nil
+	return m.counters, nil
 }
 
 func (m *MemoryRepository) GetGaugeMetric(
