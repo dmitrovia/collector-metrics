@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -44,6 +45,105 @@ func (m *DBepository) AddMetrics(
 	}
 
 	return nil
+}
+
+func (m *DBepository) GetAllMetricsAPI(
+	ctx *context.Context,
+) (*apimodels.ArrMetrics, error) {
+	arr1, err := m.GetAllGaugesAPI(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("AddMetrics->m.AddCounter %w", err)
+	}
+
+	arr2, err := m.GetAllCountersAPI(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("AddMetrics->m.AddCounter %w", err)
+	}
+
+	result := make(apimodels.ArrMetrics, 0)
+	result = append(result, arr1...)
+	result = append(result, arr2...)
+
+	return &result, nil
+}
+
+func (m *DBepository) GetAllGaugesAPI(
+	ctx *context.Context) (
+	apimodels.ArrMetrics,
+	error,
+) {
+	var (
+		name  string
+		value float64
+	)
+
+	gauges := make(apimodels.ArrMetrics, 0)
+
+	rows, err := m.conn.Query(
+		*ctx,
+		"select name, value from gauges")
+	if err != nil {
+		return nil, fmt.Errorf("GetAllGaugesAPI->m.conn.Query %w",
+			err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&name, &value)
+		if err != nil {
+			fmt.Printf("Scan error: %v", err)
+		} else {
+			temp := new(apimodels.Metrics)
+			temp.ID = name
+			temp.Value = &value
+			temp.MType = bizmodels.GaugeName
+
+			gauges = append(gauges, *temp)
+		}
+	}
+
+	return gauges, nil
+}
+
+func (m *DBepository) GetAllCountersAPI(
+	ctx *context.Context) (
+	apimodels.ArrMetrics,
+	error,
+) {
+	var (
+		name  string
+		value int64
+	)
+
+	counters := make(apimodels.ArrMetrics, 0)
+
+	rows, err := m.conn.Query(
+		*ctx,
+		"select name, value from counters")
+	if err != nil {
+		return nil, fmt.Errorf(
+			"GetAllCountersAPI->m.conn.Query %w",
+			err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&name, &value)
+		if err != nil {
+			fmt.Printf("Scan error: %v", err)
+		} else {
+			temp := new(apimodels.Metrics)
+			temp.ID = name
+			temp.Delta = &value
+			temp.MType = bizmodels.CounterName
+
+			counters = append(counters, *temp)
+		}
+	}
+
+	return counters, nil
 }
 
 func (m *DBepository) GetAllGauges(ctx *context.Context) (

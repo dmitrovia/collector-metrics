@@ -62,42 +62,15 @@ func writeResp(
 	writer http.ResponseWriter,
 	handler *SetMetricJSONHandler,
 ) error {
-	tmpGauges, err := handler.serv.GetAllGauges()
+	arr, err := handler.serv.GetAllMetricsAPI()
 	if err != nil {
-		return fmt.Errorf("formResponeBody->GetAllGauges: %w",
+		return fmt.Errorf("writeResp->GetAllMetricsAPI: %w",
 			err)
-	}
-
-	tmpCounters, err := handler.serv.GetAllCounters()
-	if err != nil {
-		return fmt.Errorf("formResponeBody->GetAllCounters: %w",
-			err)
-	}
-
-	arr := make(apimodels.ArrMetrics, 0,
-		len(tmpGauges)+len(tmpCounters))
-
-	for _, vmr := range tmpGauges {
-		tmp := apimodels.Metrics{}
-		tmp.ID = vmr.Name
-		tmp.MType = bizmodels.GaugeName
-		tmp.Value = &vmr.Value
-
-		arr = append(arr, tmp)
-	}
-
-	for _, vmr := range tmpCounters {
-		tmp := apimodels.Metrics{}
-		tmp.ID = vmr.Name
-		tmp.MType = bizmodels.CounterName
-		tmp.Delta = &vmr.Value
-
-		arr = append(arr, tmp)
 	}
 
 	marshal, err := json.Marshal(arr)
 	if err != nil {
-		return fmt.Errorf("formResponeBody->Marshal: %w",
+		return fmt.Errorf("writeResp->Marshal: %w",
 			err)
 	}
 
@@ -105,7 +78,7 @@ func writeResp(
 		tHash, err := hash.MakeHashSHA256(&marshal,
 			handler.params.Key)
 		if err != nil {
-			return fmt.Errorf("addHash->MakeHashSHA256: %w",
+			return fmt.Errorf("writeResp->MakeHashSHA256: %w",
 				err)
 		}
 
@@ -136,15 +109,15 @@ func getReqData(
 
 	defer req.Body.Close()
 
+	if len(bodyD) == 0 {
+		return fmt.Errorf("getReqData: %w", errGetReqDataJSON)
+	}
+
 	err = checkHash(&bodyD,
 		req.Header.Get("Hashsha256"), handler.params.Key)
 	if err != nil {
 		return fmt.Errorf("getReqData->checkHash: %w",
 			err)
-	}
-
-	if len(bodyD) == 0 {
-		return fmt.Errorf("getReqData: %w", errGetReqDataJSON)
 	}
 
 	err = json.Unmarshal(bodyD, &results)

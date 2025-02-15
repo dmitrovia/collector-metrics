@@ -29,11 +29,30 @@ type Service interface {
 		cms map[string]bizmodels.Counter) error
 	GetAllGauges() (map[string]bizmodels.Gauge, error)
 	GetAllCounters() (map[string]bizmodels.Counter, error)
+	GetAllMetricsAPI() (*apimodels.ArrMetrics, error)
 }
 
 type DS struct {
 	repository  storage.Repository
 	ctxDuration time.Duration
+}
+
+func (s *DS) GetAllMetricsAPI() (
+	*apimodels.ArrMetrics, error,
+) {
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		s.ctxDuration)
+	defer cancel()
+
+	metrics, err := s.repository.GetAllMetricsAPI(&ctx)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"GetAllMetricsAPI->GetAllMetricsAPI: %w",
+			err)
+	}
+
+	return metrics, nil
 }
 
 func (s *DS) GetAllGauges() (

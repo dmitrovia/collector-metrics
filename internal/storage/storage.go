@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 
+	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
 
@@ -25,4 +26,7 @@ type Repository interface {
 	AddMetrics(ctx *context.Context,
 		gauges map[string]bizmodels.Gauge,
 		counters map[string]bizmodels.Counter) error
+	GetAllMetricsAPI(ctx *context.Context) (
+		*apimodels.ArrMetrics,
+		error)
 }

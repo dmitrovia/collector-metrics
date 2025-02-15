@@ -5,11 +5,15 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
 
 var errGetValueMetric = errors.New(
 	"value by name not found")
+
+var errMethod = errors.New(
+	"method not implemented")
 
 type MemoryRepository struct {
 	gauges   map[string]bizmodels.Gauge
@@ -110,4 +114,10 @@ func (m *MemoryRepository) AddCounter(
 	m.counters[counter.Name] = *counter
 
 	return counter, nil
+}
+
+func (m *MemoryRepository) GetAllMetricsAPI(
+	_ *context.Context,
+) (*apimodels.ArrMetrics, error) {
+	return nil, errMethod
 }
