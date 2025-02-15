@@ -112,9 +112,8 @@ func initiate(router *mux.Router,
 		handler.SetMetricHandler)
 }
 
-func BenchmarkSetMetricHandler(t *testing.B) {
-	t.Helper()
-	// t.Parallel()
+func BenchmarkSetMetricHandler(tobj *testing.B) {
+	tobj.Helper()
 
 	memStorage := new(memoryrepository.MemoryRepository)
 	router := mux.NewRouter()
@@ -124,15 +123,13 @@ func BenchmarkSetMetricHandler(t *testing.B) {
 	testCases := getTestData()
 
 	for _, test := range *testCases {
-		t.Run(http.MethodPost, func(t *testing.B) {
-			// t.Parallel()
-
+		tobj.Run(http.MethodPost, func(tobj *testing.B) {
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				test.meth,
 				url+"/update/"+test.mt+"/"+test.mn+"/"+test.mv, nil)
 			if err != nil {
-				t.Fatal(err)
+				tobj.Fatal(err)
 			}
 
 			req.Header.Set("Content-Type", "text/plain")
@@ -141,7 +138,7 @@ func BenchmarkSetMetricHandler(t *testing.B) {
 			router.ServeHTTP(newr, req)
 			status := newr.Code
 
-			assert.Equal(t,
+			assert.Equal(tobj,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
 		})

@@ -135,9 +135,8 @@ func initiate(
 	return nil
 }
 
-func BenchmarkSetMetricJSONHandler(t *testing.B) {
-	t.Helper()
-	// t.Parallel()
+func BenchmarkSetMetricJSONHandler(tobj *testing.B) {
+	tobj.Helper()
 
 	testCases := getTestData()
 
@@ -152,9 +151,7 @@ func BenchmarkSetMetricJSONHandler(t *testing.B) {
 	}
 
 	for _, test := range *testCases {
-		t.Run(http.MethodPost, func(t *testing.B) {
-			// t.Parallel()
-
+		tobj.Run(http.MethodPost, func(tobj *testing.B) {
 			reqData, err := formReqBody(&test)
 			if err != nil {
 				fmt.Println(err)
@@ -167,7 +164,7 @@ func BenchmarkSetMetricJSONHandler(t *testing.B) {
 				test.meth,
 				url+"/update/", reqData)
 			if err != nil {
-				t.Fatal(err)
+				tobj.Fatal(err)
 			}
 
 			req.Header.Set("Content-Type", "application/json")
@@ -176,7 +173,7 @@ func BenchmarkSetMetricJSONHandler(t *testing.B) {
 			mux.ServeHTTP(newr, req)
 			status := newr.Code
 
-			assert.Equal(t,
+			assert.Equal(tobj,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
 		})

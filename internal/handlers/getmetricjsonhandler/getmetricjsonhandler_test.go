@@ -92,7 +92,7 @@ func getTestData() []testData {
 			mn: "Name343", delta: 555, expcod: stok,
 		},
 		{
-			meth: post, tn: "10", mt: bizmodels.CounterName,
+			meth: post, tn: "101", mt: bizmodels.CounterName,
 			mn: "Name58888", delta: 555, expcod: nfnd,
 		},
 	}
@@ -144,7 +144,7 @@ func getTD2() []testData {
 			mn: "Name343", value: 555, expcod: stok, exbody: "",
 		},
 		{
-			meth: post, tn: "20", mt: bizmodels.GaugeName,
+			meth: post, tn: "21", mt: bizmodels.GaugeName,
 			mn: "Name58888", value: 555, expcod: nfnd, exbody: "",
 		},
 	}
@@ -219,9 +219,8 @@ func initiate(
 	return nil
 }
 
-func TestGetMetricJSONHandler(t *testing.B) {
-	t.Helper()
-	// t.Parallel()
+func BenchmarkGetMetricJSONHandler(tobj *testing.B) {
+	tobj.Helper()
 
 	params := new(bizmodels.InitParams)
 
@@ -239,9 +238,7 @@ func TestGetMetricJSONHandler(t *testing.B) {
 	}
 
 	for _, test := range result {
-		t.Run(http.MethodPost, func(t *testing.B) {
-			// t.Parallel()
-
+		tobj.Run(http.MethodPost, func(tobj *testing.B) {
 			reqData, err := formReqBody(&test)
 			if err != nil {
 				fmt.Println(err)
@@ -254,7 +251,7 @@ func TestGetMetricJSONHandler(t *testing.B) {
 				test.meth,
 				url+"/value/", reqData)
 			if err != nil {
-				t.Fatal(err)
+				tobj.Fatal(err)
 			}
 
 			req.Header.Set("Content-Type", "application/json")
@@ -263,7 +260,7 @@ func TestGetMetricJSONHandler(t *testing.B) {
 			mux.ServeHTTP(newr, req)
 			status := newr.Code
 
-			assert.Equal(t,
+			assert.Equal(tobj,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
 		})

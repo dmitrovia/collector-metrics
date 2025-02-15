@@ -15,16 +15,6 @@ import (
 
 var errGetReqDataJSON = errors.New("data is empty")
 
-type validMetric struct {
-	mtype string
-	mname string
-}
-
-type ansData struct {
-	mvalueFloat float64
-	mvalueInt   int64
-}
-
 type GetMetricJSONHandler struct {
 	serv service.Service
 }
@@ -40,104 +30,70 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(
 ) {
 	writer.Header().Set("Content-Type", "application/json")
 
-	valMetr := new(validMetric)
-
-	err := getReqDataJSON(req, valMetr)
+	met, err := getReqDataJSON(req)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
 	}
 
-	isValid, status := isValidMetric(valMetr)
+	isValid, status := isValidMetric(met)
 	if !isValid {
 		writer.WriteHeader(status)
 
 		return
 	}
 
-	answerData := new(ansData)
-	isSetAnsData, status := setAnswerDataForJSON(
-		valMetr, answerData, h)
-
-	writer.WriteHeader(status)
-
-	if isSetAnsData {
-		dataMarshal := apimodels.Metrics{}
-		dataMarshal.ID = valMetr.mname
-		dataMarshal.MType = valMetr.mtype
-
-		if valMetr.mtype == bizmodels.CounterName {
-			dataMarshal.Delta = &answerData.mvalueInt
-		}
-
-		if valMetr.mtype == bizmodels.GaugeName {
-			dataMarshal.Value = &answerData.mvalueFloat
-		}
-
-		metricMarshall, err := json.Marshal(dataMarshal)
-		if err != nil {
-			fmt.Println("GetMetricJSONHandler->json.Marshal: %w",
-				err)
-			writer.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
-
-		_, err = writer.Write(metricMarshall)
-		if err != nil {
-			fmt.Println("GetMetricJSONHandler->writer.Write: %w",
-				err)
-			writer.WriteHeader(http.StatusBadRequest)
-
-			return
-		}
+	status, err = writeAns(writer, met, h)
+	if err != nil {
+		fmt.Println("GetMetricJSONHandler->getAns: %w",
+			err)
+		writer.WriteHeader(status)
 
 		return
 	}
+
+	writer.WriteHeader(status)
 }
 
 func getReqDataJSON(req *http.Request,
-	metric *validMetric,
-) error {
+) (*apimodels.Metrics, error) {
 	var result apimodels.Metrics
 
 	bodyD, err := io.ReadAll(req.Body)
 	if err != nil {
 		defer req.Body.Close()
 
-		return fmt.Errorf("getReqDataJSON: %w", err)
+		return nil, fmt.Errorf("getReqDataJSON: %w", err)
 	}
 
 	defer req.Body.Close()
 
 	if len(bodyD) == 0 {
-		return fmt.Errorf("getReqDataJSON: %w", errGetReqDataJSON)
+		return nil, fmt.Errorf("getReqDataJSON: %w",
+			errGetReqDataJSON)
 	}
 
 	err = json.Unmarshal(bodyD, &result)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	metric.mname = result.ID
-	metric.mtype = result.MType
-
-	return nil
+	return &result, nil
 }
 
-func isValidMetric(metric *validMetric,
+func isValidMetric(metric *apimodels.Metrics,
 ) (bool, int) {
 	var pattern string
 	pattern = "^[0-9a-zA-Z/ ]{1,40}$"
-	res, _ := validate.IsMatchesTemplate(metric.mname, pattern)
+	res, _ := validate.IsMatchesTemplate(metric.ID, pattern)
 
 	if !res {
 		return false, http.StatusNotFound
 	}
 
 	pattern = "^" + bizmodels.MetricsPattern + "$"
-	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
+	res, _ = validate.IsMatchesTemplate(metric.MType, pattern)
 
 	if !res {
 		return false, http.StatusBadRequest
@@ -146,45 +102,66 @@ func isValidMetric(metric *validMetric,
 	return true, http.StatusOK
 }
 
-func setAnswerDataForJSON(metric *validMetric,
-	ansd *ansData,
-	h *GetMetricJSONHandler,
-) (bool, int) {
-	if metric.mtype == bizmodels.GaugeName {
-		return setGaugeValueToAnswer(metric, ansd, h)
-	} else if metric.mtype == bizmodels.CounterName {
-		return setCounterValueToAnswer(metric, ansd, h)
+func writeAns(
+	writer http.ResponseWriter,
+	metric *apimodels.Metrics,
+	hand *GetMetricJSONHandler,
+) (int, error) {
+	if metric.MType == bizmodels.CounterName {
+		val, err := setCounterValueToAnswer(metric.ID, hand)
+		if err != nil {
+			return http.StatusNotFound, err
+		}
+
+		metric.Delta = val
 	}
 
-	return false, http.StatusNotFound
+	if metric.MType == bizmodels.GaugeName {
+		val, err := setGaugeValueToAnswer(metric.ID, hand)
+		if err != nil {
+			return http.StatusNotFound, err
+		}
+
+		metric.Value = val
+	}
+
+	metricMarshall, err := json.Marshal(metric)
+	if err != nil {
+		return http.StatusBadRequest, err
+	}
+
+	_, err = writer.Write(metricMarshall)
+	if err != nil {
+		return http.StatusBadRequest,
+			fmt.Errorf("writeAns->Write %w", err)
+	}
+
+	return http.StatusOK, nil
 }
 
 func setGaugeValueToAnswer(
-	metric *validMetric,
-	ansd *ansData,
+	metricID string,
 	h *GetMetricJSONHandler,
-) (bool, int) {
-	metricValue, err := h.serv.GetValueGM(metric.mname)
+) (*float64, error) {
+	metricValue, err := h.serv.GetValueGM(metricID)
 	if err != nil {
-		return false, http.StatusNotFound
+		return nil,
+			fmt.Errorf("setGaugeValueToAnswer->GetValueGM %w", err)
 	}
 
-	ansd.mvalueFloat = metricValue
-
-	return true, http.StatusOK
+	return &metricValue, nil
 }
 
 func setCounterValueToAnswer(
-	metric *validMetric,
-	ansd *ansData,
+	metricID string,
 	h *GetMetricJSONHandler,
-) (bool, int) {
-	metricValue, err := h.serv.GetValueCM(metric.mname)
+) (*int64, error) {
+	metricValue, err := h.serv.GetValueCM(metricID)
 	if err != nil {
-		return false, http.StatusNotFound
+		return nil,
+			fmt.Errorf("setCounterValueToAnswer->GetValueCM %w",
+				err)
 	}
 
-	ansd.mvalueInt = metricValue
-
-	return true, http.StatusOK
+	return &metricValue, nil
 }

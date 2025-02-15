@@ -149,8 +149,8 @@ func LoadFile(mems *service.DS) {
 	}
 }
 
-func BenchmarkGetMetricHandler(t *testing.B) {
-	t.Helper()
+func BenchmarkGetMetricHandler(tobj *testing.B) {
+	tobj.Helper()
 	// t.Parallel()
 
 	memStorage := new(memoryrepository.MemoryRepository)
@@ -169,15 +169,13 @@ func BenchmarkGetMetricHandler(t *testing.B) {
 	LoadFile(MemoryService)
 
 	for _, test := range *testCases {
-		t.Run(http.MethodGet, func(t *testing.B) {
-			// t.Parallel()
-
+		tobj.Run(http.MethodGet, func(tobj *testing.B) {
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				test.meth,
 				url+"/value/"+test.mt+"/"+test.mn, nil)
 			if err != nil {
-				t.Fatal(err)
+				tobj.Fatal(err)
 			}
 
 			req.Header.Set("Content-Type", "text/plain")
@@ -187,7 +185,7 @@ func BenchmarkGetMetricHandler(t *testing.B) {
 			status := newr.Code
 			body, _ := io.ReadAll(newr.Body)
 
-			eql := assert.Equal(t,
+			eql := assert.Equal(tobj,
 				test.expcod,
 				status, test.tn+": Response code didn't match expected")
 
@@ -196,7 +194,7 @@ func BenchmarkGetMetricHandler(t *testing.B) {
 			}
 
 			if status == http.StatusOK {
-				assert.Equal(t, test.mv,
+				assert.Equal(tobj, test.mv,
 					string(body),
 					test.tn+": Response value didn't match expected")
 			}
