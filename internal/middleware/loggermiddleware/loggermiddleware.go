@@ -1,3 +1,5 @@
+// Package loggermiddleware
+// logs requests received by the server.
 package loggermiddleware
 
 import (
@@ -45,6 +47,7 @@ func (r *loggingResponseWriter) WriteHeader(
 	r.responseData.status = statusCode
 }
 
+// RequestLogger - main middleware method.
 func RequestLogger(
 	zapLogger *zap.Logger,
 ) func(http.Handler) http.Handler {

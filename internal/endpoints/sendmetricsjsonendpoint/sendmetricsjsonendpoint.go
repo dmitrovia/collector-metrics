@@ -1,3 +1,5 @@
+// Package sendmetricsjsonendpoint provides handler
+// to send metrics to the server.
 package sendmetricsjsonendpoint
 
 import (
@@ -11,6 +13,7 @@ import (
 
 const timeout = 60
 
+// SendMJSONEndpoint - main endpoint method.
 func SendMJSONEndpoint(
 	epSettings *bizmodels.EndpointSettings,
 ) (*http.Response, error) {

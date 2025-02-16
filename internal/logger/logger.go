@@ -1,3 +1,5 @@
+// Package logger provides functions
+// working with server logging.
 package logger
 
 import (
@@ -6,6 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Initialize - initializing a logging object.
 func Initialize(level string) (*zap.Logger, error) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {

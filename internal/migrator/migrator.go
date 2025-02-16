@@ -1,3 +1,5 @@
+// Package migrator
+// implements database migrations.
 package migrator
 
 import (
@@ -12,10 +14,13 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
+// Migrator - describing the struct migrator.
 type Migrator struct {
 	srcDriver source.Driver
 }
 
+// MustGetNewMigrator - to create an instance
+// of a migrator object.
 func MustGetNewMigrator(
 	sqlFiles embed.FS,
 	dirName string,
@@ -31,6 +36,7 @@ func MustGetNewMigrator(
 	}, nil
 }
 
+// ApplyMigrations - applies migrations to the database.
 func (m *Migrator) ApplyMigrations(db *sql.DB) error {
 	driver, err := postgres.WithInstance(
 		db,

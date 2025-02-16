@@ -1,3 +1,5 @@
+// Package apimodels
+// describes the data exchange model for handlers
 package apimodels
 
 type Metrics struct {

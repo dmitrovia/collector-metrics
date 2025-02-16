@@ -1,3 +1,5 @@
+// Package dbrepository provides
+// working with postgre storage
 package dbrepository
 
 import (
@@ -9,11 +11,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// DBepository - describing the storage.
 type DBepository struct {
 	databaseDSN string
 	conn        *pgxpool.Pool
 }
 
+// Initiate - initialization of initial parameters.
 func (m *DBepository) Initiate(
 	dsn string,
 	conn *pgxpool.Pool,
@@ -22,9 +26,11 @@ func (m *DBepository) Initiate(
 	m.conn = conn
 }
 
+// Init - initialization of initial parameters.
 func (m *DBepository) Init() {
 }
 
+// AddMetrics - adds metrics to the database.
 func (m *DBepository) AddMetrics(
 	ctx *context.Context,
 	gauges map[string]bizmodels.Gauge,
@@ -47,6 +53,7 @@ func (m *DBepository) AddMetrics(
 	return nil
 }
 
+// GetAllMetricsAPI - get all metrics in API format.
 func (m *DBepository) GetAllMetricsAPI(
 	ctx *context.Context,
 ) (*apimodels.ArrMetrics, error) {
@@ -67,6 +74,7 @@ func (m *DBepository) GetAllMetricsAPI(
 	return &result, nil
 }
 
+// GetAllGaugesAPI - get all gauge metrics in API format.
 func (m *DBepository) GetAllGaugesAPI(
 	ctx *context.Context) (
 	apimodels.ArrMetrics,
@@ -106,6 +114,8 @@ func (m *DBepository) GetAllGaugesAPI(
 	return gauges, nil
 }
 
+// GetAllCountersAPI - get all
+// counter metrics in API format.
 func (m *DBepository) GetAllCountersAPI(
 	ctx *context.Context) (
 	apimodels.ArrMetrics,
@@ -146,6 +156,7 @@ func (m *DBepository) GetAllCountersAPI(
 	return counters, nil
 }
 
+// GetAllGauges - get all gauges metrics from database.
 func (m *DBepository) GetAllGauges(ctx *context.Context) (
 	map[string]bizmodels.Gauge,
 	error,
@@ -184,6 +195,7 @@ func (m *DBepository) GetAllGauges(ctx *context.Context) (
 	return gauges, nil
 }
 
+// GetAllCounters - get all counter metrics from database.
 func (m *DBepository) GetAllCounters(ctx *context.Context) (
 	map[string]bizmodels.Counter,
 	error,
@@ -222,6 +234,7 @@ func (m *DBepository) GetAllCounters(ctx *context.Context) (
 	return counters, nil
 }
 
+// GetGaugeMetric - get gauge metric by name from database.
 func (m *DBepository) GetGaugeMetric(
 	ctx *context.Context,
 	name string,
@@ -249,6 +262,8 @@ func (m *DBepository) GetGaugeMetric(
 	return temp, nil
 }
 
+// GetCounterMetric - get counter
+// metric by name from database.
 func (m *DBepository) GetCounterMetric(
 	ctx *context.Context,
 	name string,
@@ -277,6 +292,7 @@ func (m *DBepository) GetCounterMetric(
 	return temp, nil
 }
 
+// AddGauge - add the gauge metric to the database.
 func (m *DBepository) AddGauge(
 	ctx *context.Context,
 	gauge *bizmodels.Gauge,
@@ -304,6 +320,7 @@ func (m *DBepository) AddGauge(
 	return nil
 }
 
+// AddCounter - add the counter metric to the database.
 func (m *DBepository) AddCounter(
 	ctx *context.Context,
 	counter *bizmodels.Counter,

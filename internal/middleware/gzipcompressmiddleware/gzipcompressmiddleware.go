@@ -1,3 +1,6 @@
+// Package gzipcompressmiddleware
+// implements middleware
+// to compress the server response and request.
 package gzipcompressmiddleware
 
 import (
@@ -93,6 +96,7 @@ func (c *compressReader) Close() error {
 	return nil
 }
 
+// GzipMiddleware - main middleware method.
 func GzipMiddleware() func(http.Handler) http.Handler {
 	handler := func(hand http.Handler) http.Handler {
 		gzipFn := func(

@@ -219,6 +219,49 @@ func initiate(
 	return nil
 }
 
+func ExampleGetMetricJSONHandler() {
+	params := new(bizmodels.InitParams)
+
+	test := testData{
+		mt: "gauge", mn: "gauge45",
+	}
+
+	mux := mux.NewRouter()
+
+	err := initiate(mux, params)
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	reqData, err := formReqBody(&test)
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost,
+		"http://localhost:8080/value/", reqData)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	newr := httptest.NewRecorder()
+	mux.ServeHTTP(newr, req)
+
+	// Output: {
+	//	"ID": "gauge45",
+	//  "type" : "gauge",
+	//  "delta" 24.5,
+	// },
+}
+
 func BenchmarkGetMetricJSONHandler(tobj *testing.B) {
 	tobj.Helper()
 

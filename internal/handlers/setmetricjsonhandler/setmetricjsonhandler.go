@@ -1,3 +1,5 @@
+// Package setmetricjsonhandler provides handler
+// to receive one metric in json format.
 package setmetricjsonhandler
 
 import (
@@ -13,12 +15,14 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
 
+// SetMJSONHandler - describing the handler.
 type SetMJSONHandler struct {
 	serv service.Service
 }
 
 var errGetReqDataJSON = errors.New("data is empty")
 
+// validMetric - object for storing the received metric.
 type validMetric struct {
 	mtype       string
 	mname       string
@@ -26,10 +30,13 @@ type validMetric struct {
 	mvalueInt   int64
 }
 
+// NewSetMJH - to create an instance
+// of a handler object.
 func NewSetMJH(s service.Service) *SetMJSONHandler {
 	return &SetMJSONHandler{serv: s}
 }
 
+// SetMJSONHandler - main handler method.
 func (h *SetMJSONHandler) SetMJSONHandler(
 	writer http.ResponseWriter,
 	req *http.Request,
@@ -76,6 +83,7 @@ func (h *SetMJSONHandler) SetMJSONHandler(
 	}
 }
 
+// formResponeBody - prepares data for marshaling.
 func formResponeBody(valm *validMetric) *apimodels.Metrics {
 	dataMarshal := apimodels.Metrics{}
 
@@ -93,6 +101,8 @@ func formResponeBody(valm *validMetric) *apimodels.Metrics {
 	return &dataMarshal
 }
 
+// getReqJSONData - receives data
+// from the request.
 func getReqJSONData(
 	req *http.Request,
 	metric *validMetric,
@@ -131,6 +141,8 @@ func getReqJSONData(
 	return nil
 }
 
+// addMetricToMemStore - adds the validated
+// metric to the memory.
 func addMetricToMemStore(
 	handler *SetMJSONHandler,
 	vmet *validMetric,
@@ -145,6 +157,7 @@ func addMetricToMemStore(
 	}
 }
 
+// isValidM - for metric validation.
 func isValidM(metric *validMetric,
 ) (bool, int) {
 	var pattern string

@@ -163,7 +163,7 @@ func initiate(
 
 	storage.Initiate(params.DatabaseDSN, dbConn)
 
-	hJSONSets := sender.NewSetMsJSONHandler(
+	hJSONSets := sender.NewSenderHandler(
 		dse, params)
 
 	zapLogger, err := logger.Initialize("info")
@@ -174,7 +174,7 @@ func initiate(
 	setMsJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	setMsJSONMux.HandleFunc(
 		"/updates/",
-		hJSONSets.SetMetricsJSONHandler)
+		hJSONSets.SenderHandler)
 	setMsJSONMux.Use(
 		gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
@@ -184,6 +184,68 @@ func initiate(
 	settings.URL = url + "/updates/"
 
 	return nil
+}
+
+func ExampleSender() {
+	params := new(bizmodels.InitParams)
+	settings := new(bizmodels.EndpointSettings)
+	mux := mux.NewRouter()
+
+	err := initiate(mux, params, settings)
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	tempC := []bizmodels.Counter{
+		{Name: "counter6611", Value: 55},
+	}
+
+	tempG := []bizmodels.Gauge{
+		{Name: "gauge45", Value: 24.5},
+	}
+
+	test := testData{
+		counters: tempC, gauges: tempG,
+		tn: "1", key: "defaultKey",
+	}
+
+	reqData, err := initReqData(settings, params, &test)
+	if err != nil {
+		fmt.Println(err)
+
+		return
+	}
+
+	req, err := http.NewRequestWithContext(
+		context.Background(),
+		http.MethodPost, "http://localhost:8080/updates/",
+		reqData)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
+
+	req.Header.Set("Hashsha256", settings.Hash)
+
+	newr := httptest.NewRecorder()
+	mux.ServeHTTP(newr, req)
+
+	// Output: [
+	// {
+	//	"ID": "counter6611",
+	//  "type" : "counter",
+	//  "delta" 55,
+	// },
+	// {
+	//	"ID": "gauge45",
+	//	"type" : "gauge",
+	//	"value" : 24.5,
+	// ]
 }
 
 func BenchmarkSender(tobj *testing.B) {

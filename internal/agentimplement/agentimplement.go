@@ -1,3 +1,4 @@
+// Package for implementing agent methods.
 package agentimplement
 
 import (
@@ -67,6 +68,8 @@ func worker(jobs <-chan bizmodels.JobData) {
 	}
 }
 
+// Collect - collects device metrics
+// every PollInterval seconds using workers.
 func Collect(par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
 	mon *bizmodels.Monitor,
@@ -108,6 +111,8 @@ func Collect(par *bizmodels.InitParamsAgent,
 	}
 }
 
+// Send - sends metrics to the server
+// every ReportInterval seconds using workers.
 func Send(par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
 	client *http.Client,
@@ -142,6 +147,8 @@ func Send(par *bizmodels.InitParamsAgent,
 	}
 }
 
+// fillMetrics - fills the
+// array and map with metrics from monitor.
 func fillMetrics(mon *bizmodels.Monitor,
 	gauges *[]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
@@ -184,6 +191,8 @@ func fillMetrics(mon *bizmodels.Monitor,
 		mon.RandomValue)
 }
 
+// reqMetricsJSON - prepares data
+// for the request and sends the request to the server.
 func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	client *http.Client,
 	mon *bizmodels.Monitor,
@@ -245,6 +254,8 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	par.RepeatedReq = false
 }
 
+// initReqData - prepares the body
+// for the encrypted request.
 func initReqData(gauges *[]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
 	settings *bizmodels.EndpointSettings,
@@ -280,6 +291,7 @@ func initReqData(gauges *[]bizmodels.Gauge,
 	return bytes.NewReader(metricCompress), nil
 }
 
+// parseResponse - parses the response from the server.
 func parseResponse(
 	response *http.Response,
 ) (*[]byte, error) {
@@ -299,6 +311,7 @@ func parseResponse(
 	return nil, errResponse
 }
 
+// getDataSend - receives data in API format.
 func getDataSend(gauges *[]bizmodels.Gauge,
 	counters map[string]bizmodels.Counter,
 ) *apimodels.ArrMetrics {
@@ -327,6 +340,8 @@ func getDataSend(gauges *[]bizmodels.Gauge,
 	return &data
 }
 
+// Initialization - initializes
+// data for the agent to operate.
 func Initialization(params *bizmodels.InitParamsAgent,
 	mon *bizmodels.Monitor,
 ) error {
@@ -362,6 +377,7 @@ func Initialization(params *bizmodels.InitParamsAgent,
 	return err
 }
 
+// getIntervalsEnv - gets environment variables.
 func getIntervalsEnv(
 	params *bizmodels.InitParamsAgent,
 ) error {
@@ -389,6 +405,7 @@ func getIntervalsEnv(
 	return nil
 }
 
+// getENV - gets environment variables.
 func getENV(params *bizmodels.InitParamsAgent) error {
 	key := os.Getenv("KEY")
 	envRunAddr := os.Getenv("ADDRESS")
@@ -424,6 +441,7 @@ func getENV(params *bizmodels.InitParamsAgent) error {
 	return nil
 }
 
+// parseFlags - parses passed flags into variables.
 func parseFlags(params *bizmodels.InitParamsAgent) error {
 	var err error
 
@@ -457,6 +475,7 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	return nil
 }
 
+// setMonitorFromGoPsUtil - gets CPU Metrics.
 func setMonitorFromGoPsUtil(mon *bizmodels.Monitor,
 	mutex *sync.Mutex,
 ) {
@@ -474,6 +493,8 @@ func setMonitorFromGoPsUtil(mon *bizmodels.Monitor,
 	mutex.Unlock()
 }
 
+// setMonitorFromGoPsUtil - gets
+// and sets CPU Metrics to monitor.
 func setValuesMonitor(mon *bizmodels.Monitor,
 	mutex *sync.Mutex,
 ) {
@@ -497,6 +518,7 @@ func setValuesMonitor(mon *bizmodels.Monitor,
 	mutex.Unlock()
 }
 
+// writeFromMemory - read runtime metrics.
 func writeFromMemory(mon *bizmodels.Monitor) {
 	var rtm runtime.MemStats
 

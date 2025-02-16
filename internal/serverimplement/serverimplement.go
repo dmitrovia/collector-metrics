@@ -1,3 +1,4 @@
+// Package for implementing server methods.
 package serverimplement
 
 import (
@@ -72,6 +73,7 @@ const defKeyHashSha256 = "defaultKey"
 //go:embed db/migrations/*.sql
 var MigrationsFS embed.FS
 
+// InitStorage - initializes storage, database, or RAM.
 func InitStorage(
 	ctx context.Context, par *bizmodels.InitParams,
 ) (*pgxpool.Pool, *service.DS, error) {
@@ -107,6 +109,7 @@ func InitStorage(
 	return nil, datas, nil
 }
 
+// InitStorage - starts working with migrations.
 func UseMigrations(par *bizmodels.InitParams) error {
 	if par.DatabaseDSN == "" {
 		return nil
@@ -135,6 +138,8 @@ func UseMigrations(par *bizmodels.InitParams) error {
 	return nil
 }
 
+// SaveMetrics - writes metrics to file
+// once or every StoreInterval seconds.
 func SaveMetrics(mser *service.DS,
 	par *bizmodels.InitParams, wg *sync.WaitGroup,
 ) {
@@ -170,6 +175,7 @@ func SaveMetrics(mser *service.DS,
 	}
 }
 
+// RunServer - starts the server.
 func RunServer(server *http.Server) {
 	err := server.ListenAndServe()
 	if err != nil {
@@ -179,6 +185,8 @@ func RunServer(server *http.Server) {
 	}
 }
 
+// Initialization - initializes
+// data for the server to operate.
 func Initiate(
 	par *bizmodels.InitParams,
 ) (*zap.Logger, error) {
@@ -209,6 +217,7 @@ func Initiate(
 	return zlog, nil
 }
 
+// initiateFlags - parses passed flags into variables.
 func initiateFlags(par *bizmodels.InitParams) error {
 	_, path, _, ok := runtime.Caller(0)
 
@@ -238,6 +247,7 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	return nil
 }
 
+// AttachProfiler - defining handlers for pprof.
 func AttachProfiler(router *mux.Router) {
 	router.HandleFunc("/debug/pprof/", pprof.Index)
 	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -245,6 +255,7 @@ func AttachProfiler(router *mux.Router) {
 	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 }
 
+// InitiateServer - initializes server data.
 func InitiateServer(
 	par *bizmodels.InitParams,
 	mser *service.DS,
@@ -274,6 +285,7 @@ func InitiateServer(
 	}
 }
 
+// initGetMethods - initializes get handlers.
 func initGetMethods(
 	mux *mux.Router,
 	dse *service.DS,
@@ -306,6 +318,7 @@ func initGetMethods(
 		loggermiddleware.RequestLogger(zapLogger))
 }
 
+// initPostMethods - initializes post handlers.
 func initPostMethods(
 	mux *mux.Router,
 	dse *service.DS,
@@ -314,7 +327,7 @@ func initPostMethods(
 ) {
 	hSet := setmetrichandler.NewSetMetricHandler(dse)
 	hJSONSet := setmetricjsonhandler.NewSetMJH(dse)
-	hJSONSets := sender.NewSetMsJSONHandler(
+	hJSONSets := sender.NewSenderHandler(
 		dse, par)
 	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(dse)
 
@@ -341,12 +354,13 @@ func initPostMethods(
 	setMsJSONMux := mux.Methods(http.MethodPost).Subrouter()
 	setMsJSONMux.HandleFunc(
 		"/updates/",
-		hJSONSets.SetMetricsJSONHandler)
+		hJSONSets.SenderHandler)
 	setMsJSONMux.Use(
 		gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 }
 
+// setInitParamsDB - gets environment variables.
 func setInitParamsDB(params *bizmodels.InitParams) {
 	params.WaitSecRespDB = defWaitSecRespDB * time.Second
 
@@ -357,6 +371,7 @@ func setInitParamsDB(params *bizmodels.InitParams) {
 	}
 }
 
+// setInitParamsFileStorage - gets environment variables.
 func setInitParamsFileStorage(
 	params *bizmodels.InitParams,
 ) error {
@@ -379,6 +394,7 @@ func setInitParamsFileStorage(
 	return nil
 }
 
+// setInitParams - gets environment variables.
 func setInitParams(params *bizmodels.InitParams) error {
 	var err error
 

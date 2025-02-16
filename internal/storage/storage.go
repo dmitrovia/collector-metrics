@@ -1,3 +1,4 @@
+// Package storage provides describe interface methods.
 package storage
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
 
+// Repository - for working with storage metrics.
 type Repository interface {
 	Init()
 	GetGaugeMetric(ctx *context.Context,

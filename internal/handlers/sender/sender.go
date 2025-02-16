@@ -1,3 +1,6 @@
+// Package sender provides handler
+// for receiving a list of metrics
+// in json format.
 package sender
 
 import (
@@ -16,7 +19,8 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
 
-type SetMetricJSONHandler struct {
+// Sender - describing the handler.
+type Sender struct {
 	serv   service.Service
 	params *bizmodels.InitParams
 }
@@ -25,14 +29,17 @@ var errGetReqDataJSON = errors.New("data is empty")
 
 var errHashDoesNotMatch = errors.New("hash does not match")
 
-func NewSetMsJSONHandler(
+// NewSenderHandler - to create an instance
+// of a handler object.
+func NewSenderHandler(
 	serv service.Service,
 	par *bizmodels.InitParams,
-) *SetMetricJSONHandler {
-	return &SetMetricJSONHandler{serv: serv, params: par}
+) *Sender {
+	return &Sender{serv: serv, params: par}
 }
 
-func (h *SetMetricJSONHandler) SetMetricsJSONHandler(
+// SenderHandler - main handler method.
+func (h *Sender) SenderHandler(
 	writer http.ResponseWriter, req *http.Request,
 ) {
 	writer.Header().Set("Content-Type", "application/json")
@@ -58,9 +65,13 @@ func (h *SetMetricJSONHandler) SetMetricsJSONHandler(
 	}
 }
 
+// writeResp - writes the response
+// in json format to the response body.
+// First, the metrics are obtained
+// from the service and encrypted.
 func writeResp(
 	writer http.ResponseWriter,
-	handler *SetMetricJSONHandler,
+	handler *Sender,
 ) error {
 	arr, err := handler.serv.GetAllMetricsAPI()
 	if err != nil {
@@ -94,8 +105,10 @@ func writeResp(
 	return nil
 }
 
+// getReqData - receives metrics
+// from the request and validates it.
 func getReqData(
-	handler *SetMetricJSONHandler,
+	handler *Sender,
 	req *http.Request,
 ) error {
 	var results apimodels.ArrMetrics
@@ -139,6 +152,8 @@ func getReqData(
 	return nil
 }
 
+// checkHash - checks the received
+// hash in the request with the current one.
 func checkHash(dataReq *[]byte,
 	hashReq string,
 	key string,
@@ -167,8 +182,10 @@ func checkHash(dataReq *[]byte,
 	return nil
 }
 
+// addValidMetric - adds the validated
+// metric to the service.
 func addValidMetric(res *apimodels.Metrics,
-	handler *SetMetricJSONHandler,
+	handler *Sender,
 ) error {
 	if res.MType == bizmodels.GaugeName {
 		err := handler.serv.AddGauge(res.ID, *res.Value)
@@ -187,6 +204,7 @@ func addValidMetric(res *apimodels.Metrics,
 	return nil
 }
 
+// isValidJSONMetric - for metric validation.
 func isValidJSONMetric(metric *apimodels.Metrics,
 ) bool {
 	var pattern string

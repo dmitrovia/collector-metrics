@@ -1,3 +1,5 @@
+// Package getmetricjsonhandler provides handler
+// to get metric by name and type in json format.
 package getmetricjsonhandler
 
 import (
@@ -15,16 +17,20 @@ import (
 
 var errGetReqDataJSON = errors.New("data is empty")
 
+// GetMetricJSONHandler - describing the handler.
 type GetMetricJSONHandler struct {
 	serv service.Service
 }
 
+// NewGetMJSONHandler - to create an instance
+// of a handler object.
 func NewGetMJSONHandler(
 	s service.Service,
 ) *GetMetricJSONHandler {
 	return &GetMetricJSONHandler{serv: s}
 }
 
+// GetMetricJSONHandler - main handler method.
 func (h *GetMetricJSONHandler) GetMetricJSONHandler(
 	writer http.ResponseWriter, req *http.Request,
 ) {
@@ -56,6 +62,8 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(
 	writer.WriteHeader(status)
 }
 
+// getReqDataJSON - receives metrics
+// from the request.
 func getReqDataJSON(req *http.Request,
 ) (*apimodels.Metrics, error) {
 	var result apimodels.Metrics
@@ -82,6 +90,7 @@ func getReqDataJSON(req *http.Request,
 	return &result, nil
 }
 
+// isValidMetric - for metric validation.
 func isValidMetric(metric *apimodels.Metrics,
 ) (bool, int) {
 	var pattern string
@@ -102,13 +111,17 @@ func isValidMetric(metric *apimodels.Metrics,
 	return true, http.StatusOK
 }
 
+// writeAns - writes the response
+// in json format to the response body.
+// First, the resulting validated metric
+// is recorded in the service.
 func writeAns(
 	writer http.ResponseWriter,
 	metric *apimodels.Metrics,
 	hand *GetMetricJSONHandler,
 ) (int, error) {
 	if metric.MType == bizmodels.CounterName {
-		val, err := setCounterValueToAnswer(metric.ID, hand)
+		val, err := getCounterValueToAnswer(metric.ID, hand)
 		if err != nil {
 			return http.StatusNotFound, err
 		}
@@ -117,7 +130,7 @@ func writeAns(
 	}
 
 	if metric.MType == bizmodels.GaugeName {
-		val, err := setGaugeValueToAnswer(metric.ID, hand)
+		val, err := getGaugeValueToAnswer(metric.ID, hand)
 		if err != nil {
 			return http.StatusNotFound, err
 		}
@@ -139,7 +152,8 @@ func writeAns(
 	return http.StatusOK, nil
 }
 
-func setGaugeValueToAnswer(
+// getGaugeValueToAnswer - get gauge metric from service.
+func getGaugeValueToAnswer(
 	metricID string,
 	h *GetMetricJSONHandler,
 ) (*float64, error) {
@@ -152,7 +166,8 @@ func setGaugeValueToAnswer(
 	return &metricValue, nil
 }
 
-func setCounterValueToAnswer(
+// getGaugeValueToAnswer - get gauge metric from service.
+func getCounterValueToAnswer(
 	metricID string,
 	h *GetMetricJSONHandler,
 ) (*int64, error) {

@@ -1,3 +1,5 @@
+// Package getmetrichandler provides handler
+// to get metric value by name and type.
 package getmetrichandler
 
 import (
@@ -11,25 +13,31 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// validMetric - object for storing the received metric.
 type validMetric struct {
 	mtype string
 	mname string
 }
 
+// validMetric - object for store the response.
 type ansData struct {
 	mvalue string
 }
 
+// GetMetricHandler - describing the handler.
 type GetMetricHandler struct {
 	serv service.Service
 }
 
+// NewGetMetricHandler - to create an instance
+// of a handler object.
 func NewGetMetricHandler(
 	s service.Service,
 ) *GetMetricHandler {
 	return &GetMetricHandler{serv: s}
 }
 
+// GetMetricHandler - main handler method.
 func (h *GetMetricHandler) GetMetricHandler(
 	writer http.ResponseWriter,
 	req *http.Request,
@@ -67,11 +75,14 @@ func (h *GetMetricHandler) GetMetricHandler(
 	writer.WriteHeader(status)
 }
 
+// getReqData - receives metrics
+// from the request.
 func getReqData(r *http.Request, metric *validMetric) {
 	metric.mname = mux.Vars(r)["metric_name"]
 	metric.mtype = mux.Vars(r)["metric_type"]
 }
 
+// isValidMetric - for metric validation.
 func isValidMetric(
 	metric *validMetric,
 ) (bool, int) {
@@ -93,6 +104,7 @@ func isValidMetric(
 	return true, http.StatusOK
 }
 
+// setAnswerData - record the response data.
 func setAnswerData(
 	metric *validMetric,
 	ansd *ansData,
@@ -107,6 +119,8 @@ func setAnswerData(
 	return false, http.StatusNotFound
 }
 
+// GetStringValueGaugeMetric - get
+// gauge metric from service.
 func GetStringValueGaugeMetric(
 	ansd *ansData,
 	h *GetMetricHandler,
@@ -122,6 +136,8 @@ func GetStringValueGaugeMetric(
 	return true, http.StatusOK
 }
 
+// GetStringValueCounterMetric - get
+// counter metric from service.
 func GetStringValueCounterMetric(
 	ansd *ansData,
 	h *GetMetricHandler,

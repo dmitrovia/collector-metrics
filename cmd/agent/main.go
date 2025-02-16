@@ -1,3 +1,4 @@
+// Main agent application package.
 package main
 
 import (

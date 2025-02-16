@@ -1,3 +1,5 @@
+// Package setmetrichandler provides handler
+// to receive one metric.
 package setmetrichandler
 
 import (
@@ -11,10 +13,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// SetMetricHandler - describing the handler.
 type SetMetricHandler struct {
 	serv service.Service
 }
 
+// validMetric - object for storing the received metric.
 type validMetric struct {
 	mtype       string
 	mname       string
@@ -23,12 +27,15 @@ type validMetric struct {
 	mvalueInt   int64
 }
 
+// NewSetMetricHandler - to create an instance
+// of a handler object.
 func NewSetMetricHandler(
 	serv service.Service,
 ) *SetMetricHandler {
 	return &SetMetricHandler{serv: serv}
 }
 
+// SetMetricHandler - main handler method.
 func (h *SetMetricHandler) SetMetricHandler(
 	writer http.ResponseWriter, req *http.Request,
 ) {
@@ -54,12 +61,16 @@ func (h *SetMetricHandler) SetMetricHandler(
 	fmt.Fprintf(writer, "%s", Body)
 }
 
+// getReqData - receives data
+// from the request.
 func getReqData(r *http.Request, m *validMetric) {
 	m.mtype = mux.Vars(r)["metric_type"]
 	m.mname = mux.Vars(r)["metric_name"]
 	m.mvalue = mux.Vars(r)["metric_value"]
 }
 
+// addMetricToMemStore - adds the validated
+// metric to the memory.
 func addMetricToMemStore(
 	handler *SetMetricHandler, metr *validMetric,
 ) {
@@ -82,6 +93,7 @@ func addMetricToMemStore(
 	}
 }
 
+// isValidMetric - for metric validation.
 func isValidMetric(
 	r *http.Request,
 	metric *validMetric,
@@ -113,6 +125,8 @@ func isValidMetric(
 	return true, http.StatusOK
 }
 
+// isValidGaugeValue - for metric validation
+// using parsing.
 func isValidMeticValue(m *validMetric) bool {
 	if m.mtype == bizmodels.GaugeName {
 		return isValidGaugeValue(m)
@@ -123,6 +137,8 @@ func isValidMeticValue(m *validMetric) bool {
 	return false
 }
 
+// isValidGaugeValue - for gauge metric validation
+// and to write the parsed value.
 func isValidGaugeValue(m *validMetric) bool {
 	value, err := strconv.ParseFloat(m.mvalue, 64)
 	if err == nil {
@@ -134,6 +150,8 @@ func isValidGaugeValue(m *validMetric) bool {
 	return false
 }
 
+// isValidCounterValue - for counter metric validation
+// and to write the parsed value.
 func isValidCounterValue(m *validMetric) bool {
 	value, err := strconv.ParseInt(m.mvalue, 10, 64)
 	if err == nil {

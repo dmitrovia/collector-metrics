@@ -1,3 +1,5 @@
+// Package notallowedhandler provides handler
+// default output for unavailable methods.
 package notallowedhandler
 
 import (
@@ -5,6 +7,7 @@ import (
 	"net/http"
 )
 
+// NotAllowedHandler - describing the handler.
 type NotAllowedHandler struct{}
 
 func (h NotAllowedHandler) ServeHTTP(
@@ -13,6 +16,7 @@ func (h NotAllowedHandler) ServeHTTP(
 	MethodNotAllowedHandler(rw, r)
 }
 
+// MethodNotAllowedHandler - main handler method.
 func MethodNotAllowedHandler(
 	rw http.ResponseWriter, _ *http.Request,
 ) {

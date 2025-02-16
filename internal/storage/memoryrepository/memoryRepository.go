@@ -1,3 +1,5 @@
+// Package memoryrepository provides
+// working with memory
 package memoryrepository
 
 import (
@@ -15,11 +17,13 @@ var errGetValueMetric = errors.New(
 var errMethod = errors.New(
 	"method not implemented")
 
+// MemoryRepository - describing the storage.
 type MemoryRepository struct {
 	gauges   map[string]bizmodels.Gauge
 	counters map[string]bizmodels.Counter
 }
 
+// AddMetrics - adds metrics to the memory.
 func (m *MemoryRepository) AddMetrics(
 	ctx *context.Context,
 	gauges map[string]bizmodels.Gauge,
@@ -42,11 +46,13 @@ func (m *MemoryRepository) AddMetrics(
 	return nil
 }
 
+// Init - initialization of initial parameters.
 func (m *MemoryRepository) Init() {
 	m.gauges = make(map[string]bizmodels.Gauge)
 	m.counters = make(map[string]bizmodels.Counter)
 }
 
+// GetAllGauges - get all gauges metrics from memory.
 func (m *MemoryRepository) GetAllGauges(
 	_ *context.Context) (
 	map[string]bizmodels.Gauge, error,
@@ -54,6 +60,7 @@ func (m *MemoryRepository) GetAllGauges(
 	return m.gauges, nil
 }
 
+// GetAllCounters - get all counters metrics from memory.
 func (m *MemoryRepository) GetAllCounters(
 	_ *context.Context) (
 	map[string]bizmodels.Counter, error,
@@ -61,6 +68,7 @@ func (m *MemoryRepository) GetAllCounters(
 	return m.counters, nil
 }
 
+// GetGaugeMetric - get gauge metric by name from memory.
 func (m *MemoryRepository) GetGaugeMetric(
 	_ *context.Context,
 	name string,
@@ -73,6 +81,7 @@ func (m *MemoryRepository) GetGaugeMetric(
 	return nil, errGetValueMetric
 }
 
+// GetGaugeMetric - get counter metric by name from memory.
 func (m *MemoryRepository) GetCounterMetric(
 	_ *context.Context,
 	name string,
@@ -85,6 +94,7 @@ func (m *MemoryRepository) GetCounterMetric(
 	return nil, errGetValueMetric
 }
 
+// AddGauge - add the gauge metric to the memory.
 func (m *MemoryRepository) AddGauge(
 	_ *context.Context,
 	gauge *bizmodels.Gauge,
@@ -94,6 +104,7 @@ func (m *MemoryRepository) AddGauge(
 	return nil
 }
 
+// AddCounter - add the coutner metric to the memory.
 func (m *MemoryRepository) AddCounter(
 	_ *context.Context,
 	counter *bizmodels.Counter,
@@ -116,6 +127,7 @@ func (m *MemoryRepository) AddCounter(
 	return counter, nil
 }
 
+// GetAllMetricsAPI - get all metrics in API format.
 func (m *MemoryRepository) GetAllMetricsAPI(
 	_ *context.Context,
 ) (*apimodels.ArrMetrics, error) {

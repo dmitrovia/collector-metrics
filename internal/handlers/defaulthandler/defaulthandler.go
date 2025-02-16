@@ -1,3 +1,5 @@
+// Package defaulthandler provides handler
+// displays a list of all metrics in html format.
 package defaulthandler
 
 import (
@@ -13,18 +15,24 @@ import (
 //go:embed web
 var metricsTemplate embed.FS
 
+// DefaultHandler - describing the handler.
 type DefaultHandler struct {
 	serv service.Service
 }
 
+// NewDefaultHandler - to create an instance
+// of a handler object.
 func NewDefaultHandler(s service.Service) *DefaultHandler {
 	return &DefaultHandler{serv: s}
 }
 
+// ViewData - object for mapping
+// metrics into a template.
 type ViewData struct {
 	Metrics map[string]string
 }
 
+// DefaultHandler - main handler method.
 func (h *DefaultHandler) DefaultHandler(
 	writer http.ResponseWriter, _ *http.Request,
 ) {

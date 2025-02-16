@@ -1,3 +1,5 @@
+// Package service provides interface methods
+// for working with storage and files.
 package service
 
 import (
@@ -15,6 +17,7 @@ import (
 
 const fmd os.FileMode = 0o666
 
+// Service - for working with metrics.
 type Service interface {
 	AddGauge(mname string, mvalue float64) error
 	AddCounter(
@@ -32,11 +35,13 @@ type Service interface {
 	GetAllMetricsAPI() (*apimodels.ArrMetrics, error)
 }
 
+// DS - describing the service.
 type DS struct {
 	repository  storage.Repository
 	ctxDuration time.Duration
 }
 
+// GetAllMetricsAPI - get all metrics in API format.
 func (s *DS) GetAllMetricsAPI() (
 	*apimodels.ArrMetrics, error,
 ) {
@@ -55,6 +60,7 @@ func (s *DS) GetAllMetricsAPI() (
 	return metrics, nil
 }
 
+// GetAllGauges - get all gauges metrics.
 func (s *DS) GetAllGauges() (
 	map[string]bizmodels.Gauge, error,
 ) {
@@ -72,6 +78,7 @@ func (s *DS) GetAllGauges() (
 	return gauges, nil
 }
 
+// GetAllCounters - get all gauges metrics.
 func (s *DS) GetAllCounters() (
 	map[string]bizmodels.Counter, error,
 ) {
@@ -89,6 +96,7 @@ func (s *DS) GetAllCounters() (
 	return counters, nil
 }
 
+// AddMetrics - adds metrics to the repository.
 func (s *DS) AddMetrics(
 	gms map[string]bizmodels.Gauge,
 	cms map[string]bizmodels.Counter,
@@ -106,6 +114,7 @@ func (s *DS) AddMetrics(
 	return nil
 }
 
+// SaveInFile - saves metrics to a file.
 func (s *DS) SaveInFile(pth string) error {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -146,6 +155,7 @@ func (s *DS) SaveInFile(pth string) error {
 	return nil
 }
 
+// saveCounters - saves counter metrics to a file.
 func saveCounters(file *os.File,
 	counters map[string]bizmodels.Counter,
 ) error {
@@ -173,6 +183,7 @@ func saveCounters(file *os.File,
 	return nil
 }
 
+// saveCounters - saves gauge metrics to a file.
 func saveGauges(file *os.File,
 	gauges map[string]bizmodels.Gauge,
 ) error {
@@ -200,6 +211,7 @@ func saveGauges(file *os.File,
 	return nil
 }
 
+// LoadFromFile - loads metrics from a file.
 func (s *DS) LoadFromFile(pth string) error {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -253,6 +265,7 @@ func (s *DS) LoadFromFile(pth string) error {
 	return nil
 }
 
+// AddGauge - add the gauge metric to the repository.
 func (s *DS) AddGauge(mname string, mvalue float64) error {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -269,6 +282,7 @@ func (s *DS) AddGauge(mname string, mvalue float64) error {
 	return nil
 }
 
+// AddCounter - add the counter metric to the repository.
 func (s *DS) AddCounter(
 	name string,
 	value int64,
@@ -288,6 +302,7 @@ func (s *DS) AddCounter(
 	return res, nil
 }
 
+// GetValueGM - get gauge metric value.
 func (s *DS) GetValueGM(mname string) (float64, error) {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -302,6 +317,7 @@ func (s *DS) GetValueGM(mname string) (float64, error) {
 	return val.Value, nil
 }
 
+// GetValueCM - get counter metric value.
 func (s *DS) GetValueCM(mname string) (int64, error) {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -316,6 +332,8 @@ func (s *DS) GetValueCM(mname string) (int64, error) {
 	return val.Value, nil
 }
 
+// NewMemoryService - to create an instance
+// of a service object.
 func NewMemoryService(repository storage.Repository,
 	ctxDur time.Duration,
 ) *DS {

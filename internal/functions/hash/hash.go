@@ -1,3 +1,5 @@
+// Package hash provides functions
+// working with hashing.
 package hash
 
 import (
@@ -5,6 +7,7 @@ import (
 	"crypto/sha256"
 )
 
+// MakeHashSHA256 - caches data with key.
 func MakeHashSHA256(dataMsg *[]byte,
 	key string,
 ) ([]byte, error) {

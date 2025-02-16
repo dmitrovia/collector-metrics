@@ -1,3 +1,5 @@
+// Package setmetrichandler provides handler
+// to check the functionality of the database.
 package pinghandler
 
 import (
@@ -9,17 +11,21 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// PingHandler - describing the handler.
 type PingHandler struct {
 	serv   service.Service
 	params *bizmodels.InitParams
 }
 
+// NewPingHandler - to create an instance
+// of a handler object.
 func NewPingHandler(
 	serv service.Service, par *bizmodels.InitParams,
 ) *PingHandler {
 	return &PingHandler{serv: serv, params: par}
 }
 
+// PingHandler - main handler method.
 func (h *PingHandler) PingHandler(
 	writer http.ResponseWriter, req *http.Request,
 ) {

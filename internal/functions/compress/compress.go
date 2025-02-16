@@ -1,3 +1,5 @@
+// Package compress provides functions
+// working with compression.
 package compress
 
 import (
@@ -7,6 +9,7 @@ import (
 	"io"
 )
 
+// DeflateCompress - produces deflate compression.
 func DeflateCompress(data []byte) ([]byte, error) {
 	var buf bytes.Buffer
 
@@ -26,6 +29,7 @@ func DeflateCompress(data []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// DeflateDecompress - produces deflate decompression.
 func DeflateDecompress(data io.Reader) ([]byte, error) {
 	reader, err := gzip.NewReader(data)
 	if err != nil {

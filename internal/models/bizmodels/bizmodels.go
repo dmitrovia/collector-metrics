@@ -1,3 +1,5 @@
+// Package apimodels
+// describes the server and client(agent) models
 package bizmodels
 
 import (
@@ -13,15 +15,19 @@ const CounterName string = "counter"
 
 const MetricsPattern = "gauge|counter"
 
+// Gauge - type of gauge metric.
 type Gauge struct {
 	Name  string
 	Value float64
 }
+
+// Counter - type of gauge metric.
 type Counter struct {
 	Name  string
 	Value int64
 }
 
+// Monitor - for storing runtime metrics.
 type (
 	Monitor struct {
 		Alloc           Gauge
@@ -60,6 +66,7 @@ type (
 	}
 )
 
+// Init - monitor initialization method.
 func (m *Monitor) Init() {
 	m.Alloc = Gauge{Name: "TotalMemory", Value: 0}
 	m.BuckHashSys = Gauge{Name: "FreeMemory", Value: 0}
@@ -97,6 +104,7 @@ func (m *Monitor) Init() {
 	m.RandomValue = Gauge{Name: "RandomValue", Value: 0}
 }
 
+// InitParams - store server configuration.
 type InitParams struct {
 	PORT                string
 	ValidateAddrPattern string
@@ -108,6 +116,7 @@ type InitParams struct {
 	Key                 string
 }
 
+// InitParamsAgent - store agent configuration.
 type InitParamsAgent struct {
 	URL              string
 	PORT             string
@@ -121,6 +130,7 @@ type InitParamsAgent struct {
 	RateLimit        int
 }
 
+// EndpointSettings - store endpoint configuration.
 type EndpointSettings struct {
 	SendData    *bytes.Reader
 	URL         string
@@ -130,6 +140,7 @@ type EndpointSettings struct {
 	ContentType string
 }
 
+// JobData - store data for the worker.
 type JobData struct {
 	Event  string
 	Mutex  *sync.Mutex
