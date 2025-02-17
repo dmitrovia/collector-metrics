@@ -82,8 +82,8 @@ func InitStorage(
 		DBStorage  *dbrepository.DBepository
 	)
 
-	DBStorage = new(dbrepository.DBepository)
-	memStorage = new(memoryrepository.MemoryRepository)
+	DBStorage = &dbrepository.DBepository{}
+	memStorage = &memoryrepository.MemoryRepository{}
 
 	if par.DatabaseDSN != "" {
 		datas := service.NewMemoryService(DBStorage,

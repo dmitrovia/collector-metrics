@@ -4,12 +4,10 @@ linters:
   enable-all: true
   disable:
     # Note: deprecated linters
-    - gomnd
-    - execinquery
-    - exportloopref
+    - tenv
+    - recvcheck
     - forbidigo
     - gosec
-    # gosimple
 
 linters-settings:
   depguard:

@@ -41,7 +41,7 @@ func (h *SetMJSONHandler) SetMJSONHandler(
 	writer http.ResponseWriter,
 	req *http.Request,
 ) {
-	valm := new(validMetric)
+	valm := &validMetric{}
 
 	writer.Header().Set("Content-Type", "application/json")
 

@@ -11,10 +11,10 @@ import (
 )
 
 func main() {
-	waitGroup := new(sync.WaitGroup)
-	monitor := new(bizmodels.Monitor)
-	client := new(http.Client)
-	params := new(bizmodels.InitParamsAgent)
+	waitGroup := &sync.WaitGroup{}
+	monitor := &bizmodels.Monitor{}
+	client := &http.Client{}
+	params := &bizmodels.InitParamsAgent{}
 
 	err := agentimplement.Initialization(
 		params,

@@ -20,9 +20,9 @@ func main() {
 		conn        *pgxpool.Pool
 	)
 
-	server := new(http.Server)
-	params := new(bizmodels.InitParams)
-	waitGroup := new(sync.WaitGroup)
+	server := &http.Server{}
+	params := &bizmodels.InitParams{}
+	waitGroup := &sync.WaitGroup{}
 
 	zapLogger, err := si.Initiate(params)
 	if err != nil {

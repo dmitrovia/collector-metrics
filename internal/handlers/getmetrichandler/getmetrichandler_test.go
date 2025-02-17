@@ -153,7 +153,7 @@ func BenchmarkGetMetricHandler(tobj *testing.B) {
 	tobj.Helper()
 	// t.Parallel()
 
-	memStorage := new(memoryrepository.MemoryRepository)
+	memStorage := &memoryrepository.MemoryRepository{}
 	testCases := getTestData()
 	MemoryService := service.NewMemoryService(memStorage,
 		time.Duration(5))

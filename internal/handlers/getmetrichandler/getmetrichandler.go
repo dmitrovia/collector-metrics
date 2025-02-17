@@ -46,7 +46,7 @@ func (h *GetMetricHandler) GetMetricHandler(
 
 	var answerData *ansData
 
-	valMetr = new(validMetric)
+	valMetr = &validMetric{}
 
 	getReqData(req, valMetr)
 
@@ -57,7 +57,7 @@ func (h *GetMetricHandler) GetMetricHandler(
 		return
 	}
 
-	answerData = new(ansData)
+	answerData = &ansData{}
 	isSetAnsData, status := setAnswerData(
 		valMetr,
 		answerData,

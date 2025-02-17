@@ -145,7 +145,7 @@ func initiate(
 			err)
 	}
 
-	storage := new(dbrepository.DBepository)
+	storage := &dbrepository.DBepository{}
 
 	ctx, cancel := context.WithTimeout(
 		context.Background(), params.WaitSecRespDB)
@@ -187,8 +187,8 @@ func initiate(
 }
 
 func ExampleSender() {
-	params := new(bizmodels.InitParams)
-	settings := new(bizmodels.EndpointSettings)
+	params := &bizmodels.InitParams{}
+	settings := &bizmodels.EndpointSettings{}
 	mux := mux.NewRouter()
 
 	err := initiate(mux, params, settings)
@@ -251,8 +251,8 @@ func ExampleSender() {
 func BenchmarkSender(tobj *testing.B) {
 	tobj.Helper()
 
-	params := new(bizmodels.InitParams)
-	settings := new(bizmodels.EndpointSettings)
+	params := &bizmodels.InitParams{}
+	settings := &bizmodels.EndpointSettings{}
 	mux := mux.NewRouter()
 
 	err := initiate(mux, params, settings)

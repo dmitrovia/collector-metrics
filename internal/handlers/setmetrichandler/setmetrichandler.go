@@ -43,7 +43,7 @@ func (h *SetMetricHandler) SetMetricHandler(
 
 	var Body string
 
-	valm = new(validMetric)
+	valm = &validMetric{}
 
 	getReqData(req, valm)
 

@@ -114,7 +114,7 @@ func (m *MemoryRepository) AddCounter(
 	var temp *bizmodels.Counter
 
 	if ok {
-		temp = new(bizmodels.Counter)
+		temp = &bizmodels.Counter{}
 		temp.Name = val.Name
 		temp.Value = val.Value + counter.Value
 		m.counters[counter.Name] = *temp

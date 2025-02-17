@@ -91,7 +91,7 @@ func Collect(par *bizmodels.InitParamsAgent,
 			return
 		case <-time.After(
 			time.Duration(par.PollInterval) * time.Second):
-			dataChan := new(bizmodels.JobData)
+			dataChan := &bizmodels.JobData{}
 			dataChan.Event = "setValuesMonitor"
 			dataChan.Mutex = &mutex
 			dataChan.Mon = mon
@@ -99,7 +99,7 @@ func Collect(par *bizmodels.InitParamsAgent,
 			jobs <- *dataChan
 			go worker(jobs)
 
-			dataChan1 := new(bizmodels.JobData)
+			dataChan1 := &bizmodels.JobData{}
 			dataChan1.Event = "setMonitorFromGoPsUtil"
 			dataChan1.Mutex = &mutex
 			dataChan1.Mon = mon
@@ -134,7 +134,7 @@ func Send(par *bizmodels.InitParamsAgent,
 		case <-time.After(
 			time.Duration(par.ReportInterval) * time.Second):
 			if !par.RepeatedReq {
-				dataChan := new(bizmodels.JobData)
+				dataChan := &bizmodels.JobData{}
 				dataChan.Event = "reqMetricsJSON"
 				dataChan.Mon = mon
 				dataChan.Par = par
@@ -202,7 +202,7 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 
 	fillMetrics(mon, &gauges, counters)
 
-	settings := new(bizmodels.EndpointSettings)
+	settings := &bizmodels.EndpointSettings{}
 	settings.Client = client
 	settings.ContentType = "application/json"
 	settings.Encoding = "gzip"

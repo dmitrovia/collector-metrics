@@ -102,7 +102,7 @@ func (m *DBepository) GetAllGaugesAPI(
 		if err != nil {
 			fmt.Printf("Scan error: %v", err)
 		} else {
-			temp := new(apimodels.Metrics)
+			temp := &apimodels.Metrics{}
 			temp.ID = name
 			temp.Value = &value
 			temp.MType = bizmodels.GaugeName
@@ -144,7 +144,7 @@ func (m *DBepository) GetAllCountersAPI(
 		if err != nil {
 			fmt.Printf("Scan error: %v", err)
 		} else {
-			temp := new(apimodels.Metrics)
+			temp := &apimodels.Metrics{}
 			temp.ID = name
 			temp.Delta = &value
 			temp.MType = bizmodels.CounterName
@@ -184,7 +184,7 @@ func (m *DBepository) GetAllGauges(ctx *context.Context) (
 		if err != nil {
 			fmt.Printf("Scan error: %v", err)
 		} else {
-			temp := new(bizmodels.Gauge)
+			temp := &bizmodels.Gauge{}
 			temp.Name = name
 			temp.Value = value
 
@@ -223,7 +223,7 @@ func (m *DBepository) GetAllCounters(ctx *context.Context) (
 		if err != nil {
 			fmt.Printf("Scan error: %v", err)
 		} else {
-			temp := new(bizmodels.Counter)
+			temp := &bizmodels.Counter{}
 			temp.Name = name
 			temp.Value = value
 
@@ -245,7 +245,7 @@ func (m *DBepository) GetGaugeMetric(
 
 	var value float64
 
-	temp = new(bizmodels.Gauge)
+	temp = &bizmodels.Gauge{}
 
 	err := m.conn.QueryRow(
 		*ctx,
@@ -274,7 +274,7 @@ func (m *DBepository) GetCounterMetric(
 
 	var value int64
 
-	temp = new(bizmodels.Counter)
+	temp = &bizmodels.Counter{}
 
 	err := m.conn.QueryRow(
 		*ctx,

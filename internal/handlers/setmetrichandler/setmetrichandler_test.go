@@ -115,7 +115,7 @@ func initiate(router *mux.Router,
 func BenchmarkSetMetricHandler(tobj *testing.B) {
 	tobj.Helper()
 
-	memStorage := new(memoryrepository.MemoryRepository)
+	memStorage := &memoryrepository.MemoryRepository{}
 	router := mux.NewRouter()
 
 	initiate(router, memStorage)

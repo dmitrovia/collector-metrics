@@ -140,7 +140,7 @@ func BenchmarkSetMetricJSONHandler(tobj *testing.B) {
 
 	testCases := getTestData()
 
-	memStorage := new(memoryrepository.MemoryRepository)
+	memStorage := &memoryrepository.MemoryRepository{}
 	mux := mux.NewRouter()
 
 	err := initiate(memStorage, mux)

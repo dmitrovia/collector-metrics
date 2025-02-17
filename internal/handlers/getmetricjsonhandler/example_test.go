@@ -183,7 +183,7 @@ func initiate(
 			err)
 	}
 
-	storage := new(dbrepository.DBepository)
+	storage := &dbrepository.DBepository{}
 
 	ctx, cancel := context.WithTimeout(
 		context.Background(), params.WaitSecRespDB)
@@ -220,7 +220,7 @@ func initiate(
 }
 
 func ExampleGetMetricJSONHandler() {
-	params := new(bizmodels.InitParams)
+	params := &bizmodels.InitParams{}
 
 	test := testData{
 		mt: "gauge", mn: "gauge45",
@@ -265,7 +265,7 @@ func ExampleGetMetricJSONHandler() {
 func BenchmarkGetMetricJSONHandler(tobj *testing.B) {
 	tobj.Helper()
 
-	params := new(bizmodels.InitParams)
+	params := &bizmodels.InitParams{}
 
 	result := make([]testData, 0)
 	result = append(result, getTestData()...)
