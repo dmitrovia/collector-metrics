@@ -17,7 +17,7 @@ on:
       - iter13
       - iter14
       - iter15
-      - iter16
+      - iter18
   pull_request:
     branches:
       - iter1
@@ -35,7 +35,7 @@ on:
       - iter13
       - iter14
       - iter15
-      - iter16
+      - iter18
 
 permissions:
   contents: read
@@ -54,4 +54,4 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.60
+          version: v1.64.5
