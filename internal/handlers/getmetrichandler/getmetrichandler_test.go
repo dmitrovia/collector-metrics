@@ -36,7 +36,7 @@ const get string = "GET"
 
 var errRuntimeCaller = errors.New("errRuntimeCaller")
 
-const defSavePathFile string = "/internal/temp/metrics.json"
+const defSavePathFile string = "/internal/temp/test1.txt"
 
 const tmpstr string = "111111111111111111111111111111111111"
 
@@ -54,15 +54,15 @@ func getTestData() *[]testData {
 	return &[]testData{
 		{
 			meth: get, tn: "1", mt: bizmodels.GaugeName,
-			mn: "Name1", mv: "1", expcod: stok, exbody: "",
+			mn: "Name1q", mv: "1", expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "2", mt: bizmodels.CounterName,
-			mn: "Name2", mv: "1", expcod: stok, exbody: "",
+			mn: "Name2q", mv: "1", expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "3", mt: bizmodels.CounterName,
-			mn: "Name3", mv: "1", expcod: stok, exbody: "",
+			mn: "Name3q", mv: "1", expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "4", mt: "counter_new", mn: "Name4",
@@ -74,7 +74,7 @@ func getTestData() *[]testData {
 		},
 		{
 			meth: get, tn: "6", mt: bizmodels.CounterName,
-			mn: "Name6", mv: "-1", expcod: stok, exbody: "",
+			mn: "Name4q", mv: "-1", expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "7", mt: bizmodels.CounterName,
@@ -82,20 +82,20 @@ func getTestData() *[]testData {
 		},
 		{
 			meth: get, tn: "8", mt: bizmodels.GaugeName,
-			mn: "Name8", mv: tmpstr1, expcod: stok, exbody: "",
+			mn: "Name5q", mv: tmpstr1, expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "10", mt: bizmodels.GaugeName,
-			mn: "Name9",
+			mn: "Name6q",
 			mv: "-1.5", expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "11", mt: bizmodels.GaugeName,
-			mn: "Name10", mv: "-1", expcod: stok, exbody: "",
+			mn: "Name7q", mv: "-1", expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "12", mt: bizmodels.GaugeName,
-			mn: "Name11", mv: "5", expcod: stok, exbody: "",
+			mn: "Name8q", mv: "5", expcod: stok, exbody: "",
 		},
 		{
 			meth: get, tn: "13",
@@ -149,9 +149,9 @@ func LoadFile(mems *service.DS) {
 	}
 }
 
-func BenchmarkGetMetricHandler(tobj *testing.B) {
-	tobj.Helper()
-	// t.Parallel()
+func TestGetMetricHandler(t *testing.T) {
+	t.Helper()
+	t.Parallel()
 
 	memStorage := &memoryrepository.MemoryRepository{}
 	testCases := getTestData()
@@ -169,7 +169,9 @@ func BenchmarkGetMetricHandler(tobj *testing.B) {
 	LoadFile(MemoryService)
 
 	for _, test := range *testCases {
-		tobj.Run(http.MethodGet, func(tobj *testing.B) {
+		t.Run(http.MethodGet, func(tobj *testing.T) {
+			tobj.Parallel()
+
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				test.meth,

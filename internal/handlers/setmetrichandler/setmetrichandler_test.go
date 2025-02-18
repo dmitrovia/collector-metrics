@@ -112,8 +112,9 @@ func initiate(router *mux.Router,
 		handler.SetMetricHandler)
 }
 
-func BenchmarkSetMetricHandler(tobj *testing.B) {
-	tobj.Helper()
+func TestSetMetricHandler(t *testing.T) {
+	t.Helper()
+	t.Parallel()
 
 	memStorage := &memoryrepository.MemoryRepository{}
 	router := mux.NewRouter()
@@ -123,7 +124,9 @@ func BenchmarkSetMetricHandler(tobj *testing.B) {
 	testCases := getTestData()
 
 	for _, test := range *testCases {
-		tobj.Run(http.MethodPost, func(tobj *testing.B) {
+		t.Run(http.MethodPost, func(tobj *testing.T) {
+			tobj.Parallel()
+
 			req, err := http.NewRequestWithContext(
 				context.Background(),
 				test.meth,

@@ -352,3 +352,13 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           go test -v -race ./...
+
+      - name: "Code increment #18"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter18'
+        run: |
+          go test -v ./...
+
+        
+        

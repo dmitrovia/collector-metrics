@@ -36,7 +36,10 @@ const tmpstr int64 = 999999999999999999
 
 const tmpstr1 float64 = 111111111111111111111111111111111.0
 
-const post string = "POST"
+const (
+	post            string = "POST"
+	defSavePathFile string = "/internal/temp/metrics.json"
+)
 
 type testData struct {
 	tn     string
@@ -112,7 +115,7 @@ func getTestData() *[]testData {
 func initiate(
 	memStorage *memoryrepository.MemoryRepository,
 	mux *mux.Router,
-) error {
+) (*service.DS, error) {
 	memStorage.Init()
 
 	MemoryService := service.NewMemoryService(memStorage,
@@ -122,7 +125,7 @@ func initiate(
 
 	zapLogger, err := logger.Initialize("info")
 	if err != nil {
-		return fmt.Errorf("initiate: %w", err)
+		return nil, fmt.Errorf("initiate: %w", err)
 	}
 
 	setMJSONMux := mux.Methods(http.MethodPost).Subrouter()
@@ -132,18 +135,19 @@ func initiate(
 	setMJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 
-	return nil
+	return MemoryService, nil
 }
 
-func BenchmarkSetMetricJSONHandler(tobj *testing.B) {
-	tobj.Helper()
+func TestSetMetricJSONHandler(t *testing.T) {
+	t.Helper()
+	t.Parallel()
 
 	testCases := getTestData()
 
 	memStorage := &memoryrepository.MemoryRepository{}
 	mux := mux.NewRouter()
 
-	err := initiate(memStorage, mux)
+	_, err := initiate(memStorage, mux)
 	if err != nil {
 		fmt.Println(err)
 
@@ -151,7 +155,9 @@ func BenchmarkSetMetricJSONHandler(tobj *testing.B) {
 	}
 
 	for _, test := range *testCases {
-		tobj.Run(http.MethodPost, func(tobj *testing.B) {
+		t.Run(http.MethodPost, func(tobj *testing.T) {
+			tobj.Parallel()
+
 			reqData, err := formReqBody(&test)
 			if err != nil {
 				fmt.Println(err)

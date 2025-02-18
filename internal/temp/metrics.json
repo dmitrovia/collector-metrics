@@ -1,8 +1,0 @@
-{"id":"Name6","type":"counter","delta":-1}
-{"id":"Name2","type":"counter","delta":1}
-{"id":"Name3","type":"counter","delta":1}
-{"id":"Name11","type":"gauge","value":5}
-{"id":"Name10","type":"gauge","value":-1}
-{"id":"Name9","type":"gauge","value":-1.5}
-{"id":"Name1","type":"gauge","value":1}
-{"id":"Name8","type":"gauge","value":1.1111111111111112e+32}
