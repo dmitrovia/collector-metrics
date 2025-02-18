@@ -21,6 +21,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/dbrepository"
+	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -181,6 +182,7 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 func initiate(
 	mux *mux.Router,
 	params *bizmodels.InitParams,
+	isMemRepo bool,
 ) error {
 	err := setHandlerParams(params)
 	if err != nil {
@@ -189,14 +191,22 @@ func initiate(
 	}
 
 	storage := &dbrepository.DBepository{}
+	memst := &memoryrepository.MemoryRepository{}
 
 	ctx, cancel := context.WithTimeout(
 		context.Background(), params.WaitSecRespDB)
 
 	defer cancel()
 
-	dse := service.NewMemoryService(storage,
-		params.WaitSecRespDB)
+	var dse *service.DS
+
+	if isMemRepo {
+		dse = service.NewMemoryService(memst,
+			params.WaitSecRespDB)
+	} else {
+		dse = service.NewMemoryService(storage,
+			params.WaitSecRespDB)
+	}
 
 	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
 	if err != nil {
@@ -204,7 +214,11 @@ func initiate(
 			err)
 	}
 
-	storage.Initiate(params.DatabaseDSN, dbConn)
+	if isMemRepo {
+		memst.Init()
+	} else {
+		storage.Initiate(params.DatabaseDSN, dbConn)
+	}
 
 	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(
 		dse)
@@ -239,7 +253,7 @@ func TestGetMetricJSONHandler(t *testing.T) {
 
 	mux := mux.NewRouter()
 
-	err := initiate(mux, params)
+	err := initiate(mux, params, false)
 	if err != nil {
 		fmt.Println(err)
 

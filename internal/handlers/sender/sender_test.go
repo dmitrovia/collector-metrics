@@ -25,6 +25,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/dmitrovia/collector-metrics/internal/storage/dbrepository"
+	"github.com/dmitrovia/collector-metrics/internal/storage/memoryrepository"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
@@ -147,6 +148,7 @@ func initiate(
 	mux *mux.Router,
 	params *bizmodels.InitParams,
 	settings *bizmodels.EndpointSettings,
+	isMemRepo bool,
 ) error {
 	err := setHandlerParams(params)
 	if err != nil {
@@ -155,14 +157,20 @@ func initiate(
 	}
 
 	storage := &dbrepository.DBepository{}
-
+	mem := &memoryrepository.MemoryRepository{}
 	ctx, cancel := context.WithTimeout(
 		context.Background(), params.WaitSecRespDB)
 
 	defer cancel()
 
-	dse := service.NewMemoryService(storage,
-		params.WaitSecRespDB)
+	var dse *service.DS
+
+	if isMemRepo {
+		dse = service.NewMemoryService(mem, params.WaitSecRespDB)
+	} else {
+		dse = service.NewMemoryService(
+			storage, params.WaitSecRespDB)
+	}
 
 	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
 	if err != nil {
@@ -170,7 +178,11 @@ func initiate(
 			err)
 	}
 
-	storage.Initiate(params.DatabaseDSN, dbConn)
+	if isMemRepo {
+		mem.Init()
+	} else {
+		storage.Initiate(params.DatabaseDSN, dbConn)
+	}
 
 	hJSONSets := sender.NewSenderHandler(
 		dse, params)
@@ -240,7 +252,7 @@ func TestSender(t *testing.T) {
 	settings := &bizmodels.EndpointSettings{}
 	mux := mux.NewRouter()
 
-	err := initiate(mux, params, settings)
+	err := initiate(mux, params, settings, false)
 	if err != nil {
 		fmt.Println(err)
 

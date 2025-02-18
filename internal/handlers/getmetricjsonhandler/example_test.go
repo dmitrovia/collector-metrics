@@ -19,7 +19,7 @@ func ExampleGetMetricJSONHandler() {
 
 	mux := mux.NewRouter()
 
-	err := initiate(mux, params)
+	err := initiate(mux, params, true)
 	if err != nil {
 		fmt.Println(err)
 
@@ -46,11 +46,8 @@ func ExampleGetMetricJSONHandler() {
 	newr := httptest.NewRecorder()
 	mux.ServeHTTP(newr, req)
 
-	// fmt.Println(newr.Body)
-	fmt.Println("ok")
+	fmt.Println(newr.Body)
 
 	// Output:
-	// ok
+	// "id":"gauge45","type":"gauge","delta":0,"value":24.5}
 }
-
-// {"id":"gauge45","type":"gauge","delta":0,"value":24.5}

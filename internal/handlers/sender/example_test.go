@@ -15,7 +15,7 @@ func ExampleSender() {
 	settings := &bizmodels.EndpointSettings{}
 	mux := mux.NewRouter()
 
-	err := initiate(mux, params, settings)
+	err := initiate(mux, params, settings, true)
 	if err != nil {
 		fmt.Println(err)
 
@@ -59,16 +59,13 @@ func ExampleSender() {
 	newr := httptest.NewRecorder()
 	mux.ServeHTTP(newr, req)
 
-	_, err = parseResponse(newr.Body)
+	res, err := parseResponse(newr.Body)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	// fmt.Println(res)
-	fmt.Println("ok")
+	fmt.Println(res)
 
 	// Output:
-	// ok
+	// [{gauge45 gauge 0 24.5} {counter6611 counter 55 0}]
 }
-
-// [{gauge45 gauge 0 24.5} {counter6611 counter 55 0}]
