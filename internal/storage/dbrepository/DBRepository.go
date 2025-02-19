@@ -59,12 +59,14 @@ func (m *DBepository) GetAllMetricsAPI(
 ) (*apimodels.ArrMetrics, error) {
 	arr1, err := m.GetAllGaugesAPI(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("AddMetrics->m.AddCounter %w", err)
+		return nil, fmt.Errorf(
+			"GetAllMetricsAPI->m.GetAllGaugesAPI %w", err)
 	}
 
 	arr2, err := m.GetAllCountersAPI(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("AddMetrics->m.AddCounter %w", err)
+		return nil, fmt.Errorf(
+			"GetAllMetricsAPI->m.GetAllCountersAPI %w", err)
 	}
 
 	result := make(apimodels.ArrMetrics, 0)

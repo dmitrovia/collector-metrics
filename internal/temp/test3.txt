@@ -1,0 +1,2 @@
+{"id":"gauge45","type":"gauge","value":24.5}
+{"id":"counter6611","type":"counter","delta":55}

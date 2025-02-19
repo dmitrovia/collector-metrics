@@ -14,9 +14,6 @@ import (
 var errGetValueMetric = errors.New(
 	"value by name not found")
 
-var errMethod = errors.New(
-	"method not implemented")
-
 // MemoryRepository - describing the storage.
 type MemoryRepository struct {
 	gauges   map[string]bizmodels.Gauge
@@ -81,7 +78,8 @@ func (m *MemoryRepository) GetGaugeMetric(
 	return nil, errGetValueMetric
 }
 
-// GetGaugeMetric - get counter metric by name from memory.
+// GetCounterMetric - get counter
+// metric by name from memory.
 func (m *MemoryRepository) GetCounterMetric(
 	_ *context.Context,
 	name string,
@@ -129,7 +127,66 @@ func (m *MemoryRepository) AddCounter(
 
 // GetAllMetricsAPI - get all metrics in API format.
 func (m *MemoryRepository) GetAllMetricsAPI(
-	_ *context.Context,
+	ctx *context.Context,
 ) (*apimodels.ArrMetrics, error) {
-	return nil, errMethod
+	arr1, err := m.GetAllGaugesAPI(ctx)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"GetAllMetricsAPI->m.GetAllGaugesAPI %w", err)
+	}
+
+	arr2, err := m.GetAllCountersAPI(ctx)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"GetAllMetricsAPI->m.GetAllCountersAPI %w", err)
+	}
+
+	result := make(apimodels.ArrMetrics, 0)
+	result = append(result, arr1...)
+	result = append(result, arr2...)
+
+	return &result, nil
+}
+
+// GetAllGaugesAPI - get all gauge metrics in API format.
+func (m *MemoryRepository) GetAllGaugesAPI(
+	ctx *context.Context) (
+	apimodels.ArrMetrics,
+	error,
+) {
+	apigauges := make(apimodels.ArrMetrics, 0)
+	gauges, _ := m.GetAllGauges(ctx)
+
+	for _, gauge := range gauges {
+		temp := &apimodels.Metrics{}
+		temp.ID = gauge.Name
+		temp.Value = &gauge.Value
+		temp.MType = bizmodels.GaugeName
+
+		apigauges = append(apigauges, *temp)
+	}
+
+	return apigauges, nil
+}
+
+// GetAllCountersAPI - get all
+// counter metrics in API format.
+func (m *MemoryRepository) GetAllCountersAPI(
+	ctx *context.Context) (
+	apimodels.ArrMetrics,
+	error,
+) {
+	apicounters := make(apimodels.ArrMetrics, 0)
+	counters, _ := m.GetAllCounters(ctx)
+
+	for _, counter := range counters {
+		temp := &apimodels.Metrics{}
+		temp.ID = counter.Name
+		temp.Delta = &counter.Value
+		temp.MType = bizmodels.CounterName
+
+		apicounters = append(apicounters, *temp)
+	}
+
+	return apicounters, nil
 }

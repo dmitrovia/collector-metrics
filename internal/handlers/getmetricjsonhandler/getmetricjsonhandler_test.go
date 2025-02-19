@@ -35,7 +35,7 @@ const nfnd int = http.StatusNotFound
 
 const post string = "POST"
 
-const defSavePathFile string = "/internal/temp/test2.txt"
+const defSavePathFile string = "/internal/temp/"
 
 const defSavePathFile1 string = "/internal/temp/met.json"
 
@@ -192,20 +192,18 @@ func initiate(
 
 	storage := &dbrepository.DBepository{}
 	memst := &memoryrepository.MemoryRepository{}
+	tmp := params.WaitSecRespDB
 
 	ctx, cancel := context.WithTimeout(
-		context.Background(), params.WaitSecRespDB)
-
+		context.Background(), tmp)
 	defer cancel()
 
 	var dse *service.DS
 
 	if isMemRepo {
-		dse = service.NewMemoryService(memst,
-			params.WaitSecRespDB)
+		dse = service.NewMemoryService(memst, tmp)
 	} else {
-		dse = service.NewMemoryService(storage,
-			params.WaitSecRespDB)
+		dse = service.NewMemoryService(storage, tmp)
 	}
 
 	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
@@ -220,8 +218,7 @@ func initiate(
 		storage.Initiate(params.DatabaseDSN, dbConn)
 	}
 
-	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(
-		dse)
+	hJSONGet := getmetricjsonhandler.NewGetMJSONHandler(dse)
 
 	zapLogger, err := logger.Initialize("info")
 	if err != nil {
@@ -229,13 +226,17 @@ func initiate(
 	}
 
 	getMJSONMux := mux.Methods(http.MethodPost).Subrouter()
-	getMJSONMux.HandleFunc(
-		"/value/",
+	getMJSONMux.HandleFunc("/value/",
 		hJSONGet.GetMetricJSONHandler)
 	getMJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 
-	LoadFile(dse)
+	if isMemRepo {
+		LoadFile(dse, "test3.txt")
+	} else {
+		LoadFile(dse, "test2.txt")
+	}
+
 	saveMetrics(dse)
 
 	return nil
@@ -330,7 +331,9 @@ func formReqBody(
 	return bytes.NewReader(marshall), nil
 }
 
-func LoadFile(mems *service.DS) {
+func LoadFile(mems *service.DS,
+	filen string,
+) {
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
@@ -338,7 +341,7 @@ func LoadFile(mems *service.DS) {
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../../..")
-	temp := Root + defSavePathFile
+	temp := Root + defSavePathFile + filen
 
 	err := mems.LoadFromFile(temp)
 	if err != nil {
