@@ -276,7 +276,7 @@ jobs:
           metricstest -test.v -test.run=^TestIteration10[AB]$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -database-dsn='postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable' \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -294,7 +294,7 @@ jobs:
           metricstest -test.v -test.run=^TestIteration11$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -database-dsn='postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable' \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -311,7 +311,7 @@ jobs:
           metricstest -test.v -test.run=^TestIteration12$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -database-dsn='postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable' \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -327,7 +327,7 @@ jobs:
           metricstest -test.v -test.run=^TestIteration13$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -database-dsn='postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable' \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -server-port=$SERVER_PORT \
             -source-path=.
 
@@ -342,7 +342,7 @@ jobs:
           metricstest -test.v -test.run=^TestIteration14$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
-            -database-dsn='postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable' \
+            -database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
             -key="${TEMP_FILE}" \
             -server-port=$SERVER_PORT \
             -source-path=.
@@ -360,3 +360,16 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           go test -v -race ./...
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Gather dependencies
+        run: go mod download
+      - name: Run coverage
+        run: go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
