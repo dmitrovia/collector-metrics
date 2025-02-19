@@ -345,6 +345,13 @@ jobs:
             -key="${TEMP_FILE}" \
             -server-port=$SERVER_PORT \
             -source-path=.
+           
+      - name: "Code increment #18"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter18'
+        run: |
+         go test -v ./...
 
       - name: "Code increment #14 (race detection)"
         if: |
@@ -352,13 +359,4 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           go test -v -race ./...
-
-      - name: "Code increment #18"
-        if: |
-          github.ref == 'refs/heads/main' ||
-          github.head_ref == 'iter18'
-        run: |
-          go test -v ./...
-
-        
         
