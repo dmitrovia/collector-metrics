@@ -109,7 +109,7 @@ func InitStorage(
 	return nil, datas, nil
 }
 
-// InitStorage - starts working with migrations.
+// UseMigrations - starts working with migrations.
 func UseMigrations(par *bizmodels.InitParams) error {
 	if par.DatabaseDSN == "" {
 		return nil

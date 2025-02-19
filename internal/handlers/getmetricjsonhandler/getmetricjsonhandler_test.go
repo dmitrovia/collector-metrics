@@ -3,6 +3,8 @@ package getmetricjsonhandler_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +19,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
+	"github.com/dmitrovia/collector-metrics/internal/migrator"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
@@ -42,6 +45,11 @@ const defSavePathFile1 string = "/internal/temp/met.json"
 var errRuntimeCaller = errors.New("errRuntimeCaller")
 
 var errPath = errors.New("path is not valid")
+
+const migrationsDir = "db/migrations"
+
+//go:embed db/migrations/*.sql
+var MigrationsFS embed.FS
 
 type testData struct {
 	tn     string
@@ -186,19 +194,18 @@ func initiate(
 ) error {
 	err := setHandlerParams(params)
 	if err != nil {
-		return fmt.Errorf("initStorage->pgx.Connect %w",
-			err)
+		return fmt.Errorf("initiate->psetHandlerParams %w", err)
 	}
 
 	storage := &dbrepository.DBepository{}
 	memst := &memoryrepository.MemoryRepository{}
 	tmp := params.WaitSecRespDB
 
+	var dse *service.DS
+
 	ctx, cancel := context.WithTimeout(
 		context.Background(), tmp)
 	defer cancel()
-
-	var dse *service.DS
 
 	if isMemRepo {
 		dse = service.NewMemoryService(memst, tmp)
@@ -208,8 +215,7 @@ func initiate(
 
 	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
 	if err != nil {
-		return fmt.Errorf("initStorage->pgx.Connect %w",
-			err)
+		return fmt.Errorf("initStorage->pgxpool.New %w", err)
 	}
 
 	if isMemRepo {
@@ -234,10 +240,40 @@ func initiate(
 	if isMemRepo {
 		LoadFile(dse, "test3.txt")
 	} else {
+		_ = UseMigrations(params)
+
 		LoadFile(dse, "test2.txt")
 	}
 
 	saveMetrics(dse)
+
+	return nil
+}
+
+func UseMigrations(par *bizmodels.InitParams) error {
+	if par.DatabaseDSN == "" {
+		return nil
+	}
+
+	migrator, err := migrator.MustGetNewMigrator(
+		MigrationsFS, migrationsDir)
+	if err != nil {
+		return fmt.Errorf("useMigrations->MustGetNewMigrator %w",
+			err)
+	}
+
+	conn, err := sql.Open("postgres", par.DatabaseDSN)
+	if err != nil {
+		return fmt.Errorf("useMigrations->sql.Open %w", err)
+	}
+
+	defer conn.Close()
+
+	err = migrator.ApplyMigrations(conn)
+	if err != nil {
+		return fmt.Errorf("useMigrations->ApplyMigrations %w",
+			err)
+	}
 
 	return nil
 }

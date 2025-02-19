@@ -3,6 +3,8 @@ package sender_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
+	"embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -21,6 +23,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
+	"github.com/dmitrovia/collector-metrics/internal/migrator"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/dmitrovia/collector-metrics/internal/service"
@@ -42,6 +45,11 @@ const defSavePathFile string = "/internal/temp/metrics.json"
 var errPath = errors.New("path is not valid")
 
 var errResponse = errors.New("error response")
+
+const migrationsDir = "db/migrations"
+
+//go:embed db/migrations/*.sql
+var MigrationsFS embed.FS
 
 type testData struct {
 	tn       string
@@ -121,6 +129,34 @@ func getTestData() *[]testData {
 	}
 }
 
+func UseMigrations(par *bizmodels.InitParams) error {
+	if par.DatabaseDSN == "" {
+		return nil
+	}
+
+	migrator, err := migrator.MustGetNewMigrator(
+		MigrationsFS, migrationsDir)
+	if err != nil {
+		return fmt.Errorf("useMigrations->MustGetNewMigrator %w",
+			err)
+	}
+
+	conn, err := sql.Open("postgres", par.DatabaseDSN)
+	if err != nil {
+		return fmt.Errorf("useMigrations->sql.Open %w", err)
+	}
+
+	defer conn.Close()
+
+	err = migrator.ApplyMigrations(conn)
+	if err != nil {
+		return fmt.Errorf("useMigrations->ApplyMigrations %w",
+			err)
+	}
+
+	return nil
+}
+
 func setHandlerParams(params *bizmodels.InitParams) error {
 	params.
 		ValidateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
@@ -152,8 +188,7 @@ func initiate(
 ) error {
 	err := setHandlerParams(params)
 	if err != nil {
-		return fmt.Errorf("initStorage->pgx.Connect %w",
-			err)
+		return fmt.Errorf("initiate->setHandlerParams %w", err)
 	}
 
 	storage := &dbrepository.DBepository{}
@@ -174,8 +209,7 @@ func initiate(
 
 	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
 	if err != nil {
-		return fmt.Errorf("initStorage->pgx.Connect %w",
-			err)
+		return fmt.Errorf("initiate->pgxpool.New %w", err)
 	}
 
 	if isMemRepo {
@@ -189,7 +223,7 @@ func initiate(
 
 	zapLogger, err := logger.Initialize("info")
 	if err != nil {
-		return fmt.Errorf("initiate: %w", err)
+		return fmt.Errorf("Initialize: %w", err)
 	}
 
 	setMsJSONMux := mux.Methods(http.MethodPost).Subrouter()
@@ -203,6 +237,8 @@ func initiate(
 	settings.ContentType = "application/json"
 	settings.Encoding = "gzip"
 	settings.URL = url + "/updates/"
+
+	_ = UseMigrations(params)
 
 	return nil
 }
