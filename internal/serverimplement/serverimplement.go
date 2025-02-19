@@ -65,7 +65,7 @@ const migrationsDir = "db/migrations"
 const zapLogLevel = "info"
 
 const defPostgreConnURL = "postgres://postgres:postgres" +
-	"@postgres" +
+	"@localhost" +
 	":5432/praktikum?sslmode=disable"
 
 const defKeyHashSha256 = "defaultKey"
