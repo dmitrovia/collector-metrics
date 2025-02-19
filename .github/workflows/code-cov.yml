@@ -41,6 +41,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: praktikum
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -54,15 +65,3 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: praktikum
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-      
