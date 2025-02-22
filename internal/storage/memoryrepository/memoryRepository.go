@@ -124,6 +124,7 @@ func (m *MemoryRepository) AddCounter(
 		temp.Name = val.Name
 		temp.Value = val.Value + counter.Value
 		m.counters[counter.Name] = *temp
+		m.mutexC.Unlock()
 
 		return temp, nil
 	}
