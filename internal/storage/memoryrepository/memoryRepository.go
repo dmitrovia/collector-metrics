@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
@@ -18,6 +19,8 @@ var errGetValueMetric = errors.New(
 type MemoryRepository struct {
 	gauges   map[string]bizmodels.Gauge
 	counters map[string]bizmodels.Counter
+	mutexG   *sync.Mutex
+	mutexC   *sync.Mutex
 }
 
 // AddMetrics - adds metrics to the memory.
@@ -47,6 +50,8 @@ func (m *MemoryRepository) AddMetrics(
 func (m *MemoryRepository) Init() {
 	m.gauges = make(map[string]bizmodels.Gauge)
 	m.counters = make(map[string]bizmodels.Counter)
+	m.mutexG = &sync.Mutex{}
+	m.mutexC = &sync.Mutex{}
 }
 
 // GetAllGauges - get all gauges metrics from memory.
@@ -97,7 +102,9 @@ func (m *MemoryRepository) AddGauge(
 	_ *context.Context,
 	gauge *bizmodels.Gauge,
 ) error {
+	m.mutexG.Lock()
 	m.gauges[gauge.Name] = *gauge
+	m.mutexG.Unlock()
 
 	return nil
 }
@@ -107,6 +114,7 @@ func (m *MemoryRepository) AddCounter(
 	_ *context.Context,
 	counter *bizmodels.Counter,
 ) (*bizmodels.Counter, error) {
+	m.mutexC.Lock()
 	val, ok := m.counters[counter.Name]
 
 	var temp *bizmodels.Counter
@@ -121,6 +129,7 @@ func (m *MemoryRepository) AddCounter(
 	}
 
 	m.counters[counter.Name] = *counter
+	m.mutexC.Unlock()
 
 	return counter, nil
 }

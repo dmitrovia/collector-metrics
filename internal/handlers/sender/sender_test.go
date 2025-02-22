@@ -301,7 +301,7 @@ func TestSender(t *testing.T) {
 		t.Run(http.MethodPost, func(tobj *testing.T) {
 			tobj.Parallel()
 
-			reqData, err := initReqData(settings, params, &test)
+			reqData, err := initReqData(params, &test)
 			if err != nil {
 				fmt.Println(err)
 
@@ -338,8 +338,7 @@ func TestSender(t *testing.T) {
 	}
 }
 
-func initReqData(settings *bizmodels.EndpointSettings,
-	params *bizmodels.InitParams,
+func initReqData(params *bizmodels.InitParams,
 	testD *testData,
 ) (*bytes.Reader, error) {
 	dataMarshal := getDataSend(testD)
@@ -366,7 +365,7 @@ func initReqData(settings *bizmodels.EndpointSettings,
 
 		encodedStr := hex.EncodeToString(tHash)
 
-		settings.Hash = encodedStr
+		testD.hash = encodedStr
 	}
 
 	return bytes.NewReader(metricCompress), nil

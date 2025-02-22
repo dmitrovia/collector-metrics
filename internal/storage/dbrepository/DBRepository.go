@@ -5,6 +5,7 @@ package dbrepository
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
@@ -15,6 +16,8 @@ import (
 type DBepository struct {
 	databaseDSN string
 	conn        *pgxpool.Pool
+	mutexG      *sync.Mutex
+	mutexC      *sync.Mutex
 }
 
 // Initiate - initialization of initial parameters.
@@ -24,6 +27,8 @@ func (m *DBepository) Initiate(
 ) {
 	m.databaseDSN = dsn
 	m.conn = conn
+	m.mutexG = &sync.Mutex{}
+	m.mutexC = &sync.Mutex{}
 }
 
 // Init - initialization of initial parameters.
@@ -299,6 +304,8 @@ func (m *DBepository) AddGauge(
 	ctx *context.Context,
 	gauge *bizmodels.Gauge,
 ) error {
+	m.mutexG.Lock()
+
 	rows, err := m.conn.Exec(
 		*ctx,
 		"UPDATE gauges SET value = $1 where name=$2",
@@ -318,6 +325,7 @@ func (m *DBepository) AddGauge(
 			return fmt.Errorf("AddGauge->INSERT INTO error: %w", err)
 		}
 	}
+	m.mutexG.Unlock()
 
 	return nil
 }
@@ -327,6 +335,8 @@ func (m *DBepository) AddCounter(
 	ctx *context.Context,
 	counter *bizmodels.Counter,
 ) (*bizmodels.Counter, error) {
+	m.mutexC.Lock()
+
 	rows, err := m.conn.Exec(*ctx,
 		"UPDATE counters SET value = value + $1 where name=$2",
 		counter.Value,
@@ -358,6 +368,8 @@ func (m *DBepository) AddCounter(
 			fmt.Errorf("AddCounter->m.GetCounterMetric %w",
 				err)
 	}
+
+	m.mutexC.Unlock()
 
 	return temp, nil
 }

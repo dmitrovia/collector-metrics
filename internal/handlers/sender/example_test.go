@@ -35,7 +35,7 @@ func ExampleSender() {
 		tn: "1", key: "defaultKey",
 	}
 
-	reqData, err := initReqData(settings, params, &test)
+	reqData, err := initReqData(params, &test)
 	if err != nil {
 		fmt.Println(err)
 
