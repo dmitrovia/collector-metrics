@@ -103,8 +103,8 @@ func (m *MemoryRepository) AddGauge(
 	gauge *bizmodels.Gauge,
 ) error {
 	m.mutexG.Lock()
+	defer m.mutexG.Unlock()
 	m.gauges[gauge.Name] = *gauge
-	m.mutexG.Unlock()
 
 	return nil
 }
@@ -115,6 +115,7 @@ func (m *MemoryRepository) AddCounter(
 	counter *bizmodels.Counter,
 ) (*bizmodels.Counter, error) {
 	m.mutexC.Lock()
+	defer m.mutexC.Unlock()
 	val, ok := m.counters[counter.Name]
 
 	var temp *bizmodels.Counter
@@ -124,13 +125,11 @@ func (m *MemoryRepository) AddCounter(
 		temp.Name = val.Name
 		temp.Value = val.Value + counter.Value
 		m.counters[counter.Name] = *temp
-		m.mutexC.Unlock()
 
 		return temp, nil
 	}
 
 	m.counters[counter.Name] = *counter
-	m.mutexC.Unlock()
 
 	return counter, nil
 }

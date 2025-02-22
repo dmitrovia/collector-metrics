@@ -305,6 +305,7 @@ func (m *DBepository) AddGauge(
 	gauge *bizmodels.Gauge,
 ) error {
 	m.mutexG.Lock()
+	defer m.mutexG.Unlock()
 
 	rows, err := m.conn.Exec(
 		*ctx,
@@ -312,8 +313,6 @@ func (m *DBepository) AddGauge(
 		gauge.Value,
 		gauge.Name)
 	if err != nil {
-		m.mutexG.Unlock()
-
 		return fmt.Errorf("AddGauge->m.conn.Exec( %w", err)
 	}
 
@@ -324,12 +323,9 @@ func (m *DBepository) AddGauge(
 			gauge.Name,
 			gauge.Value)
 		if err != nil {
-			m.mutexG.Unlock()
-
 			return fmt.Errorf("AddGauge->INSERT INTO error: %w", err)
 		}
 	}
-	m.mutexG.Unlock()
 
 	return nil
 }
@@ -340,14 +336,13 @@ func (m *DBepository) AddCounter(
 	counter *bizmodels.Counter,
 ) (*bizmodels.Counter, error) {
 	m.mutexC.Lock()
+	defer m.mutexC.Unlock()
 
 	rows, err := m.conn.Exec(*ctx,
 		"UPDATE counters SET value = value + $1 where name=$2",
 		counter.Value,
 		counter.Name)
 	if err != nil {
-		m.mutexC.Unlock()
-
 		return nil,
 			fmt.Errorf("AddCounter->UPDATE counters SET: %w",
 				err)
@@ -360,8 +355,6 @@ func (m *DBepository) AddCounter(
 			counter.Name,
 			counter.Value)
 		if err != nil {
-			m.mutexC.Unlock()
-
 			return nil,
 				fmt.Errorf("AddCounter->INSERT INTO error: %w",
 					err)
@@ -376,8 +369,6 @@ func (m *DBepository) AddCounter(
 			fmt.Errorf("AddCounter->m.GetCounterMetric %w",
 				err)
 	}
-
-	m.mutexC.Unlock()
 
 	return temp, nil
 }
