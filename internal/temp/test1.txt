@@ -1,0 +1,8 @@
+{"id":"Name1q","type":"gauge","value":1}
+{"id":"Name2q","type":"counter","delta":1}
+{"id":"Name3q","type":"counter","delta":1}
+{"id":"Name4q","type":"counter","delta":-1}
+{"id":"Name5q","type":"gauge","value":1.1111111111111112e+32}
+{"id":"Name6q","type":"gauge","value":-1.5}
+{"id":"Name7q","type":"gauge","value":-1}
+{"id":"Name8q","type":"gauge","value":5}

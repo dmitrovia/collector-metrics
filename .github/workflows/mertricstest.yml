@@ -34,6 +34,7 @@ jobs:
           --health-retries 5
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -345,6 +346,13 @@ jobs:
             -key="${TEMP_FILE}" \
             -server-port=$SERVER_PORT \
             -source-path=.
+           
+      - name: "Code increment #18"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter18'
+        run: |
+         go test -v ./...
 
       - name: "Code increment #14 (race detection)"
         if: |
@@ -352,3 +360,16 @@ jobs:
           github.head_ref == 'iter14'
         run: |
           go test -v -race ./...
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+      - name: Gather dependencies
+        run: go mod download
+      - name: Run coverage
+        run: go test -race ./... -coverprofile=coverage.txt *.go -covermode=atomic
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

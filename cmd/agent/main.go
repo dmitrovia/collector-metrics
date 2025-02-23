@@ -1,3 +1,50 @@
+// Main agent application package.
 package main
 
-func main() {}
+import (
+	"fmt"
+	"net/http"
+	"sync"
+
+	"github.com/dmitrovia/collector-metrics/internal/agentimplement"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
+)
+
+func main() {
+	waitGroup := &sync.WaitGroup{}
+	monitor := &bizmodels.Monitor{}
+	client := &http.Client{}
+	params := &bizmodels.InitParamsAgent{}
+
+	err := agentimplement.Initialization(
+		params,
+		monitor)
+	if err != nil {
+		fmt.Println("main->initialization: %w", err)
+
+		return
+	}
+
+	waitGroup.Add(1)
+
+	jobs := make(chan bizmodels.JobData, params.RateLimit)
+
+	defer close(jobs)
+
+	go agentimplement.Collect(
+		params,
+		waitGroup,
+		monitor,
+		jobs)
+
+	waitGroup.Add(1)
+
+	go agentimplement.Send(
+		params,
+		waitGroup,
+		client,
+		monitor,
+		jobs)
+
+	waitGroup.Wait()
+}

@@ -1,0 +1,6 @@
+
+are located in the 
+sender (receiving metrics to the server) 
+and 
+getmetricjsonhandler (sending metrics from the server) 
+handles
