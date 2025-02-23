@@ -135,16 +135,6 @@ func writeAns(
 		metric.Value = val
 	}
 
-	fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
-	fmt.Println(metric)
-	if metric.Delta != nil {
-		fmt.Println(*metric.Delta)
-	}
-	if metric.Value != nil {
-		fmt.Println(*metric.Value)
-	}
-	fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
-
 	metricMarshall, err := json.Marshal(metric)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
