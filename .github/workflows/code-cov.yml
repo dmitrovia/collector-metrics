@@ -3,6 +3,7 @@ name: test-and-coverage
 on: 
   push:
     branches:
+      - main
       - iter1
       - iter2
       - iter3
@@ -21,6 +22,7 @@ on:
       - iter18
   pull_request:
     branches:
+      - main
       - iter1
       - iter2
       - iter3
