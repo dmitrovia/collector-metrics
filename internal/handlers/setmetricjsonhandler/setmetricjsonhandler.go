@@ -148,7 +148,7 @@ func addMetricToMemStore(
 		_ = handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
 	} else if vmet.mtype == bizmodels.CounterName {
 		res, _ := handler.serv.AddCounter(
-			vmet.mname, vmet.mvalueInt)
+			vmet.mname, vmet.mvalueInt, false)
 
 		vmet.mvalueInt = res.Value
 	}

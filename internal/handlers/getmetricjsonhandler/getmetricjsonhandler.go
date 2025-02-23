@@ -135,6 +135,13 @@ func writeAns(
 		metric.Value = val
 	}
 
+	if metric.MType == bizmodels.CounterName {
+		fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
+		fmt.Println(metric)
+		fmt.Println(*metric.Delta)
+		fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
+	}
+
 	metricMarshall, err := json.Marshal(metric)
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)

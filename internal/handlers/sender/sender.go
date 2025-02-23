@@ -194,7 +194,8 @@ func addValidMetric(res *apimodels.Metrics,
 				err)
 		}
 	} else if res.MType == bizmodels.CounterName {
-		_, err := handler.serv.AddCounter(res.ID, *res.Delta)
+		_, err := handler.serv.AddCounter(res.ID, *res.Delta,
+			false)
 		if err != nil {
 			return fmt.Errorf("addValidMetric->AddCounter: %w",
 				err)

@@ -49,7 +49,7 @@ func (m *DBepository) AddMetrics(
 	}
 
 	for _, counter := range counters {
-		_, err := m.AddCounter(ctx, &counter)
+		_, err := m.AddCounter(ctx, &counter, false)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddCounter %w", err)
 		}
@@ -334,12 +334,22 @@ func (m *DBepository) AddGauge(
 func (m *DBepository) AddCounter(
 	ctx *context.Context,
 	counter *bizmodels.Counter,
+	isNew bool,
 ) (*bizmodels.Counter, error) {
 	m.mutexC.Lock()
 	defer m.mutexC.Unlock()
 
+	var tmp string
+
+	if isNew {
+		tmp = "UPDATE counters SET value = $1 where name=$2"
+	} else {
+		tmp = "UPDATE counters SET value = value" +
+			"+ $1 where name=$2"
+	}
+
 	rows, err := m.conn.Exec(*ctx,
-		"UPDATE counters SET value = value + $1 where name=$2",
+		tmp,
 		counter.Value,
 		counter.Name)
 	if err != nil {

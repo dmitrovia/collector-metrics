@@ -82,7 +82,7 @@ func addMetricToMemStore(
 		}
 	} else if metr.mtype == bizmodels.CounterName {
 		res, err := handler.serv.AddCounter(
-			metr.mname, metr.mvalueInt)
+			metr.mname, metr.mvalueInt, false)
 		if err != nil {
 			fmt.Println("addMetricToMemStore->AddCounter: %w",
 				err)

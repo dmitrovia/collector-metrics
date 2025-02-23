@@ -65,7 +65,7 @@ const migrationsDir = "db/migrations"
 const zapLogLevel = "info"
 
 const defPostgreConnURL = "postgres://postgres:postgres" +
-	"@postgres" +
+	"@localhost" +
 	":5432/praktikum?sslmode=disable"
 
 const defKeyHashSha256 = "defaultKey"
@@ -375,12 +375,12 @@ func setInitParamsDB(params *bizmodels.InitParams) {
 func setInitParamsFileStorage(
 	params *bizmodels.InitParams,
 ) error {
-	envFSP := os.Getenv("FILE_STORAGE_PATH")
+	// envFSP := os.Getenv("FILE_STORAGE_PATH")
 	envRestore := os.Getenv("RESTORE")
 
-	if envFSP != "" {
-		params.FileStoragePath = envFSP
-	}
+	// if envFSP != "" {
+	//	params.FileStoragePath = envFSP
+	//}
 
 	if envRestore != "" {
 		value, err := strconv.ParseBool(envRestore)
