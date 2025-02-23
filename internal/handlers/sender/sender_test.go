@@ -161,7 +161,7 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	params.
 		ValidateAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 	params.DatabaseDSN = "postgres://postgres:postgres" +
-		"@localhost" +
+		"@postgres" +
 		":5432/praktikum?sslmode=disable"
 	_, path, _, ok := runtime.Caller(0)
 
