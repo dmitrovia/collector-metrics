@@ -50,9 +50,11 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(
 		return
 	}
 
+	writer.WriteHeader(status)
+
 	status, err = writeAns(writer, met, h)
 	if err != nil {
-		fmt.Println("GetMetricJSONHandler->getAns: %w",
+		fmt.Println("GetMetricJSONHandler->writeAns: %w",
 			err)
 		writer.WriteHeader(status)
 

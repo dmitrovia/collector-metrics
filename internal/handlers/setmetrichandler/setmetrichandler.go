@@ -78,7 +78,7 @@ func addMetricToMemStore(
 		err := handler.serv.AddGauge(metr.mname, metr.mvalueFloat)
 		if err != nil {
 			fmt.Println(
-				"addMetricToMemStore->addMetricToMemStore: %w",
+				"addMetricToMemStore->AddGauge: %w",
 				err)
 		}
 	} else if metr.mtype == bizmodels.CounterName {

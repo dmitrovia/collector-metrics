@@ -47,7 +47,6 @@ func (h *GetMetricHandler) GetMetricHandler(
 	var answerData *ansData
 
 	valMetr = &validMetric{}
-
 	getReqData(req, valMetr)
 
 	isValid, status := isValidMetric(valMetr)
@@ -57,22 +56,21 @@ func (h *GetMetricHandler) GetMetricHandler(
 		return
 	}
 
+	writer.WriteHeader(status)
+
 	answerData = &ansData{}
 	isSetAnsData, status := setAnswerData(
 		valMetr,
 		answerData,
 		h)
+	writer.WriteHeader(status)
 
 	if isSetAnsData {
-		writer.WriteHeader(status)
-
 		Body := answerData.mvalue
 		fmt.Fprintf(writer, "%s", Body)
 
 		return
 	}
-
-	writer.WriteHeader(status)
 }
 
 // getReqData - receives metrics
