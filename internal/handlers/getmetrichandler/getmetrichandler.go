@@ -47,24 +47,21 @@ func (h *GetMetricHandler) GetMetricHandler(
 	var answerData *ansData
 
 	valMetr = &validMetric{}
-
 	getReqData(req, valMetr)
 
-	isValid, status := isValidMetric(valMetr)
+	isValid := isValidMetric(valMetr, writer)
 	if !isValid {
-		writer.WriteHeader(status)
-
 		return
 	}
 
 	answerData = &ansData{}
-	isSetAnsData, status := setAnswerData(
+	isSetAnsData := setAnswerData(
 		valMetr,
 		answerData,
 		h)
 
 	if isSetAnsData {
-		writer.WriteHeader(status)
+		writer.WriteHeader(http.StatusOK)
 
 		Body := answerData.mvalue
 		fmt.Fprintf(writer, "%s", Body)
@@ -72,7 +69,7 @@ func (h *GetMetricHandler) GetMetricHandler(
 		return
 	}
 
-	writer.WriteHeader(status)
+	writer.WriteHeader(http.StatusNotFound)
 }
 
 // getReqData - receives metrics
@@ -85,23 +82,28 @@ func getReqData(r *http.Request, metric *validMetric) {
 // isValidMetric - for metric validation.
 func isValidMetric(
 	metric *validMetric,
-) (bool, int) {
+	writer http.ResponseWriter,
+) bool {
 	var pattern string
 	pattern = "^[0-9a-zA-Z/ ]{1,40}$"
 	res, _ := validate.IsMatchesTemplate(metric.mname, pattern)
 
 	if !res {
-		return false, http.StatusNotFound
+		writer.WriteHeader(http.StatusNotFound)
+
+		return false
 	}
 
 	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
 
 	if !res {
-		return false, http.StatusBadRequest
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return false
 	}
 
-	return true, http.StatusOK
+	return true
 }
 
 // setAnswerData - record the response data.
@@ -109,14 +111,14 @@ func setAnswerData(
 	metric *validMetric,
 	ansd *ansData,
 	h *GetMetricHandler,
-) (bool, int) {
+) bool {
 	if metric.mtype == bizmodels.GaugeName {
 		return GetStringValueGaugeMetric(ansd, h, metric.mname)
 	} else if metric.mtype == bizmodels.CounterName {
 		return GetStringValueCounterMetric(ansd, h, metric.mname)
 	}
 
-	return false, http.StatusNotFound
+	return false
 }
 
 // GetStringValueGaugeMetric - get
@@ -125,15 +127,15 @@ func GetStringValueGaugeMetric(
 	ansd *ansData,
 	h *GetMetricHandler,
 	mname string,
-) (bool, int) {
+) bool {
 	val, err := h.serv.GetValueGM(mname)
 	if err != nil {
-		return false, http.StatusNotFound
+		return false
 	}
 
 	ansd.mvalue = strconv.FormatFloat(val, 'f', -1, 64)
 
-	return true, http.StatusOK
+	return true
 }
 
 // GetStringValueCounterMetric - get
@@ -142,13 +144,13 @@ func GetStringValueCounterMetric(
 	ansd *ansData,
 	h *GetMetricHandler,
 	mname string,
-) (bool, int) {
+) bool {
 	val, err := h.serv.GetValueCM(mname)
 	if err != nil {
-		return false, http.StatusNotFound
+		return false
 	}
 
 	ansd.mvalue = strconv.FormatInt(val, 10)
 
-	return true, http.StatusOK
+	return true
 }

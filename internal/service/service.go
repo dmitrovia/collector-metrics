@@ -22,7 +22,8 @@ type Service interface {
 	AddGauge(mname string, mvalue float64) error
 	AddCounter(
 		mname string,
-		mvalue int64) (*bizmodels.Counter, error)
+		mvalue int64,
+		isNew bool) (*bizmodels.Counter, error)
 	GetValueGM(mname string) (float64, error)
 	GetValueCM(mname string) (int64, error)
 	SaveInFile(pth string) error
@@ -251,7 +252,7 @@ func (s *DS) LoadFromFile(pth string) error {
 				Value: *tmpm.Delta,
 			}
 
-			_, err := s.repository.AddCounter(&ctx, &counter)
+			_, err := s.repository.AddCounter(&ctx, &counter, true)
 			if err != nil {
 				return fmt.Errorf("LoadFromFile->AddCounter: %w", err)
 			}
@@ -286,6 +287,7 @@ func (s *DS) AddGauge(mname string, mvalue float64) error {
 func (s *DS) AddCounter(
 	name string,
 	value int64,
+	isNew bool,
 ) (*bizmodels.Counter, error) {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
@@ -294,7 +296,7 @@ func (s *DS) AddCounter(
 
 	counter := bizmodels.Counter{Name: name, Value: value}
 
-	res, err := s.repository.AddCounter(&ctx, &counter)
+	res, err := s.repository.AddCounter(&ctx, &counter, isNew)
 	if err != nil {
 		return nil, fmt.Errorf("AddCounter->AddCounter %w", err)
 	}

@@ -68,7 +68,7 @@ const defPostgreConnURL = "postgres://postgres:postgres" +
 	"@postgres" +
 	":5432/praktikum?sslmode=disable"
 
-const defKeyHashSha256 = "defaultKey"
+const defKeyHashSha256 = ""
 
 //go:embed db/migrations/*.sql
 var MigrationsFS embed.FS
@@ -375,12 +375,12 @@ func setInitParamsDB(params *bizmodels.InitParams) {
 func setInitParamsFileStorage(
 	params *bizmodels.InitParams,
 ) error {
-	envFSP := os.Getenv("FILE_STORAGE_PATH")
+	// envFSP := os.Getenv("FILE_STORAGE_PATH")
 	envRestore := os.Getenv("RESTORE")
 
-	if envFSP != "" {
-		params.FileStoragePath = envFSP
-	}
+	// if envFSP != "" {
+	//	params.FileStoragePath = envFSP
+	//}
 
 	if envRestore != "" {
 		value, err := strconv.ParseBool(envRestore)

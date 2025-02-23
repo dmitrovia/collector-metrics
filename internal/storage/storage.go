@@ -19,7 +19,8 @@ type Repository interface {
 		gauge *bizmodels.Gauge) error
 	AddCounter(
 		ctx *context.Context,
-		counter *bizmodels.Counter) (*bizmodels.Counter, error)
+		counter *bizmodels.Counter,
+		isNew bool) (*bizmodels.Counter, error)
 	GetAllGauges(
 		ctx *context.Context) (map[string]bizmodels.Gauge, error)
 	GetAllCounters(

@@ -32,7 +32,7 @@ const defPORT string = "localhost:8080"
 
 const validAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
-const defKeyHashSha256 = "defaultKey"
+const defKeyHashSha256 = ""
 
 const defPollInterval int = 2
 

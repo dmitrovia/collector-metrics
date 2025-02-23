@@ -53,17 +53,12 @@ func (h *SetMJSONHandler) SetMJSONHandler(
 		return
 	}
 
-	isValid, status := isValidM(valm)
+	isValid := isValidM(valm, writer)
 	if !isValid {
-		writer.WriteHeader(status)
-
 		return
 	}
 
 	addMetricToMemStore(h, valm)
-
-	writer.WriteHeader(status)
-
 	dataMarshal := formResponeBody(valm)
 
 	metricMarshall, err := json.Marshal(dataMarshal)
@@ -73,6 +68,8 @@ func (h *SetMJSONHandler) SetMJSONHandler(
 
 		return
 	}
+
+	writer.WriteHeader(http.StatusOK)
 
 	_, err = writer.Write(metricMarshall)
 	if err != nil {
@@ -151,7 +148,7 @@ func addMetricToMemStore(
 		_ = handler.serv.AddGauge(vmet.mname, vmet.mvalueFloat)
 	} else if vmet.mtype == bizmodels.CounterName {
 		res, _ := handler.serv.AddCounter(
-			vmet.mname, vmet.mvalueInt)
+			vmet.mname, vmet.mvalueInt, false)
 
 		vmet.mvalueInt = res.Value
 	}
@@ -159,22 +156,27 @@ func addMetricToMemStore(
 
 // isValidM - for metric validation.
 func isValidM(metric *validMetric,
-) (bool, int) {
+	writer http.ResponseWriter,
+) bool {
 	var pattern string
 
 	pattern = "^[0-9a-zA-Z/ ]{1,40}$"
 	res, _ := validate.IsMatchesTemplate(metric.mname, pattern)
 
 	if !res {
-		return false, http.StatusNotFound
+		writer.WriteHeader(http.StatusNotFound)
+
+		return false
 	}
 
 	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
 
 	if !res {
-		return false, http.StatusBadRequest
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return false
 	}
 
-	return true, http.StatusOK
+	return res
 }

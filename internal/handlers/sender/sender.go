@@ -44,11 +44,9 @@ func (h *Sender) SenderHandler(
 ) {
 	writer.Header().Set("Content-Type", "application/json")
 
-	writer.WriteHeader(http.StatusOK)
-
 	err := getReqData(h, req)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->getReqJSONData: %w",
+		fmt.Println("SetMetricsJSONHandler->getReqData: %w",
 			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
@@ -57,7 +55,7 @@ func (h *Sender) SenderHandler(
 
 	err = writeResp(writer, h)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->formRespone: %w",
+		fmt.Println("SetMetricsJSONHandler->writeResp: %w",
 			err)
 		writer.WriteHeader(http.StatusBadRequest)
 
@@ -95,6 +93,8 @@ func writeResp(
 
 		writer.Header().Set("Hashsha256", string(tHash))
 	}
+
+	writer.WriteHeader(http.StatusOK)
 
 	_, err = writer.Write(marshal)
 	if err != nil {
@@ -194,7 +194,8 @@ func addValidMetric(res *apimodels.Metrics,
 				err)
 		}
 	} else if res.MType == bizmodels.CounterName {
-		_, err := handler.serv.AddCounter(res.ID, *res.Delta)
+		_, err := handler.serv.AddCounter(res.ID, *res.Delta,
+			false)
 		if err != nil {
 			return fmt.Errorf("addValidMetric->AddCounter: %w",
 				err)

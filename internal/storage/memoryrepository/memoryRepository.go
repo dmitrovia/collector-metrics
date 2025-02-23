@@ -37,7 +37,7 @@ func (m *MemoryRepository) AddMetrics(
 	}
 
 	for _, counter := range counters {
-		_, err := m.AddCounter(ctx, &counter)
+		_, err := m.AddCounter(ctx, &counter, false)
 		if err != nil {
 			return fmt.Errorf("AddMetrics->m.AddCounter: %w", err)
 		}
@@ -113,6 +113,7 @@ func (m *MemoryRepository) AddGauge(
 func (m *MemoryRepository) AddCounter(
 	_ *context.Context,
 	counter *bizmodels.Counter,
+	isNew bool,
 ) (*bizmodels.Counter, error) {
 	m.mutexC.Lock()
 	defer m.mutexC.Unlock()
@@ -120,7 +121,7 @@ func (m *MemoryRepository) AddCounter(
 
 	var temp *bizmodels.Counter
 
-	if ok {
+	if ok && !isNew {
 		temp = &bizmodels.Counter{}
 		temp.Name = val.Name
 		temp.Value = val.Value + counter.Value

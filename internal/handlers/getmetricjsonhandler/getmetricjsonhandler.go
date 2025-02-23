@@ -43,23 +43,20 @@ func (h *GetMetricJSONHandler) GetMetricJSONHandler(
 		return
 	}
 
-	isValid, status := isValidMetric(met)
+	isValid := isValidMetric(met)
 	if !isValid {
-		writer.WriteHeader(status)
+		writer.WriteHeader(http.StatusNotFound)
 
 		return
 	}
 
-	status, err = writeAns(writer, met, h)
+	err = writeAns(writer, met, h)
 	if err != nil {
-		fmt.Println("GetMetricJSONHandler->getAns: %w",
+		fmt.Println("GetMetricJSONHandler->writeAns: %w",
 			err)
-		writer.WriteHeader(status)
 
 		return
 	}
-
-	writer.WriteHeader(status)
 }
 
 // getReqDataJSON - receives metrics
@@ -92,23 +89,19 @@ func getReqDataJSON(req *http.Request,
 
 // isValidMetric - for metric validation.
 func isValidMetric(metric *apimodels.Metrics,
-) (bool, int) {
+) bool {
 	var pattern string
 	pattern = "^[0-9a-zA-Z/ ]{1,40}$"
 	res, _ := validate.IsMatchesTemplate(metric.ID, pattern)
 
 	if !res {
-		return false, http.StatusNotFound
+		return false
 	}
 
 	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.MType, pattern)
 
-	if !res {
-		return false, http.StatusBadRequest
-	}
-
-	return true, http.StatusOK
+	return res
 }
 
 // writeAns - writes the response
@@ -119,11 +112,13 @@ func writeAns(
 	writer http.ResponseWriter,
 	metric *apimodels.Metrics,
 	hand *GetMetricJSONHandler,
-) (int, error) {
+) error {
 	if metric.MType == bizmodels.CounterName {
 		val, err := getCounterValueToAnswer(metric.ID, hand)
 		if err != nil {
-			return http.StatusNotFound, err
+			writer.WriteHeader(http.StatusNotFound)
+
+			return err
 		}
 
 		metric.Delta = val
@@ -132,7 +127,9 @@ func writeAns(
 	if metric.MType == bizmodels.GaugeName {
 		val, err := getGaugeValueToAnswer(metric.ID, hand)
 		if err != nil {
-			return http.StatusNotFound, err
+			writer.WriteHeader(http.StatusNotFound)
+
+			return err
 		}
 
 		metric.Value = val
@@ -140,16 +137,21 @@ func writeAns(
 
 	metricMarshall, err := json.Marshal(metric)
 	if err != nil {
-		return http.StatusBadRequest, err
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return err
 	}
+
+	writer.WriteHeader(http.StatusOK)
 
 	_, err = writer.Write(metricMarshall)
 	if err != nil {
-		return http.StatusBadRequest,
-			fmt.Errorf("writeAns->Write %w", err)
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return fmt.Errorf("writeAns->Write %w", err)
 	}
 
-	return http.StatusOK, nil
+	return nil
 }
 
 // getGaugeValueToAnswer - get gauge metric from service.

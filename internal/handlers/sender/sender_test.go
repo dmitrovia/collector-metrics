@@ -38,7 +38,7 @@ const url string = "http://localhost:8080"
 
 const stok int = http.StatusOK
 
-// const stbr int = http.StatusBadRequest
+const bdreq int = http.StatusBadRequest
 
 const defSavePathFile string = "/internal/temp/metrics.json"
 
@@ -120,11 +120,11 @@ func getTestData() *[]testData {
 		},
 		{
 			counters: tempC2, gauges: tempG2,
-			tn: "3", expcod: stok, exbody: "", key: "",
+			tn: "3", expcod: bdreq, exbody: "", key: "",
 		},
 		{
 			counters: tempC2, gauges: tempG2,
-			tn: "3", expcod: stok, exbody: "", key: "", hash: "123",
+			tn: "3", expcod: bdreq, exbody: "", key: "", hash: "123",
 		},
 	}
 }

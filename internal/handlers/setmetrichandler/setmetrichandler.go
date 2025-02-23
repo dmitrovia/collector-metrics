@@ -47,15 +47,14 @@ func (h *SetMetricHandler) SetMetricHandler(
 
 	getReqData(req, valm)
 
-	isValid, status := isValidMetric(req, valm)
+	isValid := isValidMetric(req, valm, writer)
 	if !isValid {
-		writer.WriteHeader(status)
-
 		return
 	}
 
 	addMetricToMemStore(h, valm)
-	writer.WriteHeader(status)
+
+	writer.WriteHeader(http.StatusOK)
 
 	Body = "OK\n"
 	fmt.Fprintf(writer, "%s", Body)
@@ -78,12 +77,12 @@ func addMetricToMemStore(
 		err := handler.serv.AddGauge(metr.mname, metr.mvalueFloat)
 		if err != nil {
 			fmt.Println(
-				"addMetricToMemStore->addMetricToMemStore: %w",
+				"addMetricToMemStore->AddGauge: %w",
 				err)
 		}
 	} else if metr.mtype == bizmodels.CounterName {
 		res, err := handler.serv.AddCounter(
-			metr.mname, metr.mvalueInt)
+			metr.mname, metr.mvalueInt, false)
 		if err != nil {
 			fmt.Println("addMetricToMemStore->AddCounter: %w",
 				err)
@@ -97,9 +96,12 @@ func addMetricToMemStore(
 func isValidMetric(
 	r *http.Request,
 	metric *validMetric,
-) (bool, int) {
+	writer http.ResponseWriter,
+) bool {
 	if !validate.IsMethodPost(r.Method) {
-		return false, http.StatusMethodNotAllowed
+		writer.WriteHeader(http.StatusMethodNotAllowed)
+
+		return false
 	}
 
 	var pattern string
@@ -108,21 +110,27 @@ func isValidMetric(
 	res, _ := validate.IsMatchesTemplate(metric.mname, pattern)
 
 	if !res {
-		return false, http.StatusNotFound
+		writer.WriteHeader(http.StatusNotFound)
+
+		return false
 	}
 
 	pattern = "^" + bizmodels.MetricsPattern + "$"
 	res, _ = validate.IsMatchesTemplate(metric.mtype, pattern)
 
 	if !res {
-		return false, http.StatusBadRequest
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return false
 	}
 
 	if !isValidMeticValue(metric) {
-		return false, http.StatusBadRequest
+		writer.WriteHeader(http.StatusBadRequest)
+
+		return false
 	}
 
-	return true, http.StatusOK
+	return true
 }
 
 // isValidGaugeValue - for metric validation
