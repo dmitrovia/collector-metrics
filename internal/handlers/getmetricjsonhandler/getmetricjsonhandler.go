@@ -135,12 +135,15 @@ func writeAns(
 		metric.Value = val
 	}
 
-	if metric.MType == bizmodels.CounterName {
-		fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
-		fmt.Println(metric)
+	fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
+	fmt.Println(metric)
+	if metric.Delta != nil {
 		fmt.Println(*metric.Delta)
-		fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
 	}
+	if metric.Value != nil {
+		fmt.Println(*metric.Value)
+	}
+	fmt.Println("GETTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
 
 	metricMarshall, err := json.Marshal(metric)
 	if err != nil {

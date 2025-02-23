@@ -68,7 +68,7 @@ const defPostgreConnURL = "postgres://postgres:postgres" +
 	"@postgres" +
 	":5432/praktikum?sslmode=disable"
 
-const defKeyHashSha256 = "defaultKey"
+const defKeyHashSha256 = ""
 
 //go:embed db/migrations/*.sql
 var MigrationsFS embed.FS
