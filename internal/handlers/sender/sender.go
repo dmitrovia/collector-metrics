@@ -44,8 +44,6 @@ func (h *Sender) SenderHandler(
 ) {
 	writer.Header().Set("Content-Type", "application/json")
 
-	writer.WriteHeader(http.StatusOK)
-
 	err := getReqData(h, req)
 	if err != nil {
 		fmt.Println("SetMetricsJSONHandler->getReqData: %w",
@@ -95,6 +93,8 @@ func writeResp(
 
 		writer.Header().Set("Hashsha256", string(tHash))
 	}
+
+	writer.WriteHeader(http.StatusOK)
 
 	_, err = writer.Write(marshal)
 	if err != nil {
