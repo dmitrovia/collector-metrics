@@ -49,5 +49,5 @@ func ExampleGetMetricJSONHandler() {
 	fmt.Println(newr.Body)
 
 	// Output:
-	// {"id":"gauge45","type":"gauge","delta":0,"value":24.5}
+	// {"delta":0,"value":24.5,"id":"gauge45","type":"gauge"}
 }
