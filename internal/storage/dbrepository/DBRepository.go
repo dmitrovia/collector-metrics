@@ -14,10 +14,10 @@ import (
 
 // DBepository - describing the storage.
 type DBepository struct {
-	databaseDSN string
 	conn        *pgxpool.Pool
 	mutexG      *sync.Mutex
 	mutexC      *sync.Mutex
+	databaseDSN string
 }
 
 // Initiate - initialization of initial parameters.
@@ -359,7 +359,7 @@ func (m *DBepository) AddCounter(
 	}
 
 	if rows.RowsAffected() == 0 {
-		_, err := m.conn.Exec(
+		_, err = m.conn.Exec(
 			*ctx,
 			"INSERT INTO counters (name, value) VALUES ($1, $2)",
 			counter.Name,

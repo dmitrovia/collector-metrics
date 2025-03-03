@@ -396,8 +396,6 @@ func setInitParamsFileStorage(
 
 // setInitParams - gets environment variables.
 func setInitParams(params *bizmodels.InitParams) error {
-	var err error
-
 	envRA := os.Getenv("ADDRESS")
 	envSI := os.Getenv("STORE_INTERVAL")
 	key := os.Getenv("KEY")
