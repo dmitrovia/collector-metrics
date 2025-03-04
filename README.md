@@ -30,3 +30,15 @@ git fetch template && git checkout template/main .github
 При мёрже ветки с инкрементом в основную ветку `main` будут запускаться все автотесты.
 
 Подробнее про локальный и автоматический запуск читайте в [README автотестов](https://github.com/Yandex-Practicum/go-autotests).
+
+
+## Запуск мультичекера
+
+включает проверку:
+- стандартных статических анализаторов пакета golang.org/x/tools/go/analysis/passes;
+- всех анализаторов класса SA пакета staticcheck.io;
+- S анализатора пакета staticcheck.io;
+- два дополнительных линтера https://github.com/sivchari/containedctx и https://github.com/breml/bidichk
+анализатор - запрещающий использовать прямой вызов os.Exit в функции main пакета main
+
+запуск: ./staticlint -all ../.././...

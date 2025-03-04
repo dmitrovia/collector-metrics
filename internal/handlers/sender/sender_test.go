@@ -53,12 +53,12 @@ var MigrationsFS embed.FS
 
 type testData struct {
 	tn       string
-	expcod   int
 	exbody   string
-	counters []bizmodels.Counter
-	gauges   []bizmodels.Gauge
 	key      string
 	hash     string
+	counters []bizmodels.Counter
+	gauges   []bizmodels.Gauge
+	expcod   int
 }
 
 type viewData struct {

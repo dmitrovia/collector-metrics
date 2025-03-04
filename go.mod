@@ -1,13 +1,19 @@
 module github.com/dmitrovia/collector-metrics
 
-go 1.22.0
+go 1.23
+
+toolchain go1.23.6
 
 require (
+	github.com/breml/bidichk v0.3.2
 	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/gorilla/mux v1.8.1
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/shirou/gopsutil/v4 v4.24.11
+	github.com/sivchari/containedctx v1.0.3
 	github.com/stretchr/testify v1.9.0
+	golang.org/x/tools v0.30.0
+	honnef.co/go/tools v0.6.0
 )
 
 require (
@@ -27,8 +33,10 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
+	golang.org/x/mod v0.23.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 )
 

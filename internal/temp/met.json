@@ -1,5 +1,5 @@
-{"id":"counter6611","type":"counter","delta":55}
-{"id":"gauge45","type":"gauge","value":24.5}
+{"delta":55,"id":"counter6611","type":"counter"}
+{"value":24.5,"id":"gauge45","type":"gauge"}
 me4w","type":"counter","delta":-7999999992}
 {"id":"GsPwj","type":"counter","delta":0}
 {"id":"Name7w","type":"counter","delta":-8}
