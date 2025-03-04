@@ -390,7 +390,7 @@ jobs:
       - name: Gather dependencies
         run: go mod download
       - name: Run coverage
-        run: go test -race ./... -coverprofile=coverage.txt *.go -covermode=atomic
+        run: go test -race ./... -coverprofile=coverage.out *.go -covermode=atomic
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
