@@ -83,7 +83,7 @@ func writeResp(
 			err)
 	}
 
-	if handler.params.Key != "" {
+	/*if handler.params.Key != "" {
 		tHash, err1 := hash.MakeHashSHA256(&marshal,
 			handler.params.Key)
 		if err1 != nil {
@@ -92,7 +92,7 @@ func writeResp(
 		}
 
 		writer.Header().Set("Hashsha256", string(tHash))
-	}
+	}*/
 
 	writer.WriteHeader(http.StatusOK)
 

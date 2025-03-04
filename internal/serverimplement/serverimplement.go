@@ -65,7 +65,7 @@ const migrationsDir = "db/migrations"
 const zapLogLevel = "info"
 
 const defPostgreConnURL = "postgres://postgres:postgres" +
-	"@postgres" +
+	"@localhost" +
 	":5432/praktikum?sslmode=disable"
 
 const defKeyHashSha256 = ""
@@ -228,21 +228,22 @@ func initiateFlags(par *bizmodels.InitParams) error {
 
 	Root := filepath.Join(filepath.Dir(path), "../..")
 	temp := Root + defSavePathFile
-	flag.StringVar(&par.FileStoragePath,
-		"f", temp, "Directory for saving metrics.")
 
-	flag.StringVar(&par.Key,
-		"k", defKeyHashSha256,
-		"key for signatures for the SHA256 algorithm.")
-	flag.StringVar(&par.DatabaseDSN,
-		"d", defPostgreConnURL, "database connection address.")
-	flag.BoolVar(&par.Restore,
-		"r", true, "Loading metrics at server startup.")
 	flag.StringVar(&par.PORT,
 		"a", defPORT, "Port to listen on.")
+	flag.StringVar(&par.DatabaseDSN,
+		"d", defPostgreConnURL, "database connection address.")
+	flag.StringVar(&par.FileStoragePath,
+		"f", temp, "Directory for saving metrics.")
 	flag.IntVar(&par.StoreInterval,
 		"i", defSavingIntervalDisk, "Metrics saving interval.")
+	flag.StringVar(&par.Key, "k", defKeyHashSha256,
+		"key for signatures for the SHA256 algorithm.")
+	flag.BoolVar(&par.Restore,
+		"r", true, "Loading metrics at server startup.")
 	flag.Parse()
+
+	fmt.Println(par)
 
 	return nil
 }
