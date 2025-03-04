@@ -397,8 +397,8 @@ jobs:
           go build -o staticlint *.go
           ./staticlint -all ../.././...
 
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: 1.23
       - name: Run coverage
@@ -407,14 +407,14 @@ jobs:
           go test -v -coverprofile coverage.out ./...
           go tool cover -html coverage.out -o coverage.html
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.out
           flags: unittests
           name: codecov-umbrella
       - name: Archive code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: coverage.html
