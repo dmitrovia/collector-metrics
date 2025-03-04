@@ -5,6 +5,7 @@ package mainosexit
 import (
 	"go/ast"
 
+	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"golang.org/x/tools/go/analysis"
 )
 
@@ -19,15 +20,23 @@ func NewCheckAnalayser() *analysis.Analyzer {
 
 //nolint:nilnil
 func run(pass *analysis.Pass) (interface{}, error) {
-	pname, fname := "main", "main"
+	pname, funname := "main", "main"
 	if pass.Pkg.Name() != pname {
+		return nil, nil
+	}
+
+	pattern := "^.*\\.test$"
+	res, _ := validate.IsMatchesTemplate(
+		pass.Pkg.Path(), pattern)
+
+	if res {
 		return nil, nil
 	}
 
 	for _, file := range pass.Files {
 		for _, decl := range file.Decls {
 			fun, ok := decl.(*ast.FuncDecl)
-			if !ok || fun.Name.Name != fname {
+			if !ok || fun.Name.Name != funname {
 				continue
 			}
 
