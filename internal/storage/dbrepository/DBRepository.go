@@ -307,6 +307,7 @@ func (m *DBepository) AddGauge(
 	m.mutexG.Lock()
 	defer m.mutexG.Unlock()
 
+	// comment - a transaction is needed here
 	rows, err := m.conn.Exec(
 		*ctx,
 		"UPDATE gauges SET value = $1 where name=$2",
