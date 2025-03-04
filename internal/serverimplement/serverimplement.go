@@ -243,8 +243,6 @@ func initiateFlags(par *bizmodels.InitParams) error {
 		"r", true, "Loading metrics at server startup.")
 	flag.Parse()
 
-	fmt.Println(par)
-
 	return nil
 }
 

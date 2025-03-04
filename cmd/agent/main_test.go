@@ -1,16 +1,22 @@
 package main_test
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"os/exec"
-	"strings"
+	"net/http"
+	"os"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/dmitrovia/collector-metrics/internal/agentimplement"
+	"github.com/dmitrovia/collector-metrics/internal/logger"
+	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 )
 
-var errAgent = errors.New("proc return errors")
+//nolint:gochecknoglobals
+var buildVersion,
+	buildDate,
+	buildCommit string = "N/A", "N/A", "N/A"
 
 type testData struct {
 	cDefKeyHashSha256  string // k
@@ -42,7 +48,77 @@ func TestMain(t *testing.T) {
 		t.Run("server", func(tobj *testing.T) {
 			tobj.Parallel()
 
-			ctx, cancel := context.WithTimeout(
+			addFlags(&test)
+			mainBody()
+		})
+	}
+}
+
+func addFlags(test *testData) {
+	os.Args = append(os.Args, "-k="+test.cDefKeyHashSha256)
+	os.Args = append(os.Args, "-a="+test.cPORT)
+	os.Args = append(os.Args, "-p="+test.cPollInterval)
+	os.Args = append(os.Args, "-l="+test.cDefCountJobs)
+	os.Args = append(os.Args, "-r="+test.cDefReportInterval)
+}
+
+func mainBody() {
+	waitGroup := &sync.WaitGroup{}
+	monitor := &bizmodels.Monitor{}
+	client := &http.Client{}
+	params := &bizmodels.InitParamsAgent{}
+
+	zlog, err := agentimplement.Initialization(params,
+		monitor)
+	if err != nil {
+		fmt.Println("main->initialization: %w", err)
+
+		return
+	}
+
+	logger.DoInfoLog("Build version: "+buildVersion, zlog)
+	logger.DoInfoLog("Build date: "+buildDate, zlog)
+	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
+
+	waitGroup.Add(1)
+
+	jobs := make(chan bizmodels.JobData, params.RateLimit)
+
+	defer close(jobs)
+
+	go agentimplement.Collect(
+		params,
+		waitGroup,
+		monitor,
+		jobs)
+
+	waitGroup.Add(1)
+
+	go agentimplement.Send(
+		params,
+		waitGroup,
+		client,
+		monitor,
+		jobs)
+
+	go exit(waitGroup)
+
+	waitGroup.Wait()
+}
+
+func exit(
+	wgr *sync.WaitGroup,
+) {
+	<-time.After(time.Duration(30) * time.Second)
+
+	wgr.Done()
+	wgr.Done()
+}
+
+/*
+var errAgent = errors.New("proc return errors")
+
+	ctx, cancel := context.WithTimeout(
 				context.Background(), 60*time.Second)
 			defer cancel()
 
@@ -70,7 +146,4 @@ func TestMain(t *testing.T) {
 				t.Errorf("%v", errAgent)
 			}
 
-			fmt.Println(sout)
-		})
-	}
-}
+			fmt.Println(sout)*/

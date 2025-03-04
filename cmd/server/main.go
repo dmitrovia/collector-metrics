@@ -43,6 +43,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(
 		context.Background(), params.WaitSecRespDB)
+	defer cancel()
 
 	conn, dataService, err = si.InitStorage(ctx, params)
 	if err != nil {
@@ -54,8 +55,6 @@ func main() {
 	if conn != nil {
 		defer conn.Close()
 	}
-
-	defer cancel()
 
 	err = si.InitiateServer(params, dataService, server, zlog)
 	if err != nil {
