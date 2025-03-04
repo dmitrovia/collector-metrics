@@ -27,7 +27,7 @@ func getTestData() *[]testData {
 			sFileStoragePath:  "../../internal/temp/metrics.json",
 			sDefKeyHashSha256: "defkey",
 			sDatabaseDSN: "postgres://postgres:postgres" +
-				"@localhost" +
+				"@postgres" +
 				":5432/praktikum?sslmode=disable",
 			sRestore:               "false",
 			sPORT:                  "localhost:8090",
