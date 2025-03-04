@@ -405,8 +405,9 @@ jobs:
         run: |
           cd cmd/server
           go build -o server *.go
-          cd cmd/agent
+          cd ../agent
           go build -o agent *.go
+          cd ../../
           go env -w CGO_ENABLED=0
           go test -v -coverprofile coverage.out ./...
           go tool cover -html coverage.out -o coverage.html
