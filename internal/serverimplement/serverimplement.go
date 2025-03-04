@@ -261,7 +261,7 @@ func InitiateServer(
 	mser *service.DS,
 	server *http.Server,
 	zapLogger *zap.Logger,
-) {
+) error {
 	mux := mux.NewRouter()
 	AttachProfiler(mux)
 
@@ -283,6 +283,15 @@ func InitiateServer(
 			fmt.Println("Error reading metrics from file: %w", err)
 		}
 	}
+
+	err := UseMigrations(par)
+	if err != nil {
+		fmt.Println("InitiateServer->UseMigrations: %w", err)
+
+		return err
+	}
+
+	return nil
 }
 
 // initGetMethods - initializes get handlers.

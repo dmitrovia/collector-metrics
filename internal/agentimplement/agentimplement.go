@@ -22,11 +22,15 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
+	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
+	"go.uber.org/zap"
 )
+
+const zapLogLevel = "info"
 
 const defPORT string = "localhost:8080"
 
@@ -344,7 +348,7 @@ func getDataSend(gauges *[]bizmodels.Gauge,
 // data for the agent to operate.
 func Initialization(params *bizmodels.InitParamsAgent,
 	mon *bizmodels.Monitor,
-) error {
+) (*zap.Logger, error) {
 	var err error
 
 	params.URL = "http://"
@@ -357,24 +361,31 @@ func Initialization(params *bizmodels.InitParamsAgent,
 
 	err = parseFlags(params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = getIntervalsEnv(params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = getENV(params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	params.URL += params.PORT
 
 	mon.Init()
 
-	return err
+	zlog, err := logger.Initialize(zapLogLevel)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Initialization->logger.Initialize %w",
+			err)
+	}
+
+	return zlog, nil
 }
 
 // getIntervalsEnv - gets environment variables.
