@@ -20,6 +20,7 @@ on:
       - iter15
       - iter18
       - iter19
+      - iter20
   pull_request:
     branches:
       - main
@@ -40,6 +41,7 @@ on:
       - iter15
       - iter18
       - iter19
+      - iter20
 
 permissions:
   contents: read
