@@ -397,22 +397,16 @@ jobs:
           go build -o staticlint *.go
           ./staticlint -all ../.././...
         
-      - name: Build server binary
-        run: |
-          cd cmd/server
-          go build -buildvcs=false -o server
-
-      - name: Build agent binary
-        run: |
-          cd cmd/agent
-          go build -buildvcs=false  -o agent
-
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: 1.23
       - name: Run coverage
         run: |
+          cd cmd/server
+          go build -o server *.go
+          cd cmd/agent
+          go build -o agent *.go
           go env -w CGO_ENABLED=0
           go test -v -coverprofile coverage.out ./...
           go tool cover -html coverage.out -o coverage.html
