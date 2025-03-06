@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -60,7 +61,7 @@ var errParseFlags = errors.New("addr is not valid")
 
 var errResponse = errors.New("error response")
 
-const defCryptoKeyPath string = "../../internal/" +
+const defCryptoKeyPath string = "/internal/" +
 	"asymcrypto/keys/public.pem"
 
 func worker(jobs <-chan bizmodels.JobData) {
@@ -440,7 +441,14 @@ func getENV(params *bizmodels.InitParamsAgent) error {
 	cryptoKey := os.Getenv("CRYPTO_KEY_AGENT")
 
 	if cryptoKey != "" {
-		params.CryptoPublicKeyPath = cryptoKey
+		_, path, _, ok := runtime.Caller(0)
+
+		if ok {
+			Root := filepath.Join(filepath.Dir(path), "../..")
+			params.CryptoPublicKeyPath = Root + cryptoKey
+		} else {
+			params.CryptoPublicKeyPath = cryptoKey
+		}
 	}
 
 	if key != "" {
@@ -495,8 +503,18 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	flag.IntVar(&params.ReportInterval,
 		"r", defReportInterval,
 		"Frequency of polling metrics from the runtime package.")
+
+	_, path, _, ok := runtime.Caller(0)
+
+	defPath := defCryptoKeyPath
+
+	if ok {
+		Root := filepath.Join(filepath.Dir(path), "../..")
+		defPath = Root + defCryptoKeyPath
+	}
+
 	flag.StringVar(&params.CryptoPublicKeyPath,
-		"crypto-key", defCryptoKeyPath,
+		"crypto-key", defPath,
 		"asymmetric encryption public key.")
 	flag.Parse()
 

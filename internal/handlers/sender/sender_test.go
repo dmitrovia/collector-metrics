@@ -21,6 +21,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/sender"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
+	"github.com/dmitrovia/collector-metrics/internal/middleware/decryptmid"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/migrator"
@@ -171,6 +172,8 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../..")
+	params.CryptoPrivateKeyPath = Root +
+		"/internal/asymcrypto/keys/private.pem"
 	params.FileStoragePath = Root + defSavePathFile
 	params.Key = "defaultKey"
 	params.Restore = true
@@ -180,6 +183,7 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	return nil
 }
 
+//nolint:funlen
 func initiate(
 	mux *mux.Router,
 	params *bizmodels.InitParams,
@@ -231,6 +235,7 @@ func initiate(
 		"/updates/",
 		hJSONSets.SenderHandler)
 	setMsJSONMux.Use(
+		decryptmid.DecryptMiddleware(*params),
 		gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 
