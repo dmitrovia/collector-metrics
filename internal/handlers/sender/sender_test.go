@@ -12,11 +12,13 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
 
+	"github.com/dmitrovia/collector-metrics/internal/functions/asymcrypto"
 	"github.com/dmitrovia/collector-metrics/internal/functions/compress"
 	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/sender"
@@ -167,11 +169,11 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
-		return fmt.Errorf("setInitParams->runtime.Caller( %w",
+		return fmt.Errorf("setHandlerParams->runtime.Caller( %w",
 			errPath)
 	}
 
-	Root := filepath.Join(filepath.Dir(path), "../..")
+	Root := filepath.Join(filepath.Dir(path), "../../../")
 	params.CryptoPrivateKeyPath = Root +
 		"/internal/asymcrypto/keys/private.pem"
 	params.FileStoragePath = Root + defSavePathFile
@@ -360,6 +362,29 @@ func initReqData(params *bizmodels.InitParams,
 			err)
 	}
 
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return nil, fmt.Errorf("initReqData->Caller: %w",
+			err)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../../../")
+	pathPubicKey := Root +
+		"/internal/asymcrypto/keys/public.pem"
+
+	key, err := os.ReadFile(pathPubicKey)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"initReqData->ReadFile: %w", err)
+	}
+
+	encr, err := asymcrypto.Encrypt(&metricCompress, &key)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"initReqData->Encrypt: %w", err)
+	}
+
 	if params.Key != "" {
 		tHash, err := hash.MakeHashSHA256(&metricMarshall,
 			testD.key)
@@ -373,7 +398,7 @@ func initReqData(params *bizmodels.InitParams,
 		testD.hash = encodedStr
 	}
 
-	return bytes.NewReader(metricCompress), nil
+	return bytes.NewReader(*encr), nil
 }
 
 func getDataSend(testD *testData,
