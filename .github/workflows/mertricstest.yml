@@ -61,6 +61,9 @@ jobs:
         run: |
           cd cmd/server
           go build -buildvcs=false -o server
+          cd  internal/asymcrypto/
+          go run generate.go
+          cd ../..
 
       - name: "Code increment #1"
         if: |

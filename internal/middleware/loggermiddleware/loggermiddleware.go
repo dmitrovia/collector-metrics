@@ -71,7 +71,7 @@ func RequestLogger(
 
 			duration := time.Since(start)
 
-			zapLogger.Debug("got incoming HTTP request",
+			zapLogger.Info("got incoming HTTP request",
 				zap.String("method", req.Method),
 				zap.String("path", req.URL.Path),
 				zap.Duration("duration", duration),

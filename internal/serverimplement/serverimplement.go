@@ -30,6 +30,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
+	"github.com/dmitrovia/collector-metrics/internal/middleware/decryptmid"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/migrator"
@@ -51,6 +52,9 @@ const iTimeout = 60
 const defPORT string = "localhost:8080"
 
 const defSavePathFile string = "/internal/temp/metrics.json"
+
+const defCryptoKeyPath string = "../../internal/" +
+	"asymcrypto/keys/private.pem"
 
 const defSavingIntervalDisk = 300
 
@@ -239,6 +243,9 @@ func initiateFlags(par *bizmodels.InitParams) error {
 		"i", defSavingIntervalDisk, "Metrics saving interval.")
 	flag.StringVar(&par.Key, "k", defKeyHashSha256,
 		"key for signatures for the SHA256 algorithm.")
+	flag.StringVar(&par.CryptoPrivateKeyPath,
+		"crypto-key", defCryptoKeyPath,
+		"asymmetric encryption private key.")
 	flag.BoolVar(&par.Restore,
 		"r", true, "Loading metrics at server startup.")
 	flag.Parse()
@@ -364,6 +371,7 @@ func initPostMethods(
 		"/updates/",
 		hJSONSets.SenderHandler)
 	setMsJSONMux.Use(
+		decryptmid.DecryptMiddleware(*par),
 		gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 }
@@ -407,6 +415,11 @@ func setInitParams(params *bizmodels.InitParams) error {
 	envRA := os.Getenv("ADDRESS")
 	envSI := os.Getenv("STORE_INTERVAL")
 	key := os.Getenv("KEY")
+	cryptoKey := os.Getenv("CRYPTO_KEY_SERVER")
+
+	if cryptoKey != "" {
+		params.CryptoPrivateKeyPath = cryptoKey
+	}
 
 	if key != "" {
 		params.Key = key

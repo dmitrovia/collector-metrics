@@ -106,28 +106,30 @@ func (m *Monitor) Init() {
 
 // InitParams - store server configuration.
 type InitParams struct {
-	PORT                string
-	ValidateAddrPattern string
-	FileStoragePath     string
-	DatabaseDSN         string
-	Key                 string
-	StoreInterval       int
-	Restore             bool
-	WaitSecRespDB       time.Duration
+	PORT                 string
+	ValidateAddrPattern  string
+	FileStoragePath      string
+	DatabaseDSN          string
+	Key                  string
+	CryptoPrivateKeyPath string
+	StoreInterval        int
+	Restore              bool
+	WaitSecRespDB        time.Duration
 }
 
 // InitParamsAgent - store agent configuration.
 type InitParamsAgent struct {
-	URL              string
-	PORT             string
-	Key              string
-	ReportInterval   int
-	PollInterval     int
-	ReqInternal      int
-	StartReqInterval int
-	CountReqRetries  int
-	RateLimit        int
-	RepeatedReq      bool
+	URL                 string
+	PORT                string
+	Key                 string
+	CryptoPublicKeyPath string
+	ReportInterval      int
+	PollInterval        int
+	ReqInternal         int
+	StartReqInterval    int
+	CountReqRetries     int
+	RateLimit           int
+	RepeatedReq         bool
 }
 
 // EndpointSettings - store endpoint configuration.

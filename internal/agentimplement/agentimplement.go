@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/dmitrovia/collector-metrics/internal/endpoints/sendmetricsjsonendpoint"
+	"github.com/dmitrovia/collector-metrics/internal/functions/asymcrypto"
 	"github.com/dmitrovia/collector-metrics/internal/functions/compress"
 	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
@@ -58,6 +59,9 @@ var errGetENV2 = errors.New(
 var errParseFlags = errors.New("addr is not valid")
 
 var errResponse = errors.New("error response")
+
+const defCryptoKeyPath string = "../../internal/" +
+	"asymcrypto/keys/public.pem"
 
 func worker(jobs <-chan bizmodels.JobData) {
 	for event := range jobs {
@@ -279,6 +283,18 @@ func initReqData(gauges *[]bizmodels.Gauge,
 			err)
 	}
 
+	key, err := os.ReadFile(params.CryptoPublicKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"initReqData->ReadFile: %w", err)
+	}
+
+	encr, err := asymcrypto.Encrypt(&metricCompress, &key)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"initReqData->Encrypt: %w", err)
+	}
+
 	if params.Key != "" {
 		tHash, err := hash.MakeHashSHA256(&metricMarshall,
 			params.Key)
@@ -292,7 +308,7 @@ func initReqData(gauges *[]bizmodels.Gauge,
 		settings.Hash = encodedStr
 	}
 
-	return bytes.NewReader(metricCompress), nil
+	return bytes.NewReader(*encr), nil
 }
 
 // parseResponse - parses the response from the server.
@@ -421,6 +437,11 @@ func getENV(params *bizmodels.InitParamsAgent) error {
 	key := os.Getenv("KEY")
 	envRunAddr := os.Getenv("ADDRESS")
 	envRateLimit := os.Getenv("RATE_LIMIT")
+	cryptoKey := os.Getenv("CRYPTO_KEY_AGENT")
+
+	if cryptoKey != "" {
+		params.CryptoPublicKeyPath = cryptoKey
+	}
 
 	if key != "" {
 		params.Key = key
@@ -474,6 +495,9 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	flag.IntVar(&params.ReportInterval,
 		"r", defReportInterval,
 		"Frequency of polling metrics from the runtime package.")
+	flag.StringVar(&params.CryptoPublicKeyPath,
+		"crypto-key", defCryptoKeyPath,
+		"asymmetric encryption public key.")
 	flag.Parse()
 
 	res, err := validate.IsMatchesTemplate(params.PORT,
