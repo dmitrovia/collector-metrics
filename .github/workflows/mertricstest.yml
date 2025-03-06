@@ -59,11 +59,11 @@ jobs:
 
       - name: Build server binary
         run: |
-          cd cmd/server
-          go build -buildvcs=false -o server
-          cd  internal/asymcrypto/
+          cd internal/asymcrypto/
           go run generate.go
           cd ../..
+          cd cmd/server
+          go build -buildvcs=false -o server
 
       - name: "Code increment #1"
         if: |
