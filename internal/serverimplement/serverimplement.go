@@ -53,7 +53,7 @@ const defPORT string = "localhost:8080"
 
 const defSavePathFile string = "/internal/temp/metrics.json"
 
-const defCryptoKeyPath string = "../../internal/" +
+const defCryptoKeyPath string = "/internal/" +
 	"asymcrypto/keys/private.pem"
 
 const defSavingIntervalDisk = 300
@@ -244,8 +244,8 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	flag.StringVar(&par.Key, "k", defKeyHashSha256,
 		"key for signatures for the SHA256 algorithm.")
 	flag.StringVar(&par.CryptoPrivateKeyPath,
-		"crypto-key", defCryptoKeyPath,
-		"asymmetric encryption private key.")
+		"crypto-key", Root+defCryptoKeyPath,
+		"asymmetric encryption pivate key.")
 	flag.BoolVar(&par.Restore,
 		"r", true, "Loading metrics at server startup.")
 	flag.Parse()
@@ -418,7 +418,14 @@ func setInitParams(params *bizmodels.InitParams) error {
 	cryptoKey := os.Getenv("CRYPTO_KEY_SERVER")
 
 	if cryptoKey != "" {
-		params.CryptoPrivateKeyPath = cryptoKey
+		_, path, _, ok := runtime.Caller(0)
+
+		if ok {
+			Root := filepath.Join(filepath.Dir(path), "../..")
+			params.CryptoPrivateKeyPath = Root + cryptoKey
+		} else {
+			params.CryptoPrivateKeyPath = cryptoKey
+		}
 	}
 
 	if key != "" {
