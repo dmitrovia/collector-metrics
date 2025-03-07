@@ -83,6 +83,7 @@ func mainBody() {
 
 	jobs := make(chan bizmodels.JobData, params.RateLimit)
 	channelCancel := make(chan os.Signal, 1)
+	wgEndWork := &sync.WaitGroup{}
 
 	defer close(jobs)
 
@@ -92,6 +93,7 @@ func mainBody() {
 		&channelCancel,
 		params,
 		waitGroup,
+		wgEndWork,
 		monitor,
 		jobs)
 
@@ -101,6 +103,7 @@ func mainBody() {
 		&channelCancel,
 		params,
 		waitGroup,
+		wgEndWork,
 		client,
 		monitor,
 		jobs)
@@ -115,7 +118,6 @@ func exit(
 ) {
 	<-time.After(time.Duration(30) * time.Second)
 
-	*chc <- syscall.SIGTERM
 	*chc <- syscall.SIGTERM
 }
 

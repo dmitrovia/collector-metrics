@@ -1,0 +1,7 @@
+{
+    "address": "localhost:8080",
+    "reportInterval": 10,
+    "pollInterval": 2,
+    "cryptoKey": "/internal/asymcrypto/keys/public.pem",
+    "keySha" : ""
+} 
