@@ -26,3 +26,6 @@ vendor/
 
 # docker
 docker/docker-compose.yml
+
+# pem
+*.pem

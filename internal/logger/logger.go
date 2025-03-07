@@ -27,3 +27,10 @@ func Initialize(level string) (*zap.Logger, error) {
 
 	return zl, nil
 }
+
+func DoInfoLog(
+	msg string,
+	logger *zap.Logger,
+) {
+	logger.Info(msg)
+}

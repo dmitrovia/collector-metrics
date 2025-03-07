@@ -45,6 +45,7 @@ func (h *DefaultHandler) DefaultHandler(
 		return
 	}
 
+	// comment - need to add context
 	gauges, err := h.serv.GetAllGauges()
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)

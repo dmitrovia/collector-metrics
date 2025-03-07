@@ -6,14 +6,22 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"sync"
 
+	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
 	si "github.com/dmitrovia/collector-metrics/internal/serverimplement"
 	"github.com/dmitrovia/collector-metrics/internal/service"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+//nolint:gochecknoglobals
+var buildVersion,
+	buildDate,
+	buildCommit string = "N/A", "N/A", "N/A"
+
+//nolint:funlen
 func main() {
 	var (
 		dataService *service.DS
@@ -24,15 +32,20 @@ func main() {
 	params := &bizmodels.InitParams{}
 	waitGroup := &sync.WaitGroup{}
 
-	zapLogger, err := si.Initiate(params)
+	zlog, err := si.Initiate(params)
 	if err != nil {
 		fmt.Println("main->initiate: %w", err)
 
 		return
 	}
 
+	logger.DoInfoLog("Build version: "+buildVersion, zlog)
+	logger.DoInfoLog("Build date: "+buildDate, zlog)
+	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
+
 	ctx, cancel := context.WithTimeout(
 		context.Background(), params.WaitSecRespDB)
+	defer cancel()
 
 	conn, dataService, err = si.InitStorage(ctx, params)
 	if err != nil {
@@ -45,22 +58,21 @@ func main() {
 		defer conn.Close()
 	}
 
-	defer cancel()
-
-	si.InitiateServer(params, dataService, server, zapLogger)
-
-	err = si.UseMigrations(params)
+	err = si.InitiateServer(params, dataService, server, zlog)
 	if err != nil {
-		fmt.Println("main->UseMigrations: %w", err)
+		fmt.Println("main->InitiateServer: %w", err)
 
 		return
 	}
 
-	go si.RunServer(server)
-
-	go si.SaveMetrics(dataService, params, waitGroup)
+	channelCancel := make(chan os.Signal, 1)
 
 	waitGroup.Add(1)
+
+	go si.SaveMetrics(&channelCancel,
+		dataService, params, waitGroup)
+	go si.RunServer(server)
+
 	waitGroup.Wait()
 
 	err = server.Shutdown(ctx)

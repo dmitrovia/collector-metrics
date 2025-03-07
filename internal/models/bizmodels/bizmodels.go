@@ -106,35 +106,39 @@ func (m *Monitor) Init() {
 
 // InitParams - store server configuration.
 type InitParams struct {
-	PORT                string
-	ValidateAddrPattern string
-	StoreInterval       int
-	FileStoragePath     string
-	Restore             bool
-	DatabaseDSN         string
-	WaitSecRespDB       time.Duration
-	Key                 string
+	ConfigPath           string
+	PORT                 string
+	ValidateAddrPattern  string
+	FileStoragePath      string
+	DatabaseDSN          string
+	Key                  string
+	CryptoPrivateKeyPath string
+	StoreInterval        int
+	Restore              bool
+	WaitSecRespDB        time.Duration
 }
 
 // InitParamsAgent - store agent configuration.
 type InitParamsAgent struct {
-	URL              string
-	PORT             string
-	ReportInterval   int
-	PollInterval     int
-	ReqInternal      int
-	StartReqInterval int
-	CountReqRetries  int
-	RepeatedReq      bool
-	Key              string
-	RateLimit        int
+	ConfigPath          string
+	URL                 string
+	PORT                string
+	Key                 string
+	CryptoPublicKeyPath string
+	ReportInterval      int
+	PollInterval        int
+	ReqInternal         int
+	StartReqInterval    int
+	CountReqRetries     int
+	RateLimit           int
+	RepeatedReq         bool
 }
 
 // EndpointSettings - store endpoint configuration.
 type EndpointSettings struct {
 	SendData    *bytes.Reader
-	URL         string
 	Client      *http.Client
+	URL         string
 	Hash        string
 	Encoding    string
 	ContentType string
@@ -142,9 +146,9 @@ type EndpointSettings struct {
 
 // JobData - store data for the worker.
 type JobData struct {
-	Event  string
 	Mutex  *sync.Mutex
 	Par    *InitParamsAgent
 	Client *http.Client
 	Mon    *Monitor
+	Event  string
 }

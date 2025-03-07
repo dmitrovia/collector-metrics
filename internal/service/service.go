@@ -129,6 +129,7 @@ func (s *DS) SaveInFile(pth string) error {
 
 	defer file.Close()
 
+	// comment - a transaction is needed here
 	counters, err := s.repository.GetAllCounters(&ctx)
 	if err != nil {
 		return fmt.Errorf("SaveInFile->GetAllCounters: %w",

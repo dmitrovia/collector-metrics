@@ -45,11 +45,11 @@ type testData struct {
 	tn     string
 	mt     string
 	mn     string
-	delta  int64
-	value  float64
-	expcod int
 	exbody string
 	meth   string
+	value  float64
+	delta  int64
+	expcod int
 }
 
 func getTestData() *[]testData {
