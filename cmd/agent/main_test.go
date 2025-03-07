@@ -119,7 +119,6 @@ func exit(
 	<-time.After(time.Duration(30) * time.Second)
 
 	*chc <- syscall.SIGTERM
-	*chc <- syscall.SIGTERM
 }
 
 /*
