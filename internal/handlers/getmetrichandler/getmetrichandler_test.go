@@ -45,9 +45,9 @@ type testData struct {
 	mt     string
 	mn     string
 	mv     string
-	expcod int
 	exbody string
 	meth   string
+	expcod int
 }
 
 func getTestData() *[]testData {

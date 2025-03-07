@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dmitrovia/collector-metrics/internal/functions/config"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/defaulthandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetrichandler"
@@ -30,6 +31,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
+	"github.com/dmitrovia/collector-metrics/internal/middleware/decryptmid"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/migrator"
@@ -48,11 +50,15 @@ const wTimeout = 60
 
 const iTimeout = 60
 
-const defPORT string = "localhost:8080"
+const defPORT string = ""
 
-const defSavePathFile string = "/internal/temp/metrics.json"
+const defSavePathFile string = ""
 
-const defSavingIntervalDisk = 300
+const defCryptoKeyPath string = ""
+
+const defConfigPath string = "/internal/config/server.json"
+
+const defSavingIntervalDisk = 0
 
 const defWaitSecRespDB = 10
 
@@ -64,9 +70,7 @@ const migrationsDir = "db/migrations"
 
 const zapLogLevel = "info"
 
-const defPostgreConnURL = "postgres://postgres:postgres" +
-	"@postgres" +
-	":5432/praktikum?sslmode=disable"
+const defPostgreConnURL = ""
 
 const defKeyHashSha256 = ""
 
@@ -140,14 +144,18 @@ func UseMigrations(par *bizmodels.InitParams) error {
 
 // SaveMetrics - writes metrics to file
 // once or every StoreInterval seconds.
-func SaveMetrics(mser *service.DS,
+func SaveMetrics(
+	chc *chan os.Signal,
+	mser *service.DS,
 	par *bizmodels.InitParams, wg *sync.WaitGroup,
 ) {
 	defer wg.Done()
 
-	channelCancel := make(chan os.Signal, 1)
-	signal.Notify(channelCancel,
-		os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	wgEndWork := &sync.WaitGroup{}
+
+	signal.Notify(*chc,
+		os.Interrupt,
+		syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	if par.StoreInterval == 0 {
 		err := mser.SaveInFile(par.FileStoragePath)
@@ -155,21 +163,27 @@ func SaveMetrics(mser *service.DS,
 			fmt.Println("Error writing metrics to file: %w", err)
 		}
 
-		sig := <-channelCancel
+		sig := <-*chc
 		log.Println("Quitting after signal_1:", sig)
 	} else {
 		for {
 			select {
-			case sig := <-channelCancel:
+			case sig := <-*chc:
 				log.Println("Quitting after signal_2:", sig)
+
+				wgEndWork.Wait()
 
 				return
 			case <-time.After(
 				time.Duration(par.StoreInterval) * time.Second):
+				wgEndWork.Add(1)
+
 				err := mser.SaveInFile(par.FileStoragePath)
 				if err != nil {
 					fmt.Println("Error writing metrics to file: %w", err)
 				}
+
+				wgEndWork.Done()
 			}
 		}
 	}
@@ -192,7 +206,14 @@ func Initiate(
 ) (*zap.Logger, error) {
 	err := initiateFlags(par)
 	if err != nil {
-		return nil, fmt.Errorf("initiate->initiateFlags %w", err)
+		return nil, fmt.Errorf(
+			"initiate->initiateFlags %w", err)
+	}
+
+	err = getParamsFromCFG(par)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"initiate->getParamsFromCFG %w", err)
 	}
 
 	zlog, err := logger.Initialize(zapLogLevel)
@@ -227,21 +248,24 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../..")
-	temp := Root + defSavePathFile
-	flag.StringVar(&par.FileStoragePath,
-		"f", temp, "Directory for saving metrics.")
 
-	flag.StringVar(&par.Key,
-		"k", defKeyHashSha256,
-		"key for signatures for the SHA256 algorithm.")
-	flag.StringVar(&par.DatabaseDSN,
-		"d", defPostgreConnURL, "database connection address.")
-	flag.BoolVar(&par.Restore,
-		"r", true, "Loading metrics at server startup.")
+	flag.StringVar(&par.ConfigPath,
+		"config", Root+defConfigPath, "cfg server path.")
 	flag.StringVar(&par.PORT,
 		"a", defPORT, "Port to listen on.")
+	flag.StringVar(&par.DatabaseDSN,
+		"d", defPostgreConnURL, "database connection address.")
+	flag.StringVar(&par.FileStoragePath,
+		"f", defSavePathFile, "Directory for saving metrics.")
 	flag.IntVar(&par.StoreInterval,
 		"i", defSavingIntervalDisk, "Metrics saving interval.")
+	flag.StringVar(&par.Key, "k", defKeyHashSha256,
+		"key for signatures for the SHA256 algorithm.")
+	flag.StringVar(&par.CryptoPrivateKeyPath,
+		"crypto-key", defCryptoKeyPath,
+		"asymmetric encryption pivate key.")
+	flag.BoolVar(&par.Restore,
+		"r", true, "Loading metrics at server startup.")
 	flag.Parse()
 
 	return nil
@@ -261,7 +285,7 @@ func InitiateServer(
 	mser *service.DS,
 	server *http.Server,
 	zapLogger *zap.Logger,
-) {
+) error {
 	mux := mux.NewRouter()
 	AttachProfiler(mux)
 
@@ -283,6 +307,15 @@ func InitiateServer(
 			fmt.Println("Error reading metrics from file: %w", err)
 		}
 	}
+
+	err := UseMigrations(par)
+	if err != nil {
+		fmt.Println("InitiateServer->UseMigrations: %w", err)
+
+		return err
+	}
+
+	return nil
 }
 
 // initGetMethods - initializes get handlers.
@@ -356,6 +389,7 @@ func initPostMethods(
 		"/updates/",
 		hJSONSets.SenderHandler)
 	setMsJSONMux.Use(
+		decryptmid.DecryptMiddleware(*par),
 		gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 }
@@ -395,12 +429,25 @@ func setInitParamsFileStorage(
 }
 
 // setInitParams - gets environment variables.
+//
+//nolint:cyclop
 func setInitParams(params *bizmodels.InitParams) error {
-	var err error
-
 	envRA := os.Getenv("ADDRESS")
 	envSI := os.Getenv("STORE_INTERVAL")
 	key := os.Getenv("KEY")
+	cryptoKey := os.Getenv("CRYPTO_KEY_SERVER")
+	cfgServer := os.Getenv("CONFIG_SERVER")
+
+	_, path, _, isok := runtime.Caller(0)
+	Root := filepath.Join(filepath.Dir(path), "../..")
+
+	if cfgServer != "" && isok {
+		params.ConfigPath = Root + cfgServer
+	}
+
+	if cryptoKey != "" && isok {
+		params.CryptoPrivateKeyPath = Root + cryptoKey
+	}
 
 	if key != "" {
 		params.Key = key
@@ -428,6 +475,56 @@ func setInitParams(params *bizmodels.InitParams) error {
 
 	if !res {
 		return errParseFlags
+	}
+
+	return nil
+}
+
+func getParamsFromCFG(
+	par *bizmodels.InitParams,
+) error {
+	cfg, err := config.LoadConfigServer(par.ConfigPath)
+	if err != nil {
+		return fmt.Errorf(
+			"getParamsFromCFG->LoadConfigServer: %w",
+			err)
+	}
+
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return fmt.Errorf("setInitParams->runtime.Caller( %w",
+			errPath)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../..")
+
+	if par.CryptoPrivateKeyPath == "" {
+		par.CryptoPrivateKeyPath = Root + cfg.CryptoPrivateKeyPath
+	}
+
+	if par.DatabaseDSN == "" {
+		par.DatabaseDSN = cfg.DatabaseDSN
+	}
+
+	if par.FileStoragePath == "" {
+		par.FileStoragePath = Root + cfg.FileStoragePath
+	}
+
+	if par.Key == "" {
+		par.Key = cfg.Key
+	}
+
+	if par.PORT == "" {
+		par.PORT = cfg.PORT
+	}
+
+	if !par.Restore {
+		par.Restore = cfg.Restore
+	}
+
+	if par.StoreInterval == 0 {
+		par.StoreInterval = cfg.StoreInterval
 	}
 
 	return nil

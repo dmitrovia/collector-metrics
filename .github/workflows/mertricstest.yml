@@ -18,7 +18,7 @@ jobs:
 
   metricstest:
     runs-on: ubuntu-latest
-    container: golang:1.22
+    container: golang:1.23.6
     needs: branchtest
 
     services:
@@ -59,6 +59,9 @@ jobs:
 
       - name: Build server binary
         run: |
+          cd internal/asymcrypto/
+          go run generate.go
+          cd ../..
           cd cmd/server
           go build -buildvcs=false -o server
 
@@ -79,7 +82,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           metricstest -test.v -test.run=^TestIteration1$ \
             -binary-path=cmd/server/server
@@ -105,7 +111,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           metricstest -test.v -test.run=^TestIteration2[AB]*$ \
             -source-path=. \
@@ -126,7 +135,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           metricstest -test.v -test.run=^TestIteration3[AB]*$ \
             -source-path=. \
@@ -147,7 +159,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -171,7 +186,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -194,7 +212,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -216,7 +237,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -237,7 +261,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -257,7 +284,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -277,7 +307,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -296,7 +329,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -314,7 +350,10 @@ jobs:
           github.head_ref == 'iter12' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -331,7 +370,10 @@ jobs:
           github.ref == 'refs/heads/main' ||
           github.head_ref == 'iter13' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -347,7 +389,10 @@ jobs:
         if: |
           github.ref == 'refs/heads/main' ||
           github.head_ref == 'iter14' ||
-          github.head_ref == 'iter18'
+          github.head_ref == 'iter18' ||
+          github.head_ref == 'iter19' ||
+          github.head_ref == 'iter20' ||
+          github.head_ref == 'iter21'
         run: |
           SERVER_PORT=$(random unused-port)
           ADDRESS="localhost:${SERVER_PORT}"
@@ -360,18 +405,39 @@ jobs:
             -server-port=$SERVER_PORT \
             -source-path=.
 
+      - name: "Code increment #19"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter19'
+        run: |
+          cd cmd/staticlint
+          go build -o staticlint *.go
+          ./staticlint -all ../.././...
+        
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
-      - name: Gather dependencies
-        run: go mod download
+          go-version: 1.23
       - name: Run coverage
-        run: go test -race ./... -coverprofile=coverage.txt *.go -covermode=atomic
+        run: |
+          go env -w CGO_ENABLED=0
+          cd internal/asymcrypto/
+          go run generate.go
+          cd ../..
+          go test -v -coverprofile coverage.out ./...
+          go tool cover -html coverage.out -o coverage.html
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: coverage.html
 
       - name: "Code increment #14 (race detection)"
         if: |
