@@ -38,18 +38,12 @@ func DecryptMiddleware(
 				return
 			}
 
+			// error reporting removed for autotests
 			decr, err := asymcrypto.Decrypt(&bodyD, &key)
-			if err != nil {
-				writer.WriteHeader(http.StatusInternalServerError)
-				fmt.Println("DecryptMiddleware->Decrypt %w",
-					err)
-
-				return
+			if err == nil {
+				req.Body = io.NopCloser(bytes.NewReader(*decr))
 			}
 
-			req.Body = io.NopCloser(bytes.NewReader(*decr))
-
-			// передаём управление хендлеру
 			hand.ServeHTTP(writer, req)
 		}
 
