@@ -373,7 +373,6 @@ func initReqData(params *bizmodels.InitParams,
 	Root := filepath.Join(filepath.Dir(path), "../../../")
 	pathPubicKey := Root +
 		"/internal/asymcrypto/keys/public.pem"
-	fmt.Println(pathPubicKey)
 
 	key, err := os.ReadFile(pathPubicKey)
 	if err != nil {
