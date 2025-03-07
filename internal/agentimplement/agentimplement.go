@@ -66,8 +66,12 @@ const defCryptoKeyPath string = ""
 
 const defConfigPath string = "/internal/config/agent.json"
 
-func worker(jobs <-chan bizmodels.JobData) {
+func worker(jobs <-chan bizmodels.JobData,
+	wgew *sync.WaitGroup,
+) {
 	for event := range jobs {
+		wgew.Add(1)
+
 		switch event.Event {
 		case "setValuesMonitor":
 			setValuesMonitor(event.Mon, event.Mutex)
@@ -76,6 +80,8 @@ func worker(jobs <-chan bizmodels.JobData) {
 		case "reqMetricsJSON":
 			reqMetricsJSON(event.Par, event.Client, event.Mon)
 		}
+
+		wgew.Done()
 	}
 }
 
@@ -85,6 +91,7 @@ func Collect(
 	chc *chan os.Signal,
 	par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
+	wgEndWork *sync.WaitGroup,
 	mon *bizmodels.Monitor,
 	jobs chan bizmodels.JobData,
 ) {
@@ -95,11 +102,16 @@ func Collect(
 	signal.Notify(*chc,
 		os.Interrupt,
 		syscall.SIGTERM,
-		syscall.SIGINT)
+		syscall.SIGINT,
+		syscall.SIGQUIT)
 
 	for {
 		select {
 		case <-*chc:
+			*chc <- syscall.SIGTERM
+
+			wgEndWork.Wait()
+
 			return
 		case <-time.After(
 			time.Duration(par.PollInterval) * time.Second):
@@ -109,7 +121,8 @@ func Collect(
 			dataChan.Mon = mon
 
 			jobs <- *dataChan
-			go worker(jobs)
+
+			go worker(jobs, wgEndWork)
 
 			dataChan1 := &bizmodels.JobData{}
 			dataChan1.Event = "setMonitorFromGoPsUtil"
@@ -118,7 +131,7 @@ func Collect(
 
 			jobs <- *dataChan1
 
-			go worker(jobs)
+			go worker(jobs, wgEndWork)
 		}
 	}
 }
@@ -128,21 +141,27 @@ func Collect(
 func Send(
 	chc *chan os.Signal,
 	par *bizmodels.InitParamsAgent,
-	wg *sync.WaitGroup,
+	wgMain *sync.WaitGroup,
+	wgEndWork *sync.WaitGroup,
 	client *http.Client,
 	mon *bizmodels.Monitor,
 	jobs chan bizmodels.JobData,
 ) {
-	defer wg.Done()
+	defer wgMain.Done()
 
 	signal.Notify(*chc,
 		os.Interrupt,
 		syscall.SIGTERM,
-		syscall.SIGINT)
+		syscall.SIGINT,
+		syscall.SIGQUIT)
 
 	for {
 		select {
 		case <-*chc:
+			*chc <- syscall.SIGTERM
+
+			wgEndWork.Wait()
+
 			return
 		case <-time.After(
 			time.Duration(par.ReportInterval) * time.Second):
@@ -154,7 +173,8 @@ func Send(
 				dataChan.Client = client
 
 				jobs <- *dataChan
-				go worker(jobs)
+
+				go worker(jobs, wgEndWork)
 			}
 		}
 	}
@@ -518,19 +538,17 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 
 	_, path, _, ok := runtime.Caller(0)
 
-	defPath := defCryptoKeyPath
 	defPath1 := defConfigPath
 
 	if ok {
 		Root := filepath.Join(filepath.Dir(path), "../..")
-		defPath = Root + defCryptoKeyPath
 		defPath1 = Root + defConfigPath
 	}
 
 	flag.StringVar(&params.ConfigPath,
 		"config", defPath1, "cfg server path.")
 	flag.StringVar(&params.CryptoPublicKeyPath,
-		"crypto-key", defPath,
+		"crypto-key", defCryptoKeyPath,
 		"asymmetric encryption public key.")
 	flag.Parse()
 
@@ -632,8 +650,18 @@ func getParamsFromCFG(
 			err)
 	}
 
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return fmt.Errorf(
+			"getParamsFromCFG->Caller: %w",
+			err)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../..")
+
 	if par.CryptoPublicKeyPath == "" {
-		par.CryptoPublicKeyPath = cfg.CryptoPublicKeyPath
+		par.CryptoPublicKeyPath = Root + cfg.CryptoPublicKeyPath
 	}
 
 	if par.Key == "" {

@@ -435,6 +435,9 @@ jobs:
       - name: Run coverage
         run: |
           go env -w CGO_ENABLED=0
+          cd internal/asymcrypto/
+          go run generate.go
+          cd ../..
           go test -v -coverprofile coverage.out ./...
           go tool cover -html coverage.out -o coverage.html
       - name: Upload coverage to Codecov
