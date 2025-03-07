@@ -42,6 +42,8 @@ func DecryptMiddleware(
 			decr, err := asymcrypto.Decrypt(&bodyD, &key)
 			if err == nil {
 				req.Body = io.NopCloser(bytes.NewReader(*decr))
+			} else {
+				req.Body = io.NopCloser(bytes.NewReader(bodyD))
 			}
 
 			hand.ServeHTTP(writer, req)
