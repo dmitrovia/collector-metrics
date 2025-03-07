@@ -34,11 +34,11 @@ func main() {
 	logger.DoInfoLog("Build date: "+buildDate, zlog)
 	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
 
-	waitGroup.Add(1)
-
 	jobs := make(chan bizmodels.JobData, params.RateLimit)
 
 	defer close(jobs)
+
+	waitGroup.Add(1)
 
 	go agentimplement.Collect(
 		params,

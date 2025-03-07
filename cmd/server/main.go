@@ -63,10 +63,11 @@ func main() {
 		return
 	}
 
-	go si.RunServer(server)
-	go si.SaveMetrics(dataService, params, waitGroup)
-
 	waitGroup.Add(1)
+
+	go si.SaveMetrics(dataService, params, waitGroup)
+	go si.RunServer(server)
+
 	waitGroup.Wait()
 
 	err = server.Shutdown(ctx)

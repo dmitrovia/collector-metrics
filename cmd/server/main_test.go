@@ -116,10 +116,12 @@ func mainBody() {
 	}
 
 	go si.RunServer(server)
+
+	waitGroup.Add(1)
+
 	go si.SaveMetrics(dataService, params, waitGroup)
 	go exit(ctx, waitGroup, server)
 
-	waitGroup.Add(1)
 	waitGroup.Wait()
 
 	err = dataService.SaveInFile(params.FileStoragePath)
