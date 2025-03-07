@@ -37,6 +37,7 @@ func main() {
 
 	jobs := make(chan bizmodels.JobData, params.RateLimit)
 	channelCancel := make(chan os.Signal, 1)
+	wgEndWork := &sync.WaitGroup{}
 
 	defer close(jobs)
 
@@ -46,6 +47,7 @@ func main() {
 		&channelCancel,
 		params,
 		waitGroup,
+		wgEndWork,
 		monitor,
 		jobs)
 
@@ -55,6 +57,7 @@ func main() {
 		&channelCancel,
 		params,
 		waitGroup,
+		wgEndWork,
 		client,
 		monitor,
 		jobs)

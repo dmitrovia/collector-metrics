@@ -151,8 +151,11 @@ func SaveMetrics(
 ) {
 	defer wg.Done()
 
+	wgEndWork := &sync.WaitGroup{}
+
 	signal.Notify(*chc,
-		os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+		os.Interrupt,
+		syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	if par.StoreInterval == 0 {
 		err := mser.SaveInFile(par.FileStoragePath)
@@ -168,13 +171,19 @@ func SaveMetrics(
 			case sig := <-*chc:
 				log.Println("Quitting after signal_2:", sig)
 
+				wgEndWork.Wait()
+
 				return
 			case <-time.After(
 				time.Duration(par.StoreInterval) * time.Second):
+				wgEndWork.Add(1)
+
 				err := mser.SaveInFile(par.FileStoragePath)
 				if err != nil {
 					fmt.Println("Error writing metrics to file: %w", err)
 				}
+
+				wgEndWork.Done()
 			}
 		}
 	}
@@ -197,7 +206,8 @@ func Initiate(
 ) (*zap.Logger, error) {
 	err := initiateFlags(par)
 	if err != nil {
-		return nil, fmt.Errorf("initiate->initiateFlags %w", err)
+		return nil, fmt.Errorf(
+			"initiate->initiateFlags %w", err)
 	}
 
 	err = getParamsFromCFG(par)
@@ -238,7 +248,6 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../..")
-	temp := Root + defSavePathFile
 
 	flag.StringVar(&par.ConfigPath,
 		"config", Root+defConfigPath, "cfg server path.")
@@ -247,13 +256,13 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	flag.StringVar(&par.DatabaseDSN,
 		"d", defPostgreConnURL, "database connection address.")
 	flag.StringVar(&par.FileStoragePath,
-		"f", temp, "Directory for saving metrics.")
+		"f", defSavePathFile, "Directory for saving metrics.")
 	flag.IntVar(&par.StoreInterval,
 		"i", defSavingIntervalDisk, "Metrics saving interval.")
 	flag.StringVar(&par.Key, "k", defKeyHashSha256,
 		"key for signatures for the SHA256 algorithm.")
 	flag.StringVar(&par.CryptoPrivateKeyPath,
-		"crypto-key", Root+defCryptoKeyPath,
+		"crypto-key", defCryptoKeyPath,
 		"asymmetric encryption pivate key.")
 	flag.BoolVar(&par.Restore,
 		"r", true, "Loading metrics at server startup.")
@@ -481,8 +490,17 @@ func getParamsFromCFG(
 			err)
 	}
 
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return fmt.Errorf("setInitParams->runtime.Caller( %w",
+			errPath)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../..")
+
 	if par.CryptoPrivateKeyPath == "" {
-		par.CryptoPrivateKeyPath = cfg.CryptoPrivateKeyPath
+		par.CryptoPrivateKeyPath = Root + cfg.CryptoPrivateKeyPath
 	}
 
 	if par.DatabaseDSN == "" {
@@ -490,7 +508,7 @@ func getParamsFromCFG(
 	}
 
 	if par.FileStoragePath == "" {
-		par.FileStoragePath = cfg.FileStoragePath
+		par.FileStoragePath = Root + cfg.FileStoragePath
 	}
 
 	if par.Key == "" {
