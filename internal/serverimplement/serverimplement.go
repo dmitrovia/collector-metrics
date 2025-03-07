@@ -144,13 +144,14 @@ func UseMigrations(par *bizmodels.InitParams) error {
 
 // SaveMetrics - writes metrics to file
 // once or every StoreInterval seconds.
-func SaveMetrics(mser *service.DS,
+func SaveMetrics(
+	chc *chan os.Signal,
+	mser *service.DS,
 	par *bizmodels.InitParams, wg *sync.WaitGroup,
 ) {
 	defer wg.Done()
 
-	channelCancel := make(chan os.Signal, 1)
-	signal.Notify(channelCancel,
+	signal.Notify(*chc,
 		os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	if par.StoreInterval == 0 {
@@ -159,12 +160,12 @@ func SaveMetrics(mser *service.DS,
 			fmt.Println("Error writing metrics to file: %w", err)
 		}
 
-		sig := <-channelCancel
+		sig := <-*chc
 		log.Println("Quitting after signal_1:", sig)
 	} else {
 		for {
 			select {
-			case sig := <-channelCancel:
+			case sig := <-*chc:
 				log.Println("Quitting after signal_2:", sig)
 
 				return

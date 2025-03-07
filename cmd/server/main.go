@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"sync"
 
 	"github.com/dmitrovia/collector-metrics/internal/logger"
@@ -20,6 +21,7 @@ var buildVersion,
 	buildDate,
 	buildCommit string = "N/A", "N/A", "N/A"
 
+//nolint:funlen
 func main() {
 	var (
 		dataService *service.DS
@@ -63,9 +65,12 @@ func main() {
 		return
 	}
 
+	channelCancel := make(chan os.Signal, 1)
+
 	waitGroup.Add(1)
 
-	go si.SaveMetrics(dataService, params, waitGroup)
+	go si.SaveMetrics(&channelCancel,
+		dataService, params, waitGroup)
 	go si.RunServer(server)
 
 	waitGroup.Wait()

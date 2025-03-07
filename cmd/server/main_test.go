@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -119,9 +120,12 @@ func mainBody() {
 
 	waitGroup.Add(1)
 
-	go si.SaveMetrics(dataService, params, waitGroup)
-	go exit(ctx, waitGroup, server)
+	channelCancel := make(chan os.Signal, 1)
 
+	go si.SaveMetrics(&channelCancel,
+		dataService, params, waitGroup)
+
+	go exit(ctx, &channelCancel, server)
 	waitGroup.Wait()
 
 	err = dataService.SaveInFile(params.FileStoragePath)
@@ -132,7 +136,7 @@ func mainBody() {
 
 func exit(
 	ctx context.Context,
-	wgr *sync.WaitGroup,
+	chc *chan os.Signal,
 	server *http.Server,
 ) {
 	<-time.After(time.Duration(30) * time.Second)
@@ -144,7 +148,7 @@ func exit(
 		return
 	}
 
-	wgr.Done()
+	*chc <- syscall.SIGTERM
 }
 
 /*

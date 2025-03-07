@@ -374,6 +374,7 @@ func initReqData(params *bizmodels.InitParams,
 	pathPubicKey := Root +
 		"/internal/asymcrypto/keys/public.pem"
 	fmt.Println(pathPubicKey)
+
 	key, err := os.ReadFile(pathPubicKey)
 	if err != nil {
 		return nil, fmt.Errorf(

@@ -79,7 +79,9 @@ func worker(jobs <-chan bizmodels.JobData) {
 
 // Collect - collects device metrics
 // every PollInterval seconds using workers.
-func Collect(par *bizmodels.InitParamsAgent,
+func Collect(
+	chc *chan os.Signal,
+	par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
 	mon *bizmodels.Monitor,
 	jobs chan bizmodels.JobData,
@@ -88,15 +90,14 @@ func Collect(par *bizmodels.InitParamsAgent,
 
 	var mutex sync.Mutex
 
-	channelCancel := make(chan os.Signal, 1)
-	signal.Notify(channelCancel,
+	signal.Notify(*chc,
 		os.Interrupt,
 		syscall.SIGTERM,
 		syscall.SIGINT)
 
 	for {
 		select {
-		case <-channelCancel:
+		case <-*chc:
 			return
 		case <-time.After(
 			time.Duration(par.PollInterval) * time.Second):
@@ -122,7 +123,9 @@ func Collect(par *bizmodels.InitParamsAgent,
 
 // Send - sends metrics to the server
 // every ReportInterval seconds using workers.
-func Send(par *bizmodels.InitParamsAgent,
+func Send(
+	chc *chan os.Signal,
+	par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
 	client *http.Client,
 	mon *bizmodels.Monitor,
@@ -130,15 +133,14 @@ func Send(par *bizmodels.InitParamsAgent,
 ) {
 	defer wg.Done()
 
-	channelCancel := make(chan os.Signal, 1)
-	signal.Notify(channelCancel,
+	signal.Notify(*chc,
 		os.Interrupt,
 		syscall.SIGTERM,
 		syscall.SIGINT)
 
 	for {
 		select {
-		case <-channelCancel:
+		case <-*chc:
 			return
 		case <-time.After(
 			time.Duration(par.ReportInterval) * time.Second):

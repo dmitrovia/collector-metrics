@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/dmitrovia/collector-metrics/internal/agentimplement"
@@ -35,12 +36,14 @@ func main() {
 	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
 
 	jobs := make(chan bizmodels.JobData, params.RateLimit)
+	channelCancel := make(chan os.Signal, 1)
 
 	defer close(jobs)
 
 	waitGroup.Add(1)
 
 	go agentimplement.Collect(
+		&channelCancel,
 		params,
 		waitGroup,
 		monitor,
@@ -49,6 +52,7 @@ func main() {
 	waitGroup.Add(1)
 
 	go agentimplement.Send(
+		&channelCancel,
 		params,
 		waitGroup,
 		client,

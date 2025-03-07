@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
 
@@ -81,12 +82,14 @@ func mainBody() {
 	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
 
 	jobs := make(chan bizmodels.JobData, params.RateLimit)
+	channelCancel := make(chan os.Signal, 1)
 
 	defer close(jobs)
 
 	waitGroup.Add(1)
 
 	go agentimplement.Collect(
+		&channelCancel,
 		params,
 		waitGroup,
 		monitor,
@@ -95,24 +98,25 @@ func mainBody() {
 	waitGroup.Add(1)
 
 	go agentimplement.Send(
+		&channelCancel,
 		params,
 		waitGroup,
 		client,
 		monitor,
 		jobs)
 
-	go exit(waitGroup)
+	go exit(&channelCancel)
 
 	waitGroup.Wait()
 }
 
 func exit(
-	wgr *sync.WaitGroup,
+	chc *chan os.Signal,
 ) {
 	<-time.After(time.Duration(30) * time.Second)
 
-	wgr.Done()
-	wgr.Done()
+	*chc <- syscall.SIGTERM
+	*chc <- syscall.SIGTERM
 }
 
 /*
