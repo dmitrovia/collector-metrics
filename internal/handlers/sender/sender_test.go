@@ -176,6 +176,7 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	Root := filepath.Join(filepath.Dir(path), "../../../")
 	params.CryptoPrivateKeyPath = Root +
 		"/internal/asymcrypto/keys/private.pem"
+	fmt.Println(params.CryptoPrivateKeyPath)
 	params.FileStoragePath = Root + defSavePathFile
 	params.Key = "defaultKey"
 	params.Restore = true
@@ -372,7 +373,7 @@ func initReqData(params *bizmodels.InitParams,
 	Root := filepath.Join(filepath.Dir(path), "../../../")
 	pathPubicKey := Root +
 		"/internal/asymcrypto/keys/public.pem"
-
+	fmt.Println(pathPubicKey)
 	key, err := os.ReadFile(pathPubicKey)
 	if err != nil {
 		return nil, fmt.Errorf(
