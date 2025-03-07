@@ -20,6 +20,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/dmitrovia/collector-metrics/internal/functions/config"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/defaulthandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/getmetrichandler"
@@ -49,14 +50,15 @@ const wTimeout = 60
 
 const iTimeout = 60
 
-const defPORT string = "localhost:8080"
+const defPORT string = ""
 
-const defSavePathFile string = "/internal/temp/metrics.json"
+const defSavePathFile string = ""
 
-const defCryptoKeyPath string = "/internal/" +
-	"asymcrypto/keys/private.pem"
+const defCryptoKeyPath string = ""
 
-const defSavingIntervalDisk = 300
+const defConfigPath string = "/internal/config/server.json"
+
+const defSavingIntervalDisk = 0
 
 const defWaitSecRespDB = 10
 
@@ -68,9 +70,7 @@ const migrationsDir = "db/migrations"
 
 const zapLogLevel = "info"
 
-const defPostgreConnURL = "postgres://postgres:postgres" +
-	"@postgres" +
-	":5432/praktikum?sslmode=disable"
+const defPostgreConnURL = ""
 
 const defKeyHashSha256 = ""
 
@@ -200,6 +200,12 @@ func Initiate(
 		return nil, fmt.Errorf("initiate->initiateFlags %w", err)
 	}
 
+	err = getParamsFromCFG(par)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"initiate->getParamsFromCFG %w", err)
+	}
+
 	zlog, err := logger.Initialize(zapLogLevel)
 	if err != nil {
 		return nil, fmt.Errorf("initiate->logger.Initialize %w",
@@ -234,6 +240,8 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	Root := filepath.Join(filepath.Dir(path), "../..")
 	temp := Root + defSavePathFile
 
+	flag.StringVar(&par.ConfigPath,
+		"config", Root+defConfigPath, "cfg server path.")
 	flag.StringVar(&par.PORT,
 		"a", defPORT, "Port to listen on.")
 	flag.StringVar(&par.DatabaseDSN,
@@ -412,21 +420,24 @@ func setInitParamsFileStorage(
 }
 
 // setInitParams - gets environment variables.
+//
+//nolint:cyclop
 func setInitParams(params *bizmodels.InitParams) error {
 	envRA := os.Getenv("ADDRESS")
 	envSI := os.Getenv("STORE_INTERVAL")
 	key := os.Getenv("KEY")
 	cryptoKey := os.Getenv("CRYPTO_KEY_SERVER")
+	cfgServer := os.Getenv("CONFIG_SERVER")
 
-	if cryptoKey != "" {
-		_, path, _, ok := runtime.Caller(0)
+	_, path, _, isok := runtime.Caller(0)
+	Root := filepath.Join(filepath.Dir(path), "../..")
 
-		if ok {
-			Root := filepath.Join(filepath.Dir(path), "../..")
-			params.CryptoPrivateKeyPath = Root + cryptoKey
-		} else {
-			params.CryptoPrivateKeyPath = cryptoKey
-		}
+	if cfgServer != "" && isok {
+		params.ConfigPath = Root + cfgServer
+	}
+
+	if cryptoKey != "" && isok {
+		params.CryptoPrivateKeyPath = Root + cryptoKey
 	}
 
 	if key != "" {
@@ -455,6 +466,47 @@ func setInitParams(params *bizmodels.InitParams) error {
 
 	if !res {
 		return errParseFlags
+	}
+
+	return nil
+}
+
+func getParamsFromCFG(
+	par *bizmodels.InitParams,
+) error {
+	cfg, err := config.LoadConfigServer(par.ConfigPath)
+	if err != nil {
+		return fmt.Errorf(
+			"getParamsFromCFG->LoadConfigServer: %w",
+			err)
+	}
+
+	if par.CryptoPrivateKeyPath == "" {
+		par.CryptoPrivateKeyPath = cfg.CryptoPrivateKeyPath
+	}
+
+	if par.DatabaseDSN == "" {
+		par.DatabaseDSN = cfg.DatabaseDSN
+	}
+
+	if par.FileStoragePath == "" {
+		par.FileStoragePath = cfg.FileStoragePath
+	}
+
+	if par.Key == "" {
+		par.Key = cfg.Key
+	}
+
+	if par.PORT == "" {
+		par.PORT = cfg.PORT
+	}
+
+	if !par.Restore {
+		par.Restore = cfg.Restore
+	}
+
+	if par.StoreInterval == 0 {
+		par.StoreInterval = cfg.StoreInterval
 	}
 
 	return nil

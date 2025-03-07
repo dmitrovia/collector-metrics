@@ -21,6 +21,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/endpoints/sendmetricsjsonendpoint"
 	"github.com/dmitrovia/collector-metrics/internal/functions/asymcrypto"
 	"github.com/dmitrovia/collector-metrics/internal/functions/compress"
+	"github.com/dmitrovia/collector-metrics/internal/functions/config"
 	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
@@ -34,15 +35,15 @@ import (
 
 const zapLogLevel = "info"
 
-const defPORT string = "localhost:8080"
+const defPORT string = ""
 
 const validAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
 const defKeyHashSha256 = ""
 
-const defPollInterval int = 2
+const defPollInterval int = 0
 
-const defReportInterval int = 10
+const defReportInterval int = 0
 
 const metricGaugeCount int = 30
 
@@ -61,8 +62,9 @@ var errParseFlags = errors.New("addr is not valid")
 
 var errResponse = errors.New("error response")
 
-const defCryptoKeyPath string = "/internal/" +
-	"asymcrypto/keys/public.pem"
+const defCryptoKeyPath string = ""
+
+const defConfigPath string = "/internal/config/agent.json"
 
 func worker(jobs <-chan bizmodels.JobData) {
 	for event := range jobs {
@@ -383,6 +385,11 @@ func Initialization(params *bizmodels.InitParamsAgent,
 		return nil, err
 	}
 
+	err = getParamsFromCFG(params)
+	if err != nil {
+		return nil, err
+	}
+
 	err = getIntervalsEnv(params)
 	if err != nil {
 		return nil, err
@@ -436,21 +443,24 @@ func getIntervalsEnv(
 }
 
 // getENV - gets environment variables.
+//
+//nolint:cyclop
 func getENV(params *bizmodels.InitParamsAgent) error {
 	key := os.Getenv("KEY")
 	envRunAddr := os.Getenv("ADDRESS")
 	envRateLimit := os.Getenv("RATE_LIMIT")
 	cryptoKey := os.Getenv("CRYPTO_KEY_AGENT")
+	cfgServer := os.Getenv("CONFIG_SERVER")
 
-	if cryptoKey != "" {
-		_, path, _, ok := runtime.Caller(0)
+	_, path, _, isok := runtime.Caller(0)
+	Root := filepath.Join(filepath.Dir(path), "../..")
 
-		if ok {
-			Root := filepath.Join(filepath.Dir(path), "../..")
-			params.CryptoPublicKeyPath = Root + cryptoKey
-		} else {
-			params.CryptoPublicKeyPath = cryptoKey
-		}
+	if cfgServer != "" && isok {
+		params.ConfigPath = Root + cfgServer
+	}
+
+	if cryptoKey != "" && isok {
+		params.CryptoPublicKeyPath = Root + cryptoKey
 	}
 
 	if key != "" {
@@ -509,12 +519,16 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	_, path, _, ok := runtime.Caller(0)
 
 	defPath := defCryptoKeyPath
+	defPath1 := defConfigPath
 
 	if ok {
 		Root := filepath.Join(filepath.Dir(path), "../..")
 		defPath = Root + defCryptoKeyPath
+		defPath1 = Root + defConfigPath
 	}
 
+	flag.StringVar(&params.ConfigPath,
+		"config", defPath1, "cfg server path.")
 	flag.StringVar(&params.CryptoPublicKeyPath,
 		"crypto-key", defPath,
 		"asymmetric encryption public key.")
@@ -606,4 +620,37 @@ func writeFromMemory(mon *bizmodels.Monitor) {
 	mon.StackSys.Value = float64(rtm.StackSys)
 	mon.Sys.Value = float64(rtm.Sys)
 	mon.TotalAlloc.Value = float64(rtm.TotalAlloc)
+}
+
+func getParamsFromCFG(
+	par *bizmodels.InitParamsAgent,
+) error {
+	cfg, err := config.LoadConfigAgent(par.ConfigPath)
+	if err != nil {
+		return fmt.Errorf(
+			"getParamsFromCFG->LoadConfigAgent: %w",
+			err)
+	}
+
+	if par.CryptoPublicKeyPath == "" {
+		par.CryptoPublicKeyPath = cfg.CryptoPublicKeyPath
+	}
+
+	if par.Key == "" {
+		par.Key = cfg.Key
+	}
+
+	if par.PORT == "" {
+		par.PORT = cfg.PORT
+	}
+
+	if par.PollInterval == 0 {
+		par.PollInterval = cfg.PollInterval
+	}
+
+	if par.ReportInterval == 0 {
+		par.ReportInterval = cfg.ReportInterval
+	}
+
+	return nil
 }

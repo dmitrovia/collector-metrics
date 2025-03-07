@@ -106,6 +106,7 @@ func (m *Monitor) Init() {
 
 // InitParams - store server configuration.
 type InitParams struct {
+	ConfigPath           string
 	PORT                 string
 	ValidateAddrPattern  string
 	FileStoragePath      string
@@ -119,6 +120,7 @@ type InitParams struct {
 
 // InitParamsAgent - store agent configuration.
 type InitParamsAgent struct {
+	ConfigPath          string
 	URL                 string
 	PORT                string
 	Key                 string
