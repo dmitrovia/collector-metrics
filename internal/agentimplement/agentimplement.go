@@ -109,8 +109,6 @@ func Collect(
 	for {
 		select {
 		case <-*chc:
-			*chc <- syscall.SIGTERM
-
 			wgEndWork.Wait()
 
 			return
@@ -159,8 +157,6 @@ func Send(
 	for {
 		select {
 		case <-*chc:
-			*chc <- syscall.SIGTERM
-
 			wgEndWork.Wait()
 
 			return

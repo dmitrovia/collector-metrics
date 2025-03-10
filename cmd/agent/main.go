@@ -17,6 +17,8 @@ var buildVersion,
 	buildDate,
 	buildCommit string = "N/A", "N/A", "N/A"
 
+const numCloseSignals = 2
+
 func main() {
 	waitGroup := &sync.WaitGroup{}
 	monitor := &bizmodels.Monitor{}
@@ -36,7 +38,8 @@ func main() {
 	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
 
 	jobs := make(chan bizmodels.JobData, params.RateLimit)
-	channelCancel := make(chan os.Signal, 1)
+	channelCancel := make(chan os.Signal, numCloseSignals)
+	channelCancel1 := make(chan os.Signal, numCloseSignals)
 	wgEndWork := &sync.WaitGroup{}
 
 	defer close(jobs)
@@ -54,7 +57,7 @@ func main() {
 	waitGroup.Add(1)
 
 	go agentimplement.Send(
-		&channelCancel,
+		&channelCancel1,
 		params,
 		waitGroup,
 		wgEndWork,
