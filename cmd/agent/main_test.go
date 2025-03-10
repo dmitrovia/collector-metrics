@@ -109,17 +109,19 @@ func mainBody() {
 		monitor,
 		jobs)
 
-	go exit(&channelCancel)
+	go exit(&channelCancel, &channelCancel1)
 
 	waitGroup.Wait()
 }
 
 func exit(
 	chc *chan os.Signal,
+	chc1 *chan os.Signal,
 ) {
 	<-time.After(time.Duration(30) * time.Second)
 
 	*chc <- syscall.SIGTERM
+	*chc1 <- syscall.SIGTERM
 }
 
 /*
