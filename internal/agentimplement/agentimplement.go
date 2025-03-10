@@ -23,6 +23,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/functions/compress"
 	"github.com/dmitrovia/collector-metrics/internal/functions/config"
 	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
+	"github.com/dmitrovia/collector-metrics/internal/functions/ip"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
@@ -224,12 +225,10 @@ func fillMetrics(mon *bizmodels.Monitor,
 		mon.RandomValue)
 }
 
-// reqMetricsJSON - prepares data
-// for the request and sends the request to the server.
-func reqMetricsJSON(par *bizmodels.InitParamsAgent,
-	client *http.Client,
+func getSettings(client *http.Client,
+	par *bizmodels.InitParamsAgent,
 	mon *bizmodels.Monitor,
-) {
+) (*bizmodels.EndpointSettings, error) {
 	gauges := make([]bizmodels.Gauge, 0, metricGaugeCount)
 	counters := make(map[string]bizmodels.Counter, 1)
 
@@ -241,14 +240,37 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	settings.Encoding = "gzip"
 	settings.URL = par.URL + "/updates/"
 
+	ips, err := ip.GetLocalIPs()
+	if err != nil {
+		return nil, fmt.Errorf("getSettings->GetLocalIPs: %w",
+			err)
+	}
+
+	settings.RealIPHeader = ips[0]
+
 	req, err := initReqData(&gauges, counters, settings, par)
 	if err != nil {
-		fmt.Println("reqMetricsJSON->initReqData: %w", err)
-
-		return
+		return nil, fmt.Errorf("getSettings->initReqData: %w",
+			err)
 	}
 
 	settings.SendData = req
+
+	return settings, nil
+}
+
+// reqMetricsJSON - prepares data
+// for the request and sends the request to the server.
+func reqMetricsJSON(par *bizmodels.InitParamsAgent,
+	client *http.Client,
+	mon *bizmodels.Monitor,
+) {
+	settings, err := getSettings(client, par, mon)
+	if err != nil {
+		fmt.Println("reqMetricsJSON->getSettings: %w", err)
+
+		return
+	}
 
 	sInterval := par.StartReqInterval
 

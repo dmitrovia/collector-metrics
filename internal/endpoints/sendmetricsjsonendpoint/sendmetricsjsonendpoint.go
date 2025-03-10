@@ -31,6 +31,7 @@ func SendMJSONEndpoint(
 				err)
 	}
 
+	req.Header.Set("X-Real-IP", epSettings.RealIPHeader)
 	req.Header.Set("Content-Encoding", epSettings.Encoding)
 	req.Header.Set("Accept-Encoding", epSettings.Encoding)
 	req.Header.Set("Content-Type", epSettings.ContentType)

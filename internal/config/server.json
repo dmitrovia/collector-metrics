@@ -5,5 +5,6 @@
     "storeFile": "/internal/temp/metrics.json",
     "databaseDsn": "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable",
     "cryptoKey": "/internal/asymcrypto/keys/private.pem",
-    "keySha" : ""
+    "keySha" : "",
+    "trustedSubnet" : "192.168.0.0/24"
 } 

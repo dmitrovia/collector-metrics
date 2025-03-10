@@ -15,41 +15,41 @@ func DecryptMiddleware(
 	params bizmodels.InitParams,
 ) func(http.Handler) http.Handler {
 	handler := func(hand http.Handler) http.Handler {
-		gzipFn := func(
-			writer http.ResponseWriter, req *http.Request,
-		) {
-			bodyD, err := io.ReadAll(req.Body)
-			if err != nil {
-				defer req.Body.Close()
+		return http.HandlerFunc(
+			func(
+				writer http.ResponseWriter, req *http.Request,
+			) {
+				bodyD, err := io.ReadAll(req.Body)
+				if err != nil {
+					defer req.Body.Close()
 
-				writer.WriteHeader(http.StatusInternalServerError)
-				fmt.Println("DecryptMiddleware->ReadAll %w",
-					err)
+					writer.WriteHeader(http.StatusInternalServerError)
+					fmt.Println("DecryptMiddleware->ReadAll %w",
+						err)
 
-				return
-			}
+					return
+				}
 
-			key, err := os.ReadFile(params.CryptoPrivateKeyPath)
-			if err != nil {
-				writer.WriteHeader(http.StatusInternalServerError)
-				fmt.Println("DecryptMiddleware->ReadFile %w",
-					err)
+				key, err := os.ReadFile(params.CryptoPrivateKeyPath)
+				if err != nil {
+					writer.WriteHeader(http.StatusInternalServerError)
+					fmt.Println("DecryptMiddleware->ReadFile %w",
+						err)
 
-				return
-			}
+					return
+				}
 
-			// error reporting removed for autotests
-			decr, err := asymcrypto.Decrypt(&bodyD, &key)
-			if err == nil {
-				req.Body = io.NopCloser(bytes.NewReader(*decr))
-			} else {
-				req.Body = io.NopCloser(bytes.NewReader(bodyD))
-			}
+				// error reporting removed for autotests
+				decr, err := asymcrypto.Decrypt(&bodyD, &key)
+				if err == nil {
+					req.Body = io.NopCloser(bytes.NewReader(*decr))
+				} else {
+					req.Body = io.NopCloser(bytes.NewReader(bodyD))
+				}
 
-			hand.ServeHTTP(writer, req)
-		}
-
-		return http.HandlerFunc(gzipFn)
+				hand.ServeHTTP(writer, req)
+			},
+		)
 	}
 
 	return handler

@@ -17,6 +17,7 @@ type CfgServer struct {
 	DatabaseDSN          string `json:"databaseDsn"`
 	Key                  string `json:"keySha"`
 	CryptoPrivateKeyPath string `json:"cryptoKey"`
+	TrustedSubnet        string `json:"trustedSubnet"`
 	StoreInterval        int    `json:"storeInterval"`
 	Restore              bool   `json:"restore"`
 }

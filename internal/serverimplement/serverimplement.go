@@ -31,6 +31,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetrichandler"
 	"github.com/dmitrovia/collector-metrics/internal/handlers/setmetricjsonhandler"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
+	"github.com/dmitrovia/collector-metrics/internal/middleware/checkipmid"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/decryptmid"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/gzipcompressmiddleware"
 	"github.com/dmitrovia/collector-metrics/internal/middleware/loggermiddleware"
@@ -264,6 +265,8 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	flag.StringVar(&par.CryptoPrivateKeyPath,
 		"crypto-key", defCryptoKeyPath,
 		"asymmetric encryption pivate key.")
+	flag.StringVar(&par.TrustedSubnet, "t", "",
+		"address in CIDR format.")
 	flag.BoolVar(&par.Restore,
 		"r", true, "Loading metrics at server startup.")
 	flag.Parse()
@@ -389,6 +392,7 @@ func initPostMethods(
 		"/updates/",
 		hJSONSets.SenderHandler)
 	setMsJSONMux.Use(
+		checkipmid.CheckIPMiddleware(*par),
 		decryptmid.DecryptMiddleware(*par),
 		gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
@@ -437,6 +441,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 	key := os.Getenv("KEY")
 	cryptoKey := os.Getenv("CRYPTO_KEY_SERVER")
 	cfgServer := os.Getenv("CONFIG_SERVER")
+	trustedSubnet := os.Getenv("TRUSTED_SUBNET")
 
 	_, path, _, isok := runtime.Caller(0)
 	Root := filepath.Join(filepath.Dir(path), "../..")
@@ -455,6 +460,10 @@ func setInitParams(params *bizmodels.InitParams) error {
 
 	if envRA != "" {
 		params.PORT = envRA
+	}
+
+	if trustedSubnet != "" {
+		params.TrustedSubnet = trustedSubnet
 	}
 
 	if envSI != "" {
@@ -480,6 +489,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 	return nil
 }
 
+//nolint:cyclop
 func getParamsFromCFG(
 	par *bizmodels.InitParams,
 ) error {
@@ -517,6 +527,10 @@ func getParamsFromCFG(
 
 	if par.PORT == "" {
 		par.PORT = cfg.PORT
+	}
+
+	if par.TrustedSubnet == "" {
+		par.TrustedSubnet = cfg.TrustedSubnet
 	}
 
 	if !par.Restore {

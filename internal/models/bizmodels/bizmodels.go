@@ -113,6 +113,7 @@ type InitParams struct {
 	DatabaseDSN          string
 	Key                  string
 	CryptoPrivateKeyPath string
+	TrustedSubnet        string
 	StoreInterval        int
 	Restore              bool
 	WaitSecRespDB        time.Duration
@@ -136,12 +137,13 @@ type InitParamsAgent struct {
 
 // EndpointSettings - store endpoint configuration.
 type EndpointSettings struct {
-	SendData    *bytes.Reader
-	Client      *http.Client
-	URL         string
-	Hash        string
-	Encoding    string
-	ContentType string
+	SendData     *bytes.Reader
+	Client       *http.Client
+	URL          string
+	Hash         string
+	Encoding     string
+	ContentType  string
+	RealIPHeader string
 }
 
 // JobData - store data for the worker.
