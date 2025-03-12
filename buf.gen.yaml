@@ -1,0 +1,35 @@
+version: v1
+
+plugins:
+  # Generates files .pb.go
+  - name: go
+    path: ./bin/protoc-gen-go
+    out: ./pkg
+    opt:
+    - paths=source_relative
+
+  # Generates files _grpc.pb.go
+  - name: go-grpc
+    path: ./bin/protoc-gen-go-grpc
+    out: ./pkg
+    opt:
+    - paths=source_relative
+
+  # Generates files .pb.gw.go
+  - name: grpc-gateway
+    path: ./bin/protoc-gen-grpc-gateway
+    out: ./pkg
+    opt:
+    - paths=source_relative
+
+  # Generates files .swagger.json
+  - name: openapiv2
+    path: ./bin/protoc-gen-openapiv2
+    out: ./pkg
+
+  # Generates one common file .swagger.json
+  - name: openapiv2
+    path: ./bin/protoc-gen-openapiv2
+    out: ./docs
+    opt:
+    - allow_merge=true

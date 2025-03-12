@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package microservice.v1;
+
+option go_package = "github.com/dmitrovia/collector-metrics/pkg/microservice/v1";
+
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "buf/validate/validate.proto";
+import "google/protobuf/wrappers.proto";
+
+message Metric {
+    string id = 1;
+    string mtype = 2;
+    int64 delta = 3;
+    double value = 4;
+}
+
+message SenderRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "A bit of everything"
+      description: "Intentionaly complicated message type to cover many features of Protobuf."
+      required: ["id", "mtype"]
+    }
+    external_docs: {
+      url: "https://github.com/grpc-ecosystem/grpc-gateway";
+      description: "Find out more about ABitOfEverything";
+    }
+    example: "{\"id\": \"tcounter555\",\"mtype\": \"counter\",\"value\": \"444\"}"
+  };
+
+  repeated Metric metric = 1;
+}
+
+message SenderResponse {
+    repeated Metric metric = 1;
+}

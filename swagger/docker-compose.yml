@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  swagger-editor:
+    image: swaggerapi/swagger-editor
+    container_name: "swagger-editor-container"
+    ports:
+      - "8085:8080"
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: "swagger-ui-container"
+    ports:
+      - "8086:8080"
+  volumes:
+    - ../pkg/microservice/v1/apidocs.swagger.json:/v1.swagger.json
+  environment:
+    SWAGGER_JSON: /v1.swagger.json
+    URLS: "[{ url: 'v1.swagger.json', name: 'API Version 1.0'}]"
+#docker compose up -d
