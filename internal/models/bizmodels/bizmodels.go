@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	pb "github.com/dmitrovia/collector-metrics/pkg/microservice/v1"
+	"google.golang.org/grpc"
 )
 
 const GaugeName string = "gauge"
@@ -126,6 +129,7 @@ type InitParamsAgent struct {
 	PORT                string
 	Key                 string
 	CryptoPublicKeyPath string
+	UpdateURL           string
 	ReportInterval      int
 	PollInterval        int
 	ReqInternal         int
@@ -133,17 +137,21 @@ type InitParamsAgent struct {
 	CountReqRetries     int
 	RateLimit           int
 	RepeatedReq         bool
+	UseGRPC             bool
 }
 
 // EndpointSettings - store endpoint configuration.
 type EndpointSettings struct {
-	SendData     *bytes.Reader
-	Client       *http.Client
-	URL          string
-	Hash         string
-	Encoding     string
-	ContentType  string
-	RealIPHeader string
+	SendData           *bytes.Reader
+	Client             *http.Client
+	ConnGRPC           *grpc.ClientConn
+	MicroServiceClient pb.MicroServiceClient
+	URL                string
+	Hash               string
+	Encoding           string
+	ContentType        string
+	RealIPHeader       string
+	MetricsGRPC        *[]byte
 }
 
 // JobData - store data for the worker.

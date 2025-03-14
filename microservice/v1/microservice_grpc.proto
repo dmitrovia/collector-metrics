@@ -37,8 +37,8 @@ service MicroService {
     };
 
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-        summary: "Get metrics.";
-        operation_id: "getMetrics";
+        summary: "Set metrics.";
+        operation_id: "setMetrics";
         tags: "echo";
         responses: {
             key: "200"

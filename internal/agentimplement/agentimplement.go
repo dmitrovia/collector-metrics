@@ -29,9 +29,12 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
+	pb "github.com/dmitrovia/collector-metrics/pkg/microservice/v1"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const zapLogLevel = "info"
@@ -236,6 +239,25 @@ func getSettings(client *http.Client,
 	settings.Encoding = "gzip"
 	settings.URL = par.URL + "/updates/"
 
+	if par.UpdateURL != "" {
+		settings.URL = par.UpdateURL
+	}
+
+	if par.UseGRPC {
+		conn, err1 := grpc.NewClient(
+			"localhost:50051",
+			grpc.WithTransportCredentials(
+				(insecure.NewCredentials())))
+		if err1 != nil {
+			return nil, fmt.Errorf("getSettings->NewClient: %w",
+				err1)
+		}
+
+		settings.ConnGRPC = conn
+		settings.
+			MicroServiceClient = pb.NewMicroServiceClient(conn)
+	}
+
 	ips, err := ip.GetLocalIPs()
 	if err != nil {
 		return nil, fmt.Errorf("getSettings->GetLocalIPs: %w",
@@ -271,8 +293,19 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	sInterval := par.StartReqInterval
 
 	for iter := 1; iter <= par.CountReqRetries; iter++ {
-		resp, err := sendmetricsjsonendpoint.SendMJSONEndpoint(
-			settings)
+		var resp *http.Response
+
+		var err error
+
+		if par.UseGRPC {
+			_,
+				err = sendmetricsjsonendpoint.SendMJSONEndpointGRPC(
+				settings)
+		} else {
+			resp, err = sendmetricsjsonendpoint.SendMJSONEndpoint(
+				settings)
+		}
+
 		if err != nil {
 			par.RepeatedReq = true
 
@@ -287,6 +320,8 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 		}
 
 		_, err = parseResponse(resp)
+		resp.Body.Close()
+
 		if err != nil {
 			par.RepeatedReq = true
 
@@ -351,6 +386,8 @@ func initReqData(gauges *[]bizmodels.Gauge,
 		settings.Hash = encodedStr
 	}
 
+	settings.MetricsGRPC = encr
+
 	return bytes.NewReader(*encr), nil
 }
 
@@ -358,8 +395,6 @@ func initReqData(gauges *[]bizmodels.Gauge,
 func parseResponse(
 	response *http.Response,
 ) (*[]byte, error) {
-	defer response.Body.Close()
-
 	if response.StatusCode == http.StatusOK {
 		out, err := compress.DeflateDecompress(response.Body)
 		if err != nil {
@@ -568,6 +603,11 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	flag.StringVar(&params.CryptoPublicKeyPath,
 		"crypto-key", defCryptoKeyPath,
 		"asymmetric encryption public key.")
+	flag.StringVar(&params.UpdateURL,
+		"update-url", "",
+		"update url.")
+	flag.BoolVar(&params.UseGRPC,
+		"use-grpc", false, "use grpc")
 	flag.Parse()
 
 	res, err := validate.IsMatchesTemplate(params.PORT,

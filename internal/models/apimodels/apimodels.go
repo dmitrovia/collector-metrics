@@ -11,6 +11,10 @@ type Metrics struct {
 
 type ArrMetrics []Metrics
 
+type GprcMetrics struct {
+	Metrics *[]byte `json:"metrics"`
+}
+
 type CfgServer struct {
 	PORT                 string `json:"address"`
 	FileStoragePath      string `json:"storeFile"`

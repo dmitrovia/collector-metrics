@@ -30,8 +30,8 @@
   "paths": {
     "/v1/updates": {
       "post": {
-        "summary": "Get metrics.",
-        "operationId": "getMetrics",
+        "summary": "Set metrics.",
+        "operationId": "setMetrics",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -92,25 +92,6 @@
         }
       }
     },
-    "v1Metric": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "mtype": {
-          "type": "string"
-        },
-        "delta": {
-          "type": "string",
-          "format": "int64"
-        },
-        "value": {
-          "type": "number",
-          "format": "double"
-        }
-      }
-    },
     "v1SenderRequest": {
       "type": "object",
       "example": {
@@ -119,12 +100,9 @@
         "value": "444"
       },
       "properties": {
-        "metric": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1Metric"
-          }
+        "metrics": {
+          "type": "string",
+          "format": "byte"
         }
       },
       "description": "Intentionaly complicated message type to cover many features of Protobuf.",
@@ -141,12 +119,9 @@
     "v1SenderResponse": {
       "type": "object",
       "properties": {
-        "metric": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/v1Metric"
-          }
+        "metrics": {
+          "type": "string",
+          "format": "byte"
         }
       }
     }

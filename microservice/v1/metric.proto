@@ -5,15 +5,8 @@ package microservice.v1;
 option go_package = "github.com/dmitrovia/collector-metrics/pkg/microservice/v1";
 
 import "protoc-gen-openapiv2/options/annotations.proto";
-import "buf/validate/validate.proto";
-import "google/protobuf/wrappers.proto";
-
-message Metric {
-    string id = 1;
-    string mtype = 2;
-    int64 delta = 3;
-    double value = 4;
-}
+//import "buf/validate/validate.proto";
+//import "google/protobuf/wrappers.proto";
 
 message SenderRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
@@ -29,9 +22,9 @@ message SenderRequest {
     example: "{\"id\": \"tcounter555\",\"mtype\": \"counter\",\"value\": \"444\"}"
   };
 
-  repeated Metric metric = 1;
+  bytes metrics = 1;
 }
 
 message SenderResponse {
-    repeated Metric metric = 1;
+  bytes metrics = 1;
 }

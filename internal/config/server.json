@@ -3,7 +3,7 @@
     "restore": true,
     "storeInterval": 300,
     "storeFile": "/internal/temp/metrics.json",
-    "databaseDsn": "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable",
+    "databaseDsn": "postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable",
     "cryptoKey": "/internal/asymcrypto/keys/private.pem",
     "keySha" : "",
     "trustedSubnet" : "0.0.0.0/0"
