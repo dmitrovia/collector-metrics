@@ -29,3 +29,6 @@ docker/docker-compose.yml
 
 # pem
 *.pem
+
+# bin
+bin
