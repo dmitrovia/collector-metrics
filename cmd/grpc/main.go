@@ -8,6 +8,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/dmitrovia/collector-metrics/internal/Interceptors/decompressinterceptor"
+	"github.com/dmitrovia/collector-metrics/internal/Interceptors/decryptinterceptor"
 	"github.com/dmitrovia/collector-metrics/internal/grpcimplement"
 	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
@@ -32,7 +34,15 @@ func main() {
 	server := &http.Server{}
 	params := &bizmodels.InitParams{}
 	waitGroup := &sync.WaitGroup{}
-	grpcServer := grpc.NewServer()
+
+	interceptors := make([]grpc.ServerOption, 0)
+
+	interceptors = append(interceptors,
+		grpc.ChainUnaryInterceptor(
+			decryptinterceptor.DecryptInterceptor(params),
+			decompressinterceptor.DecompressInterceptor(),
+		))
+	grpcServer := grpc.NewServer(interceptors...)
 
 	zlog, err := si.Initiate(params)
 	if err != nil {

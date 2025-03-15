@@ -35,6 +35,7 @@ on:
       - iter12
       - iter13
       - iter14
+      - iter25
 
 jobs:
   build:

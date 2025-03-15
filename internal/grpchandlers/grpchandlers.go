@@ -36,15 +36,13 @@ func (s *MicroserviceServer) Sender(
 
 	metad, _ := metadata.FromIncomingContext(ctx)
 
-	fmt.Println(req.GetMetrics())
-	fmt.Println(metad)
-
 	err := getReqData(req, &metad, s.Params, s.Serv)
 	if err != nil {
 		fmt.Println("SetMetricsJSONHandler->getReqData: %w",
 			err)
 
-		return nil, status.Errorf(codes.Unknown, "Ошибка")
+		return nil, status.Errorf(codes.Unknown,
+			"SetMetricsJSONHandler->getReqData")
 	}
 
 	err = writeResp(s.Serv, response)
@@ -52,7 +50,8 @@ func (s *MicroserviceServer) Sender(
 		fmt.Println("SetMetricsJSONHandler->writeResp: %w",
 			err)
 
-		return nil, status.Errorf(codes.Unknown, "Ошибка")
+		return nil, status.Errorf(codes.Unknown,
+			"SetMetricsJSONHandler->writeResp")
 	}
 
 	return nil, status.Errorf(codes.OK, "Success")
@@ -71,8 +70,6 @@ func writeResp(
 		return fmt.Errorf("writeResp->GetAllMetricsAPI: %w",
 			err)
 	}
-
-	fmt.Println("123")
 
 	marshal, err := json.Marshal(arr)
 	if err != nil {

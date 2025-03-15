@@ -1,4 +1,4 @@
-package decrypt
+package decryptinterceptor
 
 import (
 	"context"
@@ -22,12 +22,14 @@ func DecryptInterceptor(
 	) (any, error) {
 		key, err := os.ReadFile(params.CryptoPrivateKeyPath)
 		if err != nil {
-			return nil, status.Errorf(codes.Unknown, "Ошибка")
+			return nil, status.Errorf(codes.Unknown,
+				"DecryptInterceptor->ReadFile")
 		}
 
-		reqType, ok := req.(*pb.SenderResponse)
+		reqType, ok := req.(*pb.SenderRequest)
 		if !ok {
-			return nil, status.Errorf(codes.Unknown, "Ошибка")
+			return nil, status.Errorf(codes.Unknown,
+				"DecryptInterceptor->Cast")
 		}
 
 		decr, err := asymcrypto.Decrypt(&reqType.Metrics, &key)

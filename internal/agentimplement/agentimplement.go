@@ -319,8 +319,10 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 			continue
 		}
 
-		_, err = parseResponse(resp)
-		resp.Body.Close()
+		if !par.UseGRPC {
+			_, err = parseResponse(resp)
+			resp.Body.Close()
+		}
 
 		if err != nil {
 			par.RepeatedReq = true
