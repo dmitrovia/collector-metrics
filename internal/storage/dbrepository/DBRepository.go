@@ -44,14 +44,14 @@ func (m *DBepository) AddMetrics(
 	for _, gauge := range gauges {
 		err := m.AddGauge(ctx, &gauge)
 		if err != nil {
-			return fmt.Errorf("AddMetrics->m.AddGauge %w", err)
+			return fmt.Errorf("AddMetrics->m.AddGauge: %w", err)
 		}
 	}
 
 	for _, counter := range counters {
 		_, err := m.AddCounter(ctx, &counter, false)
 		if err != nil {
-			return fmt.Errorf("AddMetrics->m.AddCounter %w", err)
+			return fmt.Errorf("AddMetrics->m.AddCounter: %w", err)
 		}
 	}
 
@@ -64,14 +64,12 @@ func (m *DBepository) GetAllMetricsAPI(
 ) (*apimodels.ArrMetrics, error) {
 	arr1, err := m.GetAllGaugesAPI(ctx)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"GetAllMetricsAPI->m.GetAllGaugesAPI %w", err)
+		return nil, fmt.Errorf("GAllMetricsAPI->m.GAPI: %w", err)
 	}
 
 	arr2, err := m.GetAllCountersAPI(ctx)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"GetAllMetricsAPI->m.GetAllCountersAPI %w", err)
+		return nil, fmt.Errorf("GAllMetricsAPI->m.CAPI: %w", err)
 	}
 
 	result := make(apimodels.ArrMetrics, 0)
@@ -98,8 +96,7 @@ func (m *DBepository) GetAllGaugesAPI(
 		*ctx,
 		"select name, value from gauges")
 	if err != nil {
-		return nil, fmt.Errorf("GetAllGaugesAPI->m.conn.Query %w",
-			err)
+		return nil, fmt.Errorf("GetAllGAPI->m.conn.Q: %w", err)
 	}
 
 	defer rows.Close()
@@ -139,9 +136,7 @@ func (m *DBepository) GetAllCountersAPI(
 		*ctx,
 		"select name, value from counters")
 	if err != nil {
-		return nil, fmt.Errorf(
-			"GetAllCountersAPI->m.conn.Query %w",
-			err)
+		return nil, fmt.Errorf("GetAllCAPI->m.conn.Q: %w", err)
 	}
 
 	defer rows.Close()
@@ -180,8 +175,7 @@ func (m *DBepository) GetAllGauges(ctx *context.Context) (
 		*ctx,
 		"select name, value from gauges")
 	if err != nil {
-		return nil, fmt.Errorf("GetAllGauges->m.conn.Query %w",
-			err)
+		return nil, fmt.Errorf("GetAllGauges->m.conn.Q: %w", err)
 	}
 
 	defer rows.Close()
@@ -219,8 +213,7 @@ func (m *DBepository) GetAllCounters(ctx *context.Context) (
 		*ctx,
 		"select name, value from counters")
 	if err != nil {
-		return nil, fmt.Errorf("GetAllCounters->m.conn.Query %w",
-			err)
+		return nil, fmt.Errorf("GetAllCounters->m.CQ: %w", err)
 	}
 
 	defer rows.Close()
@@ -259,8 +252,7 @@ func (m *DBepository) GetGaugeMetric(
 		"select name, value from gauges where name=$1",
 		name).Scan(&nameMetric, &value)
 	if err != nil {
-		return nil, fmt.Errorf("GetGaugeMetric->QueryRow %w",
-			err)
+		return nil, fmt.Errorf("GetGaugeMetric->QR: %w", err)
 	}
 
 	temp.Name = nameMetric
@@ -289,8 +281,7 @@ func (m *DBepository) GetCounterMetric(
 		name).Scan(&nameMetric, &value)
 	if err != nil {
 		return nil,
-			fmt.Errorf("GetGaugeMetric->m.conn.QueryRow %w",
-				err)
+			fmt.Errorf("GetGaugeMetric->m.conn.QueryRow: %w", err)
 	}
 
 	temp.Name = nameMetric
@@ -314,7 +305,7 @@ func (m *DBepository) AddGauge(
 		gauge.Value,
 		gauge.Name)
 	if err != nil {
-		return fmt.Errorf("AddGauge->m.conn.Exec( %w", err)
+		return fmt.Errorf("AddGauge->m.conn.Exec: %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
@@ -355,8 +346,7 @@ func (m *DBepository) AddCounter(
 		counter.Name)
 	if err != nil {
 		return nil,
-			fmt.Errorf("AddCounter->UPDATE counters SET: %w",
-				err)
+			fmt.Errorf("AddCounter->UPDATE counters SET: %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
@@ -367,8 +357,7 @@ func (m *DBepository) AddCounter(
 			counter.Value)
 		if err != nil {
 			return nil,
-				fmt.Errorf("AddCounter->INSERT INTO error: %w",
-					err)
+				fmt.Errorf("AddCounter->INSERT INTO error: %w", err)
 		}
 
 		return counter, nil
@@ -377,8 +366,7 @@ func (m *DBepository) AddCounter(
 	temp, err := m.GetCounterMetric(ctx, counter.Name)
 	if err != nil {
 		return nil,
-			fmt.Errorf("AddCounter->m.GetCounterMetric %w",
-				err)
+			fmt.Errorf("AddCounter->m.GetCounterMetric %w", err)
 	}
 
 	return temp, nil

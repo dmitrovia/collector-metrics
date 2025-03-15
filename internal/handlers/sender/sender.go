@@ -73,33 +73,19 @@ func writeResp(
 ) error {
 	arr, err := handler.serv.GetAllMetricsAPI()
 	if err != nil {
-		return fmt.Errorf("writeResp->GetAllMetricsAPI: %w",
-			err)
+		return fmt.Errorf("writeResp->GetAllMetricsAPI: %w", err)
 	}
 
 	marshal, err := json.Marshal(arr)
 	if err != nil {
-		return fmt.Errorf("writeResp->Marshal: %w",
-			err)
+		return fmt.Errorf("writeResp->Marshal: %w", err)
 	}
-
-	/*if handler.params.Key != "" {
-		tHash, err1 := hash.MakeHashSHA256(&marshal,
-			handler.params.Key)
-		if err1 != nil {
-			return fmt.Errorf("writeResp->MakeHashSHA256: %w",
-				err1)
-		}
-
-		writer.Header().Set("Hashsha256", string(tHash))
-	}*/
 
 	writer.WriteHeader(http.StatusOK)
 
 	_, err = writer.Write(marshal)
 	if err != nil {
-		return fmt.Errorf("writeResp->Write: %w",
-			err)
+		return fmt.Errorf("writeResp->Write: %w", err)
 	}
 
 	return nil
@@ -129,14 +115,12 @@ func getReqData(
 	err = checkHash(&bodyD,
 		req.Header.Get("Hashsha256"), handler.params.Key)
 	if err != nil {
-		return fmt.Errorf("getReqData->checkHash: %w",
-			err)
+		return fmt.Errorf("getReqData->checkHash: %w", err)
 	}
 
 	err = json.Unmarshal(bodyD, &results)
 	if err != nil {
-		return fmt.Errorf("getReqData->json.Unmarshal: %w",
-			err)
+		return fmt.Errorf("getReqData->json.Unmarshal: %w", err)
 	}
 
 	for _, res := range results {
@@ -165,14 +149,12 @@ func checkHash(dataReq *[]byte,
 	tHash, err := hash.MakeHashSHA256(dataReq,
 		key)
 	if err != nil {
-		return fmt.Errorf("checkHash->MakeHashSHA256: %w",
-			err)
+		return fmt.Errorf("checkHash->MakeHashSHA256: %w", err)
 	}
 
 	decoded, err := hex.DecodeString(hashReq)
 	if err != nil {
-		return fmt.Errorf("checkHash->DecodeString: %w",
-			err)
+		return fmt.Errorf("checkHash->DecodeString: %w", err)
 	}
 
 	if !hmac.Equal(tHash, decoded) {
@@ -190,15 +172,13 @@ func addValidMetric(res *apimodels.Metrics,
 	if res.MType == bizmodels.GaugeName {
 		err := handler.serv.AddGauge(res.ID, *res.Value)
 		if err != nil {
-			return fmt.Errorf("addValidMetric->AddGauge: %w",
-				err)
+			return fmt.Errorf("addValidMetric->AddGauge: %w", err)
 		}
 	} else if res.MType == bizmodels.CounterName {
 		_, err := handler.serv.AddCounter(res.ID, *res.Delta,
 			false)
 		if err != nil {
-			return fmt.Errorf("addValidMetric->AddCounter: %w",
-				err)
+			return fmt.Errorf("addValidMetric->AddCounter: %w", err)
 		}
 	}
 

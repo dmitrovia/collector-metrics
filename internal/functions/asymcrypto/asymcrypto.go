@@ -17,8 +17,7 @@ func Encrypt(data *[]byte, key *[]byte) (*[]byte, error) {
 	publicKey, err := x509.ParsePKIXPublicKey(
 		publicKeyBlock.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Encrypt->ParsePKIXPublicKey: %w", err)
+		return nil, fmt.Errorf("Encrypt->ParsePKIXPub: %w", err)
 	}
 
 	rsakey, ok := publicKey.(*rsa.PublicKey)
@@ -31,8 +30,7 @@ func Encrypt(data *[]byte, key *[]byte) (*[]byte, error) {
 		rsakey,
 		*data)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Encrypt->EncryptPKCS1v15: %w", err)
+		return nil, fmt.Errorf("Encrypt->EncryptPKCS: %w", err)
 	}
 
 	return &enc, nil
@@ -44,8 +42,7 @@ func Decrypt(data *[]byte, key *[]byte) (*[]byte, error) {
 	privateKey, err := x509.ParsePKCS1PrivateKey(
 		privateKeyBlock.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Decrypt->ParsePKCS1PrivateKey: %w", err)
+		return nil, fmt.Errorf("Decrypt->ParsePKCS1Priv: %w", err)
 	}
 
 	dec, err := rsa.DecryptPKCS1v15(
@@ -53,8 +50,7 @@ func Decrypt(data *[]byte, key *[]byte) (*[]byte, error) {
 		privateKey,
 		*data)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Decrypt->DecryptPKCS1v15: %w", err)
+		return nil, fmt.Errorf("Decrypt->DecryptPKCS1: %w", err)
 	}
 
 	return &dec, nil

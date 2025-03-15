@@ -16,8 +16,7 @@ func LoadConfigServer(
 ) (*apimodels.CfgServer, error) {
 	file, err := os.OpenFile(pth, os.O_RDONLY|os.O_EXCL, fmd)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"LoadConfigServer->os.OpenFile: %w", err)
+		return nil, fmt.Errorf("LoadConfigServer->OF: %w", err)
 	}
 
 	defer file.Close()
@@ -28,8 +27,7 @@ func LoadConfigServer(
 
 	err = json.Unmarshal(byteValue, &params)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"LoadConfigServer->Unmarshal: %w", err)
+		return nil, fmt.Errorf("LoadConfigServer->Unma: %w", err)
 	}
 
 	return params, nil
@@ -40,8 +38,7 @@ func LoadConfigAgent(
 ) (*apimodels.CfgAgent, error) {
 	file, err := os.OpenFile(pth, os.O_RDONLY|os.O_EXCL, fmd)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"LoadConfigAgent->os.OpenFile: %w", err)
+		return nil, fmt.Errorf("LoadConfigAgent->OF: %w", err)
 	}
 
 	defer file.Close()
@@ -52,8 +49,7 @@ func LoadConfigAgent(
 
 	err = json.Unmarshal(byteValue, &params)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"LoadConfigAgent->Unmarshal: %w", err)
+		return nil, fmt.Errorf("LoadConfigAgent->Unma: %w", err)
 	}
 
 	return params, nil

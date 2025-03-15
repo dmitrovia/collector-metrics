@@ -37,14 +37,12 @@ func GeneratePair() error {
 
 	err = os.WriteFile(privateFN, privateKeyPEM, fmd)
 	if err != nil {
-		return fmt.Errorf(
-			"generatePair->WriteFile->private: %w", err)
+		return fmt.Errorf("generatePair->WriteFile->pri: %w", err)
 	}
 
 	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
 	if err != nil {
-		return fmt.Errorf(
-			"generatePair->MarshalPKIXPublicKey: %w", err)
+		return fmt.Errorf("generatePair->MarshalPKIXPub: %w", err)
 	}
 
 	publicKeyPEM := pem.EncodeToMemory(&pem.Block{
@@ -54,8 +52,7 @@ func GeneratePair() error {
 
 	err = os.WriteFile(publicFN, publicKeyPEM, fmd)
 	if err != nil {
-		return fmt.Errorf(
-			"generatePair->WriteFile-public: %w", err)
+		return fmt.Errorf("generatePair->WriteFile-publ: %w", err)
 	}
 
 	return nil

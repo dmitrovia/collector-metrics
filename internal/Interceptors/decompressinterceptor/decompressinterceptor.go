@@ -11,6 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const cun = codes.Unknown
+
 func DecompressInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context,
 		req any,
@@ -19,16 +21,14 @@ func DecompressInterceptor() grpc.UnaryServerInterceptor {
 	) (any, error) {
 		reqType, ok := req.(*pb.SenderRequest)
 		if !ok {
-			return nil, status.Errorf(codes.Unknown,
-				"DecryptInterceptor->Cast")
+			return nil, status.Errorf(cun, "DecryptInterceptor->Ca")
 		}
 
 		r := bytes.NewReader(reqType.GetMetrics())
 
 		decompress, err := compress.DeflateDecompress(r)
 		if err != nil {
-			return nil, status.Errorf(codes.Unknown,
-				"DecryptInterceptor->DeflateDecompress")
+			return nil, status.Errorf(cun, "DecryptInterceptor->De")
 		}
 
 		reqType.Metrics = decompress

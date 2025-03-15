@@ -140,21 +140,19 @@ func UseMigrations(par *bizmodels.InitParams) error {
 	migrator, err := migrator.MustGetNewMigrator(
 		MigrationsFS, migrationsDir)
 	if err != nil {
-		return fmt.Errorf("useMigrations->MustGetNewMigrator %w",
-			err)
+		return fmt.Errorf("useMigrations->MustGetNewMi: %w", err)
 	}
 
 	conn, err := sql.Open("postgres", par.DatabaseDSN)
 	if err != nil {
-		return fmt.Errorf("useMigrations->sql.Open %w", err)
+		return fmt.Errorf("useMigrations->sql.Open: %w", err)
 	}
 
 	defer conn.Close()
 
 	err = migrator.ApplyMigrations(conn)
 	if err != nil {
-		return fmt.Errorf("useMigrations->ApplyMigrations %w",
-			err)
+		return fmt.Errorf("useMigrations->ApplyMigra: %w", err)
 	}
 
 	return nil
@@ -169,8 +167,7 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
-		return fmt.Errorf("setHandlerParams->runtime.Caller( %w",
-			errPath)
+		return fmt.Errorf("setHandlerParams->Caller: %w", errPath)
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../../../")
@@ -182,6 +179,7 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	params.Restore = true
 	params.ValidateAddrPattern = ""
 	params.WaitSecRespDB = 10 * time.Second
+	params.TrustedSubnet = "0.0.0.0/0"
 
 	return nil
 }
@@ -195,7 +193,7 @@ func initiate(
 ) error {
 	err := setHandlerParams(params)
 	if err != nil {
-		return fmt.Errorf("initiate->setHandlerParams %w", err)
+		return fmt.Errorf("initiate->setHandlerParams: %w", err)
 	}
 
 	storage := &dbrepository.DBepository{}
@@ -216,7 +214,7 @@ func initiate(
 
 	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
 	if err != nil {
-		return fmt.Errorf("initiate->pgxpool.New %w", err)
+		return fmt.Errorf("initiate->pgxpool.New: %w", err)
 	}
 
 	if isMemRepo {
@@ -359,15 +357,13 @@ func initReqData(params *bizmodels.InitParams,
 	metricCompress, err := compress.DeflateCompress(
 		metricMarshall)
 	if err != nil {
-		return nil, fmt.Errorf("initReqData->DeflateCompress: %w",
-			err)
+		return nil, fmt.Errorf("initReqData->DeflateCom: %w", err)
 	}
 
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
-		return nil, fmt.Errorf("initReqData->Caller: %w",
-			err)
+		return nil, fmt.Errorf("initReqData->Caller: %w", err)
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../../../")
@@ -376,22 +372,19 @@ func initReqData(params *bizmodels.InitParams,
 
 	key, err := os.ReadFile(pathPubicKey)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"initReqData->ReadFile: %w", err)
+		return nil, fmt.Errorf("initReqData->ReadFile: %w", err)
 	}
 
 	encr, err := asymcrypto.Encrypt(&metricCompress, &key)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"initReqData->Encrypt: %w", err)
+		return nil, fmt.Errorf("initReqData->Encrypt: %w", err)
 	}
 
 	if params.Key != "" {
 		tHash, err := hash.MakeHashSHA256(&metricMarshall,
 			testD.key)
 		if err != nil {
-			return nil, fmt.Errorf("initReqData->MakeHashSHA256: %w",
-				err)
+			return nil, fmt.Errorf("initReqData->MakeHash: %w", err)
 		}
 
 		encodedStr := hex.EncodeToString(tHash)

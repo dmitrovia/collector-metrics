@@ -97,8 +97,7 @@ func InitStorage(
 		dbConn, err := pgxpool.New(ctx, par.DatabaseDSN)
 		if err != nil {
 			return nil, nil,
-				fmt.Errorf("initStorage->pgx.Connect %w",
-					err)
+				fmt.Errorf("initStorage->pgx.Connect: %w", err)
 		}
 
 		DBStorage.Initiate(par.DatabaseDSN, dbConn)
@@ -123,21 +122,19 @@ func UseMigrations(par *bizmodels.InitParams) error {
 	migrator, err := migrator.MustGetNewMigrator(
 		MigrationsFS, migrationsDir)
 	if err != nil {
-		return fmt.Errorf("useMigrations->MustGetNewMigrator %w",
-			err)
+		return fmt.Errorf("useMigrations->MustGetNewMig: %w", err)
 	}
 
 	conn, err := sql.Open("postgres", par.DatabaseDSN)
 	if err != nil {
-		return fmt.Errorf("useMigrations->sql.Open %w", err)
+		return fmt.Errorf("useMigrations->sql.Open: %w", err)
 	}
 
 	defer conn.Close()
 
 	err = migrator.ApplyMigrations(conn)
 	if err != nil {
-		return fmt.Errorf("useMigrations->ApplyMigrations %w",
-			err)
+		return fmt.Errorf("useMigrations->ApplyMigr: %w", err)
 	}
 
 	return nil
@@ -207,20 +204,17 @@ func Initiate(
 ) (*zap.Logger, error) {
 	err := initiateFlags(par)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"initiate->initiateFlags %w", err)
+		return nil, fmt.Errorf("initiate->initiateFlags: %w", err)
 	}
 
 	err = getParamsFromCFG(par)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"initiate->getParamsFromCFG %w", err)
+		return nil, fmt.Errorf("initiate->getParams: %w", err)
 	}
 
 	zlog, err := logger.Initialize(zapLogLevel)
 	if err != nil {
-		return nil, fmt.Errorf("initiate->logger.Initialize %w",
-			err)
+		return nil, fmt.Errorf("initiate->logger.In: %w", err)
 	}
 
 	err = setInitParamsFileStorage(par)
@@ -244,8 +238,7 @@ func initiateFlags(par *bizmodels.InitParams) error {
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
-		return fmt.Errorf("setInitParams->runtime.Caller( %w",
-			errPath)
+		return fmt.Errorf("setInitParams->RC: %w", errPath)
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../..")
@@ -469,7 +462,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 	if envSI != "" {
 		value, err := strconv.Atoi(envSI)
 		if err != nil {
-			return fmt.Errorf("setInitParams->Atoi %w", err)
+			return fmt.Errorf("setInitParams->Atoi: %w", err)
 		}
 
 		params.StoreInterval = value
@@ -478,8 +471,7 @@ func setInitParams(params *bizmodels.InitParams) error {
 	res, err := validate.IsMatchesTemplate(
 		params.PORT, params.ValidateAddrPattern)
 	if err != nil {
-		return fmt.Errorf("setInitParams->IsMatchesTemplate: %w",
-			err)
+		return fmt.Errorf("setInitParams->IsMatchesTemp: %w", err)
 	}
 
 	if !res {
@@ -496,15 +488,13 @@ func getParamsFromCFG(
 	cfg, err := config.LoadConfigServer(par.ConfigPath)
 	if err != nil {
 		return fmt.Errorf(
-			"getParamsFromCFG->LoadConfigServer: %w",
-			err)
+			"getParamsFromCFG->LoadConfigServer: %w", err)
 	}
 
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
-		return fmt.Errorf("setInitParams->runtime.Caller( %w",
-			errPath)
+		return fmt.Errorf("setInitParams->RC: %w", errPath)
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../..")

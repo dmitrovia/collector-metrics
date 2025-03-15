@@ -9,9 +9,7 @@ import (
 func GetLocalIPs() ([]string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return nil, fmt.Errorf(
-			"GetLocalAddresses->GetLocalIPs: %w",
-			err)
+		return nil, fmt.Errorf("GetLocalAddresse->GetIP: %w", err)
 	}
 
 	ladrrs := make([]string, 0)
@@ -38,16 +36,12 @@ func ContainsIPInSubnet(ipin string,
 ) (bool, error) {
 	network, err := netip.ParsePrefix(subnet)
 	if err != nil {
-		return false, fmt.Errorf(
-			"IpContainsInSubnet->ParsePrefix: %w",
-			err)
+		return false, fmt.Errorf("IpContainsInSubne->Pr: %w", err)
 	}
 
 	ipt, err := netip.ParseAddr(ipin)
 	if err != nil {
-		return false, fmt.Errorf(
-			"IpContainsInSubnet->ParseAddr: %w",
-			err)
+		return false, fmt.Errorf("IpContainsInSubne->Ad: %w", err)
 	}
 
 	return network.Contains(ipt), nil

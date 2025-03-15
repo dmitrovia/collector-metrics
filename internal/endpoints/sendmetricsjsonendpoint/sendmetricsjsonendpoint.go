@@ -28,9 +28,7 @@ func SendMJSONEndpoint(
 		ctx, http.MethodPost, epSettings.URL, epSettings.SendData)
 	if err != nil {
 		return nil,
-			fmt.Errorf(
-				"SendMJSONEndpoint->http.NewRequestWithContext: %w",
-				err)
+			fmt.Errorf("SendMJSONEndpoint->http.NewReq: %w", err)
 	}
 
 	req.Header.Set("X-Real-IP", epSettings.RealIPHeader)
@@ -44,9 +42,7 @@ func SendMJSONEndpoint(
 
 	resp, err := epSettings.Client.Do(req)
 	if err != nil {
-		return nil,
-			fmt.Errorf("SendMJSONEndpoint->client.Do: %w",
-				err)
+		return nil, fmt.Errorf("SendMJSONEndpoint->Do: %w", err)
 	}
 
 	return resp, nil
@@ -83,9 +79,7 @@ func SendMJSONEndpointGRPC(
 			Metrics: *epSettings.MetricsGRPC,
 		})
 	if err != nil {
-		return nil,
-			fmt.Errorf("SendMJSONEndpointGRPC->Sender: %w",
-				err)
+		return nil, fmt.Errorf("SendMJSONEndGRPC->Sende: %w", err)
 	}
 
 	return resp, nil

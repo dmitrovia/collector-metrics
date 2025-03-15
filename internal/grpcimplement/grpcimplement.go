@@ -73,9 +73,7 @@ func InitiateServer(
 		mux,
 		hand)
 	if err != nil {
-		return fmt.Errorf(
-			"InitiateServer->RegisterMicroServiceHandlerServer %w",
-			err)
+		return fmt.Errorf("InitiateServer->Register: %w", err)
 	}
 
 	*server = http.Server{
@@ -96,7 +94,7 @@ func InitiateServer(
 
 	err = serverimplement.UseMigrations(par)
 	if err != nil {
-		return fmt.Errorf("InitiateServer->UseMigrations %w", err)
+		return fmt.Errorf("InitiateServer->UseMigration: %w", err)
 	}
 
 	return nil

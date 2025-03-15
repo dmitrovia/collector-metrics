@@ -12,6 +12,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const cun = codes.Unknown
+
 func DecryptInterceptor(
 	params *bizmodels.InitParams,
 ) grpc.UnaryServerInterceptor {
@@ -22,14 +24,12 @@ func DecryptInterceptor(
 	) (any, error) {
 		key, err := os.ReadFile(params.CryptoPrivateKeyPath)
 		if err != nil {
-			return nil, status.Errorf(codes.Unknown,
-				"DecryptInterceptor->ReadFile")
+			return nil, status.Errorf(cun, "DecryptInterceptor->RF")
 		}
 
 		reqType, ok := req.(*pb.SenderRequest)
 		if !ok {
-			return nil, status.Errorf(codes.Unknown,
-				"DecryptInterceptor->Cast")
+			return nil, status.Errorf(cun, "DecryptInterceptor->C")
 		}
 
 		decr, err := asymcrypto.Decrypt(&reqType.Metrics, &key)

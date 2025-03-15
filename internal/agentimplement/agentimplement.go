@@ -249,8 +249,7 @@ func getSettings(client *http.Client,
 			grpc.WithTransportCredentials(
 				(insecure.NewCredentials())))
 		if err1 != nil {
-			return nil, fmt.Errorf("getSettings->NewClient: %w",
-				err1)
+			return nil, fmt.Errorf("getSettings->NewClien: %w", err1)
 		}
 
 		settings.ConnGRPC = conn
@@ -260,16 +259,14 @@ func getSettings(client *http.Client,
 
 	ips, err := ip.GetLocalIPs()
 	if err != nil {
-		return nil, fmt.Errorf("getSettings->GetLocalIPs: %w",
-			err)
+		return nil, fmt.Errorf("getSettings->GetLocalIP: %w", err)
 	}
 
 	settings.RealIPHeader = ips[0]
 
 	req, err := initReqData(&gauges, counters, settings, par)
 	if err != nil {
-		return nil, fmt.Errorf("getSettings->initReqData: %w",
-			err)
+		return nil, fmt.Errorf("getSettings->initReqDat: %w", err)
 	}
 
 	settings.SendData = req
@@ -359,28 +356,24 @@ func initReqData(gauges *[]bizmodels.Gauge,
 	metricCompress, err := compress.DeflateCompress(
 		metricMarshall)
 	if err != nil {
-		return nil, fmt.Errorf("initReqData->DeflateCompress: %w",
-			err)
+		return nil, fmt.Errorf("initReqData->Deflate: %w", err)
 	}
 
 	key, err := os.ReadFile(params.CryptoPublicKeyPath)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"initReqData->ReadFile: %w", err)
+		return nil, fmt.Errorf("initReqData->ReadFile: %w", err)
 	}
 
 	encr, err := asymcrypto.Encrypt(&metricCompress, &key)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"initReqData->Encrypt: %w", err)
+		return nil, fmt.Errorf("initReqData->Encrypt: %w", err)
 	}
 
 	if params.Key != "" {
 		tHash, err := hash.MakeHashSHA256(&metricMarshall,
 			params.Key)
 		if err != nil {
-			return nil, fmt.Errorf("initReqData->MakeHashSHA256: %w",
-				err)
+			return nil, fmt.Errorf("initReqData->MakeHas: %w", err)
 		}
 
 		encodedStr := hex.EncodeToString(tHash)
@@ -481,9 +474,7 @@ func Initialization(params *bizmodels.InitParamsAgent,
 
 	zlog, err := logger.Initialize(zapLogLevel)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"Initialization->logger.Initialize %w",
-			err)
+		return nil, fmt.Errorf("Initialization->Initial: %w", err)
 	}
 
 	return zlog, nil
@@ -705,17 +696,13 @@ func getParamsFromCFG(
 ) error {
 	cfg, err := config.LoadConfigAgent(par.ConfigPath)
 	if err != nil {
-		return fmt.Errorf(
-			"getParamsFromCFG->LoadConfigAgent: %w",
-			err)
+		return fmt.Errorf("getParamsFromCFG->LoadConfig: %w", err)
 	}
 
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
-		return fmt.Errorf(
-			"getParamsFromCFG->Caller: %w",
-			err)
+		return fmt.Errorf("getParamsFromCFG->Caller: %w", err)
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../..")

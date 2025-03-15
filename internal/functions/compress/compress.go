@@ -35,8 +35,7 @@ func DeflateDecompress(data io.Reader) ([]byte, error) {
 	if err != nil {
 		defer reader.Close()
 
-		return nil, fmt.Errorf("DeflateDecompress->NewReader %w",
-			err)
+		return nil, fmt.Errorf("DeflateDecompress->NewR: %w", err)
 	}
 
 	defer reader.Close()
@@ -45,8 +44,7 @@ func DeflateDecompress(data io.Reader) ([]byte, error) {
 
 	_, err = buf.ReadFrom(reader)
 	if err != nil {
-		return nil, fmt.Errorf("DeflateDecompress->ReadFrom %w",
-			err)
+		return nil, fmt.Errorf("DeflateDecompress->Read: %w", err)
 	}
 
 	return buf.Bytes(), nil
