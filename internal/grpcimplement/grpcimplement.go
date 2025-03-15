@@ -88,9 +88,9 @@ func InitiateServer(
 	}
 
 	if par.Restore {
-		err := mser.LoadFromFile(par.FileStoragePath)
-		if err != nil {
-			fmt.Println("Error reading metrics from file: %w", err)
+		err1 := mser.LoadFromFile(par.FileStoragePath)
+		if err1 != nil {
+			fmt.Println("Error reading metrics from file: %w", err1)
 		}
 	}
 

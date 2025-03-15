@@ -145,13 +145,13 @@ type EndpointSettings struct {
 	SendData           *bytes.Reader
 	Client             *http.Client
 	ConnGRPC           *grpc.ClientConn
+	MetricsGRPC        *[]byte
 	MicroServiceClient pb.MicroServiceClient
 	URL                string
 	Hash               string
 	Encoding           string
 	ContentType        string
 	RealIPHeader       string
-	MetricsGRPC        *[]byte
 }
 
 // JobData - store data for the worker.

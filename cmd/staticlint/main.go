@@ -28,7 +28,6 @@ import (
 	"golang.org/x/tools/go/analysis/passes/defers"
 	"golang.org/x/tools/go/analysis/passes/directive"
 	"golang.org/x/tools/go/analysis/passes/errorsas"
-	"golang.org/x/tools/go/analysis/passes/fieldalignment"
 	"golang.org/x/tools/go/analysis/passes/findcall"
 	"golang.org/x/tools/go/analysis/passes/framepointer"
 	"golang.org/x/tools/go/analysis/passes/httpmux"
@@ -110,6 +109,7 @@ func getCfg() (*ConfigData, error) {
 	return &cfg, nil
 }
 
+// fieldalignment.Analyzer - not add
 // getAnalaysers — get analaysers.
 func getAnalaysers(cfg *ConfigData) []*analysis.Analyzer {
 	checks := []*analysis.Analyzer{
@@ -120,8 +120,7 @@ func getAnalaysers(cfg *ConfigData) []*analysis.Analyzer {
 		cgocall.Analyzer, composite.Analyzer,
 		copylock.Analyzer, ctrlflow.Analyzer,
 		deepequalerrors.Analyzer, defers.Analyzer,
-		directive.Analyzer, errorsas.Analyzer,
-		fieldalignment.Analyzer, findcall.Analyzer,
+		directive.Analyzer, errorsas.Analyzer, findcall.Analyzer,
 		framepointer.Analyzer, httpmux.Analyzer,
 		httpresponse.Analyzer, ifaceassert.Analyzer,
 		inspect.Analyzer, loopclosure.Analyzer,
