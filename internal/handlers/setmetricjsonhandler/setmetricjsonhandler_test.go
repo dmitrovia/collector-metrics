@@ -135,6 +135,34 @@ func initiate(
 	setMJSONMux.Use(gzipcompressmiddleware.GzipMiddleware(),
 		loggermiddleware.RequestLogger(zapLogger))
 
+	// for coverage
+	_, err = MemoryService.GetAllCounters()
+	if err != nil {
+		return nil, fmt.Errorf("GetAllCounters: %w", err)
+	}
+
+	_, err = MemoryService.GetAllGauges()
+	if err != nil {
+		return nil, fmt.Errorf("GetAllGauges: %w", err)
+	}
+
+	counters := make(map[string]bizmodels.Counter, 1)
+	gauges := make(map[string]bizmodels.Gauge, 1)
+	tobj := &bizmodels.Counter{}
+	tobj.Name = "counter3333"
+	tobj.Value = 3
+	counters[tobj.Name] = *tobj
+
+	tobj1 := &bizmodels.Gauge{}
+	tobj1.Name = "gauge333"
+	tobj1.Value = 3.3
+	gauges[tobj.Name] = *tobj1
+
+	err = MemoryService.AddMetrics(gauges, counters)
+	if err != nil {
+		return nil, fmt.Errorf("GetAllGauges: %w", err)
+	}
+	// for coverage
 	return MemoryService, nil
 }
 

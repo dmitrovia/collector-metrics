@@ -10,13 +10,13 @@ import (
 )
 
 func main() {
-	err := generatePair()
+	err := GeneratePair()
 	if err != nil {
 		fmt.Println(err)
 	}
 }
 
-func generatePair() error {
+func GeneratePair() error {
 	const fmd os.FileMode = 0o666
 
 	pkb := 4096
