@@ -15,32 +15,36 @@ import (
 )
 
 //nolint:gochecknoglobals
-var buildVersion,
-	buildDate,
-	buildCommit string = "N/A", "N/A", "N/A"
+var buildVersion1,
+	buildDate1,
+	buildCommit1 string = "N/A", "N/A", "N/A"
 
-type testData struct {
+type testData1 struct {
 	cDefKeyHashSha256  string // k
 	cPORT              string // a
 	cPollInterval      string // p
 	cDefCountJobs      string // l
 	cDefReportInterval string // r
+	cUpdateURL         string // update-url
+	cUseGRPC           string // use-grpc
 }
 
-func getTestData() *[]testData {
-	return &[]testData{
+func getTestData1() *[]testData1 {
+	return &[]testData1{
 		{
 			cDefKeyHashSha256:  "defkey",
-			cPORT:              "localhost:8090",
+			cPORT:              "localhost:8091",
 			cPollInterval:      "3",
 			cDefCountJobs:      "5",
 			cDefReportInterval: "10",
+			cUseGRPC:           "true",
+			cUpdateURL:         "http://localhost:8091/v1/updates",
 		},
 	}
 }
 
-func TestMain(t *testing.T) {
-	testCases := getTestData()
+func TestMain1(t *testing.T) {
+	testCases := getTestData1()
 
 	t.Helper()
 	t.Parallel()
@@ -49,22 +53,23 @@ func TestMain(t *testing.T) {
 		t.Run("server", func(tobj *testing.T) {
 			tobj.Parallel()
 
-			addFlags(&test)
-			mainBody()
+			addFlags1(&test)
+			mainBody1()
 		})
 	}
 }
 
-func addFlags(test *testData) {
+func addFlags1(test *testData1) {
 	os.Args = append(os.Args, "-k="+test.cDefKeyHashSha256)
 	os.Args = append(os.Args, "-a="+test.cPORT)
 	os.Args = append(os.Args, "-p="+test.cPollInterval)
 	os.Args = append(os.Args, "-l="+test.cDefCountJobs)
 	os.Args = append(os.Args, "-r="+test.cDefReportInterval)
+	os.Args = append(os.Args, "-update-url="+test.cUpdateURL)
+	os.Args = append(os.Args, "-use-grpc="+test.cUseGRPC)
 }
 
-//nolint:dupl
-func mainBody() {
+func mainBody1() {
 	waitGroup := &sync.WaitGroup{}
 	monitor := &bizmodels.Monitor{}
 	client := &http.Client{}
@@ -78,9 +83,9 @@ func mainBody() {
 		return
 	}
 
-	logger.DoInfoLog("Build version: "+buildVersion, zlog)
-	logger.DoInfoLog("Build date: "+buildDate, zlog)
-	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
+	logger.DoInfoLog("Build version: "+buildVersion1, zlog)
+	logger.DoInfoLog("Build date: "+buildDate1, zlog)
+	logger.DoInfoLog("Build commit: "+buildCommit1, zlog)
 
 	jobs := make(chan bizmodels.JobData, params.RateLimit)
 	channelCancel := make(chan os.Signal, 1)
@@ -110,12 +115,12 @@ func mainBody() {
 		monitor,
 		jobs)
 
-	go exit(&channelCancel, &channelCancel1)
+	go exit1(&channelCancel, &channelCancel1)
 
 	waitGroup.Wait()
 }
 
-func exit(
+func exit1(
 	chc *chan os.Signal,
 	chc1 *chan os.Signal,
 ) {
