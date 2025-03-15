@@ -63,7 +63,6 @@ func addFlags(test *testData) {
 	os.Args = append(os.Args, "-r="+test.cDefReportInterval)
 }
 
-//nolint:dupl
 func mainBody() {
 	waitGroup := &sync.WaitGroup{}
 	monitor := &bizmodels.Monitor{}
