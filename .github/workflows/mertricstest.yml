@@ -388,7 +388,7 @@ jobs:
           cd internal/asymcrypto/
           go run generate.go
           cd ../..
-          go test -v -coverprofile coverage.out ./...
+          go test -v -coverprofile coverage.out -coverpkg= ./cmd/... ./internal/...
           go tool cover -html coverage.out -o coverage.html
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
