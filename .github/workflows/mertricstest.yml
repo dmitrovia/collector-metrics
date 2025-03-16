@@ -250,4 +250,5 @@ jobs:
 
       - name: "Code increment #14 (race detection)"
         run: |
+          go env -w CGO_ENABLED=1
           go test -v -race ./...
