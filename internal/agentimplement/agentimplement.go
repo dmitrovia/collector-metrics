@@ -75,11 +75,12 @@ const defCryptoKeyPath string = ""
 
 const defConfigPath string = "/internal/config/agent.json"
 
+//nolint:varnamelen
 func worker(jobs <-chan bizmodels.JobData,
-	wgew *sync.WaitGroup,
+	wg *sync.WaitGroup,
 ) {
 	for event := range jobs {
-		wgew.Add(1)
+		wg.Add(1)
 
 		switch event.Event {
 		case "setValuesMonitor":
@@ -90,7 +91,7 @@ func worker(jobs <-chan bizmodels.JobData,
 			reqMetricsJSON(event.Par, event.Client, event.Mon)
 		}
 
-		wgew.Done()
+		wg.Done()
 	}
 }
 

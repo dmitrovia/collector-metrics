@@ -3,29 +3,6 @@ on:
   push:
     branches:
       - main
-      - iter1
-      - iter2
-      - iter3
-      - iter4
-      - iter5
-      - iter6
-      - iter7
-      - iter8
-      - iter9
-      - iter10
-      - iter11
-      - iter12
-      - iter13
-      - iter14
-      - iter15
-      - iter18
-      - iter19
-      - iter20
-      - iter21
-      - iter22
-      - iter23
-      - iter24
-      - iter25
   pull_request:
     branches:
       - main
