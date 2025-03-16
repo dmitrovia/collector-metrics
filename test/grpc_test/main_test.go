@@ -33,6 +33,7 @@ type testData struct {
 	sRestore               string // r
 	sPORT                  string // a
 	sDefSavingIntervalDisk string // i
+	grpcPort               string
 }
 
 func getTestData() *[]testData {
@@ -46,6 +47,7 @@ func getTestData() *[]testData {
 			sRestore:               "false",
 			sPORT:                  "localhost:8091",
 			sDefSavingIntervalDisk: "60",
+			grpcPort:               "50053",
 		},
 	}
 }
@@ -74,6 +76,7 @@ func addFlags(test *testData) {
 		"-i="+test.sDefSavingIntervalDisk)
 	os.Args = append(os.Args, "-k="+test.sDefKeyHashSha256)
 	os.Args = append(os.Args, "-r="+test.sRestore)
+	os.Args = append(os.Args, "-grpcp="+test.grpcPort)
 }
 
 //nolint:funlen

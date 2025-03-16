@@ -17,8 +17,7 @@ func DeflateCompress(data []byte) ([]byte, error) {
 
 	_, err := writer.Write(data)
 	if err != nil {
-		return nil, fmt.Errorf("DeflateCompress->Write: %w",
-			err)
+		return nil, fmt.Errorf("DeflateCompress->Write: %w", err)
 	}
 
 	err = writer.Close()

@@ -70,8 +70,7 @@ func (h *DefaultHandler) DefaultHandler(
 		"web/template/allMetricsTemplate.html")
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
-		fmt.Println("DefaultHandler->template.ParseFiles: %w",
-			err)
+		fmt.Println("DefaultHandler->template.ParseF: %w", err)
 	} else {
 		writer.Header().Set("Content-Type", "text/html")
 		writer.WriteHeader(http.StatusOK)

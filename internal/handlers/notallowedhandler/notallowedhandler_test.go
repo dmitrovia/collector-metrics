@@ -35,7 +35,7 @@ func TestNotAllowedHandler(t *testing.T) {
 
 	req, err := http.NewRequestWithContext(
 		context.Background(),
-		http.MethodGet, url, nil)
+		"NULL", url, nil)
 	if err != nil {
 		t.Error(err)
 	}

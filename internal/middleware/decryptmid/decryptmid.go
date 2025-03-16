@@ -22,7 +22,6 @@ func DecryptMiddleware(
 				bodyD, err := io.ReadAll(req.Body)
 				if err != nil {
 					defer req.Body.Close()
-
 					writer.WriteHeader(http.StatusInternalServerError)
 					fmt.Println("DecryptMiddleware->ReadAll %w", err)
 

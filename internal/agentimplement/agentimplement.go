@@ -251,7 +251,7 @@ func getSettings(client *http.Client,
 
 	if par.UseGRPC {
 		conn, err1 := grpc.NewClient(
-			"localhost:50051",
+			"localhost:"+par.GRPCPort,
 			grpc.WithTransportCredentials(
 				(insecure.NewCredentials())))
 		if err1 != nil {
@@ -572,6 +572,8 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	flag.StringVar(&params.Key,
 		"k", defKeyHashSha256,
 		"key for signatures for the SHA256 algorithm.")
+	flag.StringVar(&params.GRPCPort, "grpcp", "50051",
+		"grpc Port")
 	flag.StringVar(&params.PORT,
 		"a",
 		defPORT,

@@ -35,16 +35,14 @@ const wTimeout = 60
 
 const iTimeout = 60
 
-const grpcPort string = ":50051"
-
 // RunServer - starts the server.
 func RunGRPCServer(grpcServer *grpc.Server,
 	params *bizmodels.InitParams,
 	dse *service.DS,
 ) {
-	fmt.Println("gRPC server start" + grpcPort)
+	fmt.Println("gRPC server start" + params.GRPCPort)
 
-	listen, err := net.Listen("tcp", grpcPort)
+	listen, err := net.Listen("tcp", ":"+params.GRPCPort)
 	if err != nil {
 		log.Printf("RunGRPCServer->Listen: %s\n", err)
 

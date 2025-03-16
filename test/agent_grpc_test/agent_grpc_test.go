@@ -27,6 +27,7 @@ type testData1 struct {
 	cDefReportInterval string // r
 	cUpdateURL         string // update-url
 	cUseGRPC           string // use-grpc
+	grpcPort           string
 }
 
 func getTestData1() *[]testData1 {
@@ -39,6 +40,7 @@ func getTestData1() *[]testData1 {
 			cDefReportInterval: "10",
 			cUseGRPC:           "true",
 			cUpdateURL:         "http://localhost:8091/v1/updates",
+			grpcPort:           "50053",
 		},
 	}
 }
@@ -67,6 +69,7 @@ func addFlags1(test *testData1) {
 	os.Args = append(os.Args, "-r="+test.cDefReportInterval)
 	os.Args = append(os.Args, "-update-url="+test.cUpdateURL)
 	os.Args = append(os.Args, "-use-grpc="+test.cUseGRPC)
+	os.Args = append(os.Args, "-grpcp="+test.grpcPort)
 }
 
 func mainBody1() {

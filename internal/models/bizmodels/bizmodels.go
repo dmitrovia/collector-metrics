@@ -117,6 +117,7 @@ type InitParams struct {
 	Key                  string
 	CryptoPrivateKeyPath string
 	TrustedSubnet        string
+	GRPCPort             string
 	StoreInterval        int
 	Restore              bool
 	WaitSecRespDB        time.Duration
@@ -130,6 +131,7 @@ type InitParamsAgent struct {
 	Key                 string
 	CryptoPublicKeyPath string
 	UpdateURL           string
+	GRPCPort            string
 	ReportInterval      int
 	PollInterval        int
 	ReqInternal         int

@@ -345,8 +345,7 @@ func (m *DBepository) AddCounter(
 		counter.Value,
 		counter.Name)
 	if err != nil {
-		return nil,
-			fmt.Errorf("AddCounter->UPDATE counters SET: %w", err)
+		return nil, fmt.Errorf("AddCounter->UPD c SET: %w", err)
 	}
 
 	if rows.RowsAffected() == 0 {
@@ -356,8 +355,7 @@ func (m *DBepository) AddCounter(
 			counter.Name,
 			counter.Value)
 		if err != nil {
-			return nil,
-				fmt.Errorf("AddCounter->INSERT INTO error: %w", err)
+			return nil, fmt.Errorf("AddCounter->II: %w", err)
 		}
 
 		return counter, nil
@@ -365,8 +363,7 @@ func (m *DBepository) AddCounter(
 
 	temp, err := m.GetCounterMetric(ctx, counter.Name)
 	if err != nil {
-		return nil,
-			fmt.Errorf("AddCounter->m.GetCounterMetric %w", err)
+		return nil, fmt.Errorf("AddCounter->m.GetCM %w", err)
 	}
 
 	return temp, nil

@@ -264,6 +264,8 @@ func initiateFlags(par *bizmodels.InitParams) error {
 		"asymmetric encryption pivate key.")
 	flag.StringVar(&par.TrustedSubnet, "t", "",
 		"address in CIDR format.")
+	flag.StringVar(&par.GRPCPort, "grpcp", "50051",
+		"grpc Port")
 	flag.BoolVar(&par.Restore,
 		"r", true, "Loading metrics at server startup.")
 	flag.Parse()
