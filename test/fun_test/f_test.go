@@ -19,7 +19,7 @@ func TestMain(t *testing.T) {
 		return
 	}
 
-	Root := filepath.Join(filepath.Dir(path), "../../..")
+	Root := filepath.Join(filepath.Dir(path), "../..")
 
 	par := bizmodels.InitParams{}
 	par.ConfigPath = Root + "/internal/config/server.json"
