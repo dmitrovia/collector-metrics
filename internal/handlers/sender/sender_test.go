@@ -246,24 +246,25 @@ func initiate(
 
 	_ = UseMigrations(params)
 
-	// for coverage
-	counters := make(map[string]bizmodels.Counter, 1)
-	gauges := make(map[string]bizmodels.Gauge, 1)
-	tobj := &bizmodels.Counter{}
-	tobj.Name = "counter3333"
-	tobj.Value = 3
-	counters[tobj.Name] = *tobj
+	if !isMemRepo {
+		// for coverage
+		counters := make(map[string]bizmodels.Counter, 1)
+		gauges := make(map[string]bizmodels.Gauge, 1)
+		tobj := &bizmodels.Counter{}
+		tobj.Name = "counter3333"
+		tobj.Value = 3
+		counters[tobj.Name] = *tobj
 
-	tobj1 := &bizmodels.Gauge{}
-	tobj1.Name = "gauge333"
-	tobj1.Value = 3.3
-	gauges[tobj.Name] = *tobj1
+		tobj1 := &bizmodels.Gauge{}
+		tobj1.Name = "gauge333"
+		tobj1.Value = 3.3
+		gauges[tobj.Name] = *tobj1
 
-	err = dse.AddMetrics(gauges, counters)
-	if err != nil {
-		return fmt.Errorf("AddMetrics: %w", err)
-	}
-	// for coverage
+		err = dse.AddMetrics(gauges, counters)
+		if err != nil {
+			return fmt.Errorf("AddMetrics: %w", err)
+		}
+	} // for coverage
 
 	return nil
 }
