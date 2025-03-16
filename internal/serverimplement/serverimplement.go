@@ -45,6 +45,11 @@ import (
 	"go.uber.org/zap"
 )
 
+//nolint:gochecknoglobals
+var buildVersion,
+	buildDate,
+	buildCommit string = "N/A", "N/A", "N/A"
+
 const rTimeout = 60
 
 const wTimeout = 60
@@ -527,6 +532,66 @@ func GetParamsFromCFG(
 
 	if par.StoreInterval == 0 {
 		par.StoreInterval = cfg.StoreInterval
+	}
+
+	return nil
+}
+
+func ServerProcess() error {
+	var (
+		dataService *service.DS
+		conn        *pgxpool.Pool
+	)
+
+	server := &http.Server{}
+	params := &bizmodels.InitParams{}
+	waitGroup := &sync.WaitGroup{}
+
+	zlog, err := Initiate(params)
+	if err != nil {
+		return fmt.Errorf("Initiate: %w", err)
+	}
+
+	logger.DoInfoLog("Build version: "+buildVersion, zlog)
+	logger.DoInfoLog("Build date: "+buildDate, zlog)
+	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(), params.WaitSecRespDB)
+	defer cancel()
+
+	conn, dataService, err = InitStorage(ctx, params)
+	if err != nil {
+		return fmt.Errorf("InitStorage: %w", err)
+	}
+
+	if conn != nil {
+		defer conn.Close()
+	}
+
+	err = InitiateServer(params, dataService, server, zlog)
+	if err != nil {
+		return fmt.Errorf("InitiateServer: %w", err)
+	}
+
+	channelCancel := make(chan os.Signal, 1)
+
+	waitGroup.Add(1)
+
+	go SaveMetrics(&channelCancel,
+		dataService, params, waitGroup)
+	go RunServer(server)
+
+	waitGroup.Wait()
+
+	err = server.Shutdown(ctx)
+	if err != nil {
+		return fmt.Errorf("server.Shutdown: %w", err)
+	}
+
+	err = dataService.SaveInFile(params.FileStoragePath)
+	if err != nil {
+		return fmt.Errorf("SaveInFile: %w", err)
 	}
 
 	return nil

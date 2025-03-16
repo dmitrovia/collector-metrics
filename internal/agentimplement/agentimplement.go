@@ -37,6 +37,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+//nolint:gochecknoglobals
+var buildVersion,
+	buildDate,
+	buildCommit string = "N/A", "N/A", "N/A"
+
 const zapLogLevel = "info"
 
 const defPORT string = ""
@@ -726,6 +731,56 @@ func GetParamsFromCFG(
 	if par.ReportInterval == 0 {
 		par.ReportInterval = cfg.ReportInterval
 	}
+
+	return nil
+}
+
+func AgentProcess() error {
+	waitGroup := &sync.WaitGroup{}
+	monitor := &bizmodels.Monitor{}
+	client := &http.Client{}
+	params := &bizmodels.InitParamsAgent{}
+
+	zlog, err := Initialization(params,
+		monitor)
+	if err != nil {
+		return fmt.Errorf("Initialization: %w", err)
+	}
+
+	logger.DoInfoLog("Build version: "+buildVersion, zlog)
+	logger.DoInfoLog("Build date: "+buildDate, zlog)
+	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
+
+	jobs := make(chan bizmodels.JobData, params.RateLimit)
+	channelCancel := make(chan os.Signal, 1)
+	channelCancel1 := make(chan os.Signal, 1)
+
+	wgEndWork := &sync.WaitGroup{}
+
+	defer close(jobs)
+
+	waitGroup.Add(1)
+
+	go Collect(
+		&channelCancel,
+		params,
+		waitGroup,
+		wgEndWork,
+		monitor,
+		jobs)
+
+	waitGroup.Add(1)
+
+	go Send(
+		&channelCancel1,
+		params,
+		waitGroup,
+		wgEndWork,
+		client,
+		monitor,
+		jobs)
+
+	waitGroup.Wait()
 
 	return nil
 }
