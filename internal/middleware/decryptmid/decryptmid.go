@@ -24,8 +24,7 @@ func DecryptMiddleware(
 					defer req.Body.Close()
 
 					writer.WriteHeader(http.StatusInternalServerError)
-					fmt.Println("DecryptMiddleware->ReadAll %w",
-						err)
+					fmt.Println("DecryptMiddleware->ReadAll %w", err)
 
 					return
 				}
@@ -33,8 +32,7 @@ func DecryptMiddleware(
 				key, err := os.ReadFile(params.CryptoPrivateKeyPath)
 				if err != nil {
 					writer.WriteHeader(http.StatusInternalServerError)
-					fmt.Println("DecryptMiddleware->ReadFile %w",
-						err)
+					fmt.Println("DecryptMiddleware->ReadFile %w", err)
 
 					return
 				}

@@ -72,7 +72,64 @@ func addFlags(test *testData) {
 	os.Args = append(os.Args, "-r="+test.sRestore)
 }
 
+func setEnv() error {
+	err := os.Setenv("DATABASE_DSN",
+		"postgres://postgres:postgres"+
+			"@postgres"+
+			":5432/praktikum?sslmode=disable")
+	if err != nil {
+		return fmt.Errorf("DATABASE_DSN: %w", err)
+	}
+
+	err = os.Setenv("RESTORE", "true")
+	if err != nil {
+		return fmt.Errorf("RESTORE: %w", err)
+	}
+
+	err = os.Setenv("ADDRESS", "localhost:8090")
+	if err != nil {
+		return fmt.Errorf("ADDRESS: %w", err)
+	}
+
+	err = os.Setenv("STORE_INTERVAL", "60")
+	if err != nil {
+		return fmt.Errorf("STORE_INTERVAL: %w", err)
+	}
+
+	err = os.Setenv("KEY", "defkey")
+	if err != nil {
+		return fmt.Errorf("KEY: %w", err)
+	}
+
+	err = os.Setenv("CRYPTO_KEY_SERVER",
+		"/internal/asymcrypto/keys/private.pem")
+	if err != nil {
+		return fmt.Errorf("CRYPTO_KEY_SERVER: %w", err)
+	}
+
+	err = os.Setenv("CONFIG_SERVER",
+		"/internal/config/server.json")
+	if err != nil {
+		return fmt.Errorf("CONFIG_SERVER: %w", err)
+	}
+
+	err = os.Setenv("TRUSTED_SUBNET", "0.0.0.0/0")
+	if err != nil {
+		return fmt.Errorf("TRUSTED_SUBNET: %w", err)
+	}
+
+	return nil
+}
+
+//nolint:funlen
 func mainBody() {
+	err := setEnv()
+	if err != nil {
+		fmt.Println("main->setEnv: %w", err)
+
+		return
+	}
+
 	var (
 		dataService *service.DS
 		conn        *pgxpool.Pool
@@ -115,6 +172,8 @@ func mainBody() {
 
 		return
 	}
+
+	time.Sleep(time.Duration(20) * time.Second)
 
 	go si.RunServer(server)
 

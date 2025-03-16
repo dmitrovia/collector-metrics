@@ -46,8 +46,7 @@ func (h *Sender) SenderHandler(
 
 	err := getReqData(h, req)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->getReqData: %w",
-			err)
+		fmt.Println("SetMetricsJSONHandler->getReqData: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return
@@ -55,8 +54,7 @@ func (h *Sender) SenderHandler(
 
 	err = writeResp(writer, h)
 	if err != nil {
-		fmt.Println("SetMetricsJSONHandler->writeResp: %w",
-			err)
+		fmt.Println("SetMetricsJSONHandler->writeResp: %w", err)
 		writer.WriteHeader(http.StatusBadRequest)
 
 		return

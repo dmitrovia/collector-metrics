@@ -453,7 +453,7 @@ func Initialization(params *bizmodels.InitParamsAgent,
 		return nil, err
 	}
 
-	err = getParamsFromCFG(params)
+	err = GetParamsFromCFG(params)
 	if err != nil {
 		return nil, err
 	}
@@ -691,7 +691,7 @@ func writeFromMemory(mon *bizmodels.Monitor) {
 	mon.TotalAlloc.Value = float64(rtm.TotalAlloc)
 }
 
-func getParamsFromCFG(
+func GetParamsFromCFG(
 	par *bizmodels.InitParamsAgent,
 ) error {
 	cfg, err := config.LoadConfigAgent(par.ConfigPath)

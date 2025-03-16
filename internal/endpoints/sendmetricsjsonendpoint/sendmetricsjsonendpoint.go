@@ -27,8 +27,7 @@ func SendMJSONEndpoint(
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodPost, epSettings.URL, epSettings.SendData)
 	if err != nil {
-		return nil,
-			fmt.Errorf("SendMJSONEndpoint->http.NewReq: %w", err)
+		return nil, fmt.Errorf("SendMJSONEndpoint->HNR: %w", err)
 	}
 
 	req.Header.Set("X-Real-IP", epSettings.RealIPHeader)

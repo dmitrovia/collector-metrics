@@ -38,8 +38,7 @@ func (s *MicroserviceServer) Sender(
 
 	err := getReqData(req, &metad, s.Params, s.Serv)
 	if err != nil {
-		fmt.Println("Sender->getReqData: %w",
-			err)
+		fmt.Println("Sender->getReqData: %w", err)
 
 		return nil, status.Errorf(codes.Unknown, "getReqData")
 	}

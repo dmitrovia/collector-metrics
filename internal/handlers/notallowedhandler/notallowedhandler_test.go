@@ -24,7 +24,7 @@ func initiate(
 	mux.MethodNotAllowedHandler = hNotAllowed
 }
 
-func TestGetMetricHandler(t *testing.T) {
+func TestNotAllowedHandler(t *testing.T) {
 	t.Helper()
 	t.Parallel()
 

@@ -23,8 +23,7 @@ func CheckIPMiddleware(
 						params.TrustedSubnet)
 					if err != nil {
 						writer.WriteHeader(http.StatusInternalServerError)
-						fmt.Println(" %w",
-							err)
+						fmt.Println(" %w", err)
 
 						return
 					}

@@ -63,7 +63,55 @@ func addFlags(test *testData) {
 	os.Args = append(os.Args, "-r="+test.cDefReportInterval)
 }
 
+func setEnv() error {
+	err := os.Setenv("REPORT_INTERVAL", "10")
+	if err != nil {
+		return fmt.Errorf("REPORT_INTERVAL: %w", err)
+	}
+
+	err = os.Setenv("POLL_INTERVAL", "2")
+	if err != nil {
+		return fmt.Errorf("POLL_INTERVAL: %w", err)
+	}
+
+	err = os.Setenv("KEY", "defkey")
+	if err != nil {
+		return fmt.Errorf("KEY: %w", err)
+	}
+
+	err = os.Setenv("ADDRESS", "localhost:8090")
+	if err != nil {
+		return fmt.Errorf("ADDRESS: %w", err)
+	}
+
+	err = os.Setenv("RATE_LIMIT", "5")
+	if err != nil {
+		return fmt.Errorf("RATE_LIMIT: %w", err)
+	}
+
+	err = os.Setenv("CRYPTO_KEY_AGENT",
+		"/internal/asymcrypto/keys/public.pem")
+	if err != nil {
+		return fmt.Errorf("CRYPTO_KEY_AGENT: %w", err)
+	}
+
+	err = os.Setenv("CONFIG_SERVER",
+		"/internal/config/agent.json")
+	if err != nil {
+		return fmt.Errorf("CONFIG_SERVER: %w", err)
+	}
+
+	return nil
+}
+
 func mainBody() {
+	err := setEnv()
+	if err != nil {
+		fmt.Println("main->setEnv: %w", err)
+
+		return
+	}
+
 	waitGroup := &sync.WaitGroup{}
 	monitor := &bizmodels.Monitor{}
 	client := &http.Client{}

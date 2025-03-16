@@ -96,8 +96,7 @@ func InitStorage(
 
 		dbConn, err := pgxpool.New(ctx, par.DatabaseDSN)
 		if err != nil {
-			return nil, nil,
-				fmt.Errorf("initStorage->pgx.Connect: %w", err)
+			return nil, nil, fmt.Errorf("initStorage->pgxC: %w", err)
 		}
 
 		DBStorage.Initiate(par.DatabaseDSN, dbConn)
@@ -207,7 +206,7 @@ func Initiate(
 		return nil, fmt.Errorf("initiate->initiateFlags: %w", err)
 	}
 
-	err = getParamsFromCFG(par)
+	err = GetParamsFromCFG(par)
 	if err != nil {
 		return nil, fmt.Errorf("initiate->getParams: %w", err)
 	}
@@ -482,13 +481,12 @@ func setInitParams(params *bizmodels.InitParams) error {
 }
 
 //nolint:cyclop
-func getParamsFromCFG(
+func GetParamsFromCFG(
 	par *bizmodels.InitParams,
 ) error {
 	cfg, err := config.LoadConfigServer(par.ConfigPath)
 	if err != nil {
-		return fmt.Errorf(
-			"getParamsFromCFG->LoadConfigServer: %w", err)
+		return fmt.Errorf("getParamsFromCFG->LCS: %w", err)
 	}
 
 	_, path, _, ok := runtime.Caller(0)
