@@ -10,6 +10,6 @@ func TestMain(t *testing.T) {
 
 	err := GeneratePair()
 	if err != nil {
-		t.Errorf(`TestGeneratePair("") = %v, want "", error`, err)
+		t.Errorf(`GeneratePair("") = %v, want "", error`, err)
 	}
 }

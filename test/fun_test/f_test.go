@@ -26,6 +26,6 @@ func TestMain(t *testing.T) {
 
 	err := serverimplement.GetParamsFromCFG(&par)
 	if err != nil {
-		t.Errorf(`TestGeneratePair("") = %v, want "", error`, err)
+		t.Errorf(`GetParamsFromCFG("") = %v, want "", error`, err)
 	}
 }
