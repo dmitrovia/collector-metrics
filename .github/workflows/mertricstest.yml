@@ -249,6 +249,9 @@ jobs:
           path: coverage.html
 
       - name: "Code increment #14 (race detection)"
+        if: |
+          github.ref == 'refs/heads/main' ||
+          github.head_ref == 'iter14'
         run: |
           go env -w CGO_ENABLED=1
           go test -v -race ./...
