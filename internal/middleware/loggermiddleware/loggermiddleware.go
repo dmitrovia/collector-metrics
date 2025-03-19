@@ -31,8 +31,7 @@ func (r *loggingResponseWriter) Write(
 ) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	if err != nil {
-		return 0, fmt.Errorf("loggingResponseWriterWrite: %w",
-			err)
+		return 0, fmt.Errorf("loggingResponseWriterWr: %w", err)
 	}
 
 	r.responseData.size += size
@@ -52,35 +51,35 @@ func RequestLogger(
 	zapLogger *zap.Logger,
 ) func(http.Handler) http.Handler {
 	handler := func(hand http.Handler) http.Handler {
-		logFn := func(writer http.ResponseWriter,
-			req *http.Request,
-		) {
-			start := time.Now()
+		return http.HandlerFunc(
+			func(writer http.ResponseWriter,
+				req *http.Request,
+			) {
+				start := time.Now()
 
-			responseData := &responseData{
-				status: 0,
-				size:   0,
-			}
+				responseData := &responseData{
+					status: 0,
+					size:   0,
+				}
 
-			lw := loggingResponseWriter{
-				ResponseWriter: writer,
-				responseData:   responseData,
-			}
+				lw := loggingResponseWriter{
+					ResponseWriter: writer,
+					responseData:   responseData,
+				}
 
-			hand.ServeHTTP(&lw, req)
+				hand.ServeHTTP(&lw, req)
 
-			duration := time.Since(start)
+				duration := time.Since(start)
 
-			zapLogger.Debug("got incoming HTTP request",
-				zap.String("method", req.Method),
-				zap.String("path", req.URL.Path),
-				zap.Duration("duration", duration),
-				zap.Int("status", responseData.status),
-				zap.Int("size", responseData.size),
-			)
-		}
-
-		return http.HandlerFunc(logFn)
+				zapLogger.Debug("got incoming HTTP request",
+					zap.String("method", req.Method),
+					zap.String("path", req.URL.Path),
+					zap.Duration("duration", duration),
+					zap.Int("status", responseData.status),
+					zap.Int("size", responseData.size),
+				)
+			},
+		)
 	}
 
 	return handler

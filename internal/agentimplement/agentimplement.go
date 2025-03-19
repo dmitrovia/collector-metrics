@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -18,25 +19,40 @@ import (
 	"time"
 
 	"github.com/dmitrovia/collector-metrics/internal/endpoints/sendmetricsjsonendpoint"
+	"github.com/dmitrovia/collector-metrics/internal/functions/asymcrypto"
 	"github.com/dmitrovia/collector-metrics/internal/functions/compress"
+	"github.com/dmitrovia/collector-metrics/internal/functions/config"
 	"github.com/dmitrovia/collector-metrics/internal/functions/hash"
+	"github.com/dmitrovia/collector-metrics/internal/functions/ip"
 	"github.com/dmitrovia/collector-metrics/internal/functions/random"
 	"github.com/dmitrovia/collector-metrics/internal/functions/validate"
+	"github.com/dmitrovia/collector-metrics/internal/logger"
 	"github.com/dmitrovia/collector-metrics/internal/models/apimodels"
 	"github.com/dmitrovia/collector-metrics/internal/models/bizmodels"
+	pb "github.com/dmitrovia/collector-metrics/pkg/microservice/v1"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-const defPORT string = "localhost:8080"
+//nolint:gochecknoglobals
+var buildVersion,
+	buildDate,
+	buildCommit string = "N/A", "N/A", "N/A"
+
+const zapLogLevel = "info"
+
+const defPORT string = ""
 
 const validAddrPattern = "^[a-zA-Z/ ]{1,100}:[0-9]{1,10}$"
 
 const defKeyHashSha256 = ""
 
-const defPollInterval int = 2
+const defPollInterval int = 0
 
-const defReportInterval int = 10
+const defReportInterval int = 0
 
 const metricGaugeCount int = 30
 
@@ -55,8 +71,17 @@ var errParseFlags = errors.New("addr is not valid")
 
 var errResponse = errors.New("error response")
 
-func worker(jobs <-chan bizmodels.JobData) {
+const defCryptoKeyPath string = ""
+
+const defConfigPath string = "/internal/config/agent.json"
+
+//nolint:varnamelen
+func worker(jobs <-chan bizmodels.JobData,
+	wg *sync.WaitGroup,
+) {
 	for event := range jobs {
+		wg.Add(1)
+
 		switch event.Event {
 		case "setValuesMonitor":
 			setValuesMonitor(event.Mon, event.Mutex)
@@ -65,13 +90,18 @@ func worker(jobs <-chan bizmodels.JobData) {
 		case "reqMetricsJSON":
 			reqMetricsJSON(event.Par, event.Client, event.Mon)
 		}
+
+		wg.Done()
 	}
 }
 
 // Collect - collects device metrics
 // every PollInterval seconds using workers.
-func Collect(par *bizmodels.InitParamsAgent,
+func Collect(
+	chc *chan os.Signal,
+	par *bizmodels.InitParamsAgent,
 	wg *sync.WaitGroup,
+	wgEndWork *sync.WaitGroup,
 	mon *bizmodels.Monitor,
 	jobs chan bizmodels.JobData,
 ) {
@@ -79,15 +109,17 @@ func Collect(par *bizmodels.InitParamsAgent,
 
 	var mutex sync.Mutex
 
-	channelCancel := make(chan os.Signal, 1)
-	signal.Notify(channelCancel,
+	signal.Notify(*chc,
 		os.Interrupt,
 		syscall.SIGTERM,
-		syscall.SIGINT)
+		syscall.SIGINT,
+		syscall.SIGQUIT)
 
 	for {
 		select {
-		case <-channelCancel:
+		case <-*chc:
+			wgEndWork.Wait()
+
 			return
 		case <-time.After(
 			time.Duration(par.PollInterval) * time.Second):
@@ -97,7 +129,8 @@ func Collect(par *bizmodels.InitParamsAgent,
 			dataChan.Mon = mon
 
 			jobs <- *dataChan
-			go worker(jobs)
+
+			go worker(jobs, wgEndWork)
 
 			dataChan1 := &bizmodels.JobData{}
 			dataChan1.Event = "setMonitorFromGoPsUtil"
@@ -106,30 +139,35 @@ func Collect(par *bizmodels.InitParamsAgent,
 
 			jobs <- *dataChan1
 
-			go worker(jobs)
+			go worker(jobs, wgEndWork)
 		}
 	}
 }
 
 // Send - sends metrics to the server
 // every ReportInterval seconds using workers.
-func Send(par *bizmodels.InitParamsAgent,
-	wg *sync.WaitGroup,
+func Send(
+	chc *chan os.Signal,
+	par *bizmodels.InitParamsAgent,
+	wgMain *sync.WaitGroup,
+	wgEndWork *sync.WaitGroup,
 	client *http.Client,
 	mon *bizmodels.Monitor,
 	jobs chan bizmodels.JobData,
 ) {
-	defer wg.Done()
+	defer wgMain.Done()
 
-	channelCancel := make(chan os.Signal, 1)
-	signal.Notify(channelCancel,
+	signal.Notify(*chc,
 		os.Interrupt,
 		syscall.SIGTERM,
-		syscall.SIGINT)
+		syscall.SIGINT,
+		syscall.SIGQUIT)
 
 	for {
 		select {
-		case <-channelCancel:
+		case <-*chc:
+			wgEndWork.Wait()
+
 			return
 		case <-time.After(
 			time.Duration(par.ReportInterval) * time.Second):
@@ -141,7 +179,8 @@ func Send(par *bizmodels.InitParamsAgent,
 				dataChan.Client = client
 
 				jobs <- *dataChan
-				go worker(jobs)
+
+				go worker(jobs, wgEndWork)
 			}
 		}
 	}
@@ -191,12 +230,10 @@ func fillMetrics(mon *bizmodels.Monitor,
 		mon.RandomValue)
 }
 
-// reqMetricsJSON - prepares data
-// for the request and sends the request to the server.
-func reqMetricsJSON(par *bizmodels.InitParamsAgent,
-	client *http.Client,
+func getSettings(client *http.Client,
+	par *bizmodels.InitParamsAgent,
 	mon *bizmodels.Monitor,
-) {
+) (*bizmodels.EndpointSettings, error) {
 	gauges := make([]bizmodels.Gauge, 0, metricGaugeCount)
 	counters := make(map[string]bizmodels.Counter, 1)
 
@@ -208,20 +245,70 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 	settings.Encoding = "gzip"
 	settings.URL = par.URL + "/updates/"
 
+	if par.UpdateURL != "" {
+		settings.URL = par.UpdateURL
+	}
+
+	if par.UseGRPC {
+		conn, err1 := grpc.NewClient(
+			"localhost:"+par.GRPCPort,
+			grpc.WithTransportCredentials(
+				(insecure.NewCredentials())))
+		if err1 != nil {
+			return nil, fmt.Errorf("getSettings->NewClien: %w", err1)
+		}
+
+		settings.ConnGRPC = conn
+		settings.
+			MicroServiceClient = pb.NewMicroServiceClient(conn)
+	}
+
+	ips, err := ip.GetLocalIPs()
+	if err != nil {
+		return nil, fmt.Errorf("getSettings->GetLocalIP: %w", err)
+	}
+
+	settings.RealIPHeader = ips[0]
+
 	req, err := initReqData(&gauges, counters, settings, par)
 	if err != nil {
-		fmt.Println("reqMetricsJSON->initReqData: %w", err)
-
-		return
+		return nil, fmt.Errorf("getSettings->initReqDat: %w", err)
 	}
 
 	settings.SendData = req
 
+	return settings, nil
+}
+
+// reqMetricsJSON - prepares data
+// for the request and sends the request to the server.
+func reqMetricsJSON(par *bizmodels.InitParamsAgent,
+	client *http.Client,
+	mon *bizmodels.Monitor,
+) {
+	settings, err := getSettings(client, par, mon)
+	if err != nil {
+		fmt.Println("reqMetricsJSON->getSettings: %w", err)
+
+		return
+	}
+
 	sInterval := par.StartReqInterval
 
 	for iter := 1; iter <= par.CountReqRetries; iter++ {
-		resp, err := sendmetricsjsonendpoint.SendMJSONEndpoint(
-			settings)
+		var resp *http.Response
+
+		var err error
+
+		if par.UseGRPC {
+			_,
+				err = sendmetricsjsonendpoint.SendMJSONEndpointGRPC(
+				settings)
+		} else {
+			resp, err = sendmetricsjsonendpoint.SendMJSONEndpoint(
+				settings)
+		}
+
 		if err != nil {
 			par.RepeatedReq = true
 
@@ -235,7 +322,11 @@ func reqMetricsJSON(par *bizmodels.InitParamsAgent,
 			continue
 		}
 
-		_, err = parseResponse(resp)
+		if !par.UseGRPC {
+			_, err = parseResponse(resp)
+			resp.Body.Close()
+		}
+
 		if err != nil {
 			par.RepeatedReq = true
 
@@ -271,16 +362,24 @@ func initReqData(gauges *[]bizmodels.Gauge,
 	metricCompress, err := compress.DeflateCompress(
 		metricMarshall)
 	if err != nil {
-		return nil, fmt.Errorf("initReqData->DeflateCompress: %w",
-			err)
+		return nil, fmt.Errorf("initReqData->Deflate: %w", err)
+	}
+
+	key, err := os.ReadFile(params.CryptoPublicKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("initReqData->ReadFile: %w", err)
+	}
+
+	encr, err := asymcrypto.Encrypt(&metricCompress, &key)
+	if err != nil {
+		return nil, fmt.Errorf("initReqData->Encrypt: %w", err)
 	}
 
 	if params.Key != "" {
 		tHash, err := hash.MakeHashSHA256(&metricMarshall,
 			params.Key)
 		if err != nil {
-			return nil, fmt.Errorf("initReqData->MakeHashSHA256: %w",
-				err)
+			return nil, fmt.Errorf("initReqData->MakeHas: %w", err)
 		}
 
 		encodedStr := hex.EncodeToString(tHash)
@@ -288,15 +387,15 @@ func initReqData(gauges *[]bizmodels.Gauge,
 		settings.Hash = encodedStr
 	}
 
-	return bytes.NewReader(metricCompress), nil
+	settings.MetricsGRPC = encr
+
+	return bytes.NewReader(*encr), nil
 }
 
 // parseResponse - parses the response from the server.
 func parseResponse(
 	response *http.Response,
 ) (*[]byte, error) {
-	defer response.Body.Close()
-
 	if response.StatusCode == http.StatusOK {
 		out, err := compress.DeflateDecompress(response.Body)
 		if err != nil {
@@ -344,7 +443,7 @@ func getDataSend(gauges *[]bizmodels.Gauge,
 // data for the agent to operate.
 func Initialization(params *bizmodels.InitParamsAgent,
 	mon *bizmodels.Monitor,
-) error {
+) (*zap.Logger, error) {
 	var err error
 
 	params.URL = "http://"
@@ -357,24 +456,34 @@ func Initialization(params *bizmodels.InitParamsAgent,
 
 	err = parseFlags(params)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	err = GetParamsFromCFG(params)
+	if err != nil {
+		return nil, err
 	}
 
 	err = getIntervalsEnv(params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = getENV(params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	params.URL += params.PORT
 
 	mon.Init()
 
-	return err
+	zlog, err := logger.Initialize(zapLogLevel)
+	if err != nil {
+		return nil, fmt.Errorf("Initialization->Initial: %w", err)
+	}
+
+	return zlog, nil
 }
 
 // getIntervalsEnv - gets environment variables.
@@ -406,10 +515,25 @@ func getIntervalsEnv(
 }
 
 // getENV - gets environment variables.
+//
+//nolint:cyclop
 func getENV(params *bizmodels.InitParamsAgent) error {
 	key := os.Getenv("KEY")
 	envRunAddr := os.Getenv("ADDRESS")
 	envRateLimit := os.Getenv("RATE_LIMIT")
+	cryptoKey := os.Getenv("CRYPTO_KEY_AGENT")
+	cfgServer := os.Getenv("CONFIG_SERVER")
+
+	_, path, _, isok := runtime.Caller(0)
+	Root := filepath.Join(filepath.Dir(path), "../..")
+
+	if cfgServer != "" && isok {
+		params.ConfigPath = Root + cfgServer
+	}
+
+	if cryptoKey != "" && isok {
+		params.CryptoPublicKeyPath = Root + cryptoKey
+	}
 
 	if key != "" {
 		params.Key = key
@@ -448,6 +572,8 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	flag.StringVar(&params.Key,
 		"k", defKeyHashSha256,
 		"key for signatures for the SHA256 algorithm.")
+	flag.StringVar(&params.GRPCPort, "grpcp", "50051",
+		"grpc Port")
 	flag.StringVar(&params.PORT,
 		"a",
 		defPORT,
@@ -463,6 +589,26 @@ func parseFlags(params *bizmodels.InitParamsAgent) error {
 	flag.IntVar(&params.ReportInterval,
 		"r", defReportInterval,
 		"Frequency of polling metrics from the runtime package.")
+
+	_, path, _, ok := runtime.Caller(0)
+
+	defPath1 := defConfigPath
+
+	if ok {
+		Root := filepath.Join(filepath.Dir(path), "../..")
+		defPath1 = Root + defConfigPath
+	}
+
+	flag.StringVar(&params.ConfigPath,
+		"config", defPath1, "cfg server path.")
+	flag.StringVar(&params.CryptoPublicKeyPath,
+		"crypto-key", defCryptoKeyPath,
+		"asymmetric encryption public key.")
+	flag.StringVar(&params.UpdateURL,
+		"update-url", "",
+		"update url.")
+	flag.BoolVar(&params.UseGRPC,
+		"use-grpc", false, "use grpc")
 	flag.Parse()
 
 	res, err := validate.IsMatchesTemplate(params.PORT,
@@ -551,4 +697,93 @@ func writeFromMemory(mon *bizmodels.Monitor) {
 	mon.StackSys.Value = float64(rtm.StackSys)
 	mon.Sys.Value = float64(rtm.Sys)
 	mon.TotalAlloc.Value = float64(rtm.TotalAlloc)
+}
+
+func GetParamsFromCFG(
+	par *bizmodels.InitParamsAgent,
+) error {
+	cfg, err := config.LoadConfigAgent(par.ConfigPath)
+	if err != nil {
+		return fmt.Errorf("getParamsFromCFG->LoadConfig: %w", err)
+	}
+
+	_, path, _, ok := runtime.Caller(0)
+
+	if !ok {
+		return fmt.Errorf("getParamsFromCFG->Caller: %w", err)
+	}
+
+	Root := filepath.Join(filepath.Dir(path), "../..")
+
+	if par.CryptoPublicKeyPath == "" {
+		par.CryptoPublicKeyPath = Root + cfg.CryptoPublicKeyPath
+	}
+
+	if par.Key == "" {
+		par.Key = cfg.Key
+	}
+
+	if par.PORT == "" {
+		par.PORT = cfg.PORT
+	}
+
+	if par.PollInterval == 0 {
+		par.PollInterval = cfg.PollInterval
+	}
+
+	if par.ReportInterval == 0 {
+		par.ReportInterval = cfg.ReportInterval
+	}
+
+	return nil
+}
+
+func AgentProcess() error {
+	waitGroup := &sync.WaitGroup{}
+	monitor := &bizmodels.Monitor{}
+	client := &http.Client{}
+	params := &bizmodels.InitParamsAgent{}
+
+	zlog, err := Initialization(params,
+		monitor)
+	if err != nil {
+		return fmt.Errorf("Initialization: %w", err)
+	}
+
+	logger.DoInfoLog("Build version: "+buildVersion, zlog)
+	logger.DoInfoLog("Build date: "+buildDate, zlog)
+	logger.DoInfoLog("Build commit: "+buildCommit, zlog)
+
+	jobs := make(chan bizmodels.JobData, params.RateLimit)
+	channelCancel := make(chan os.Signal, 1)
+	channelCancel1 := make(chan os.Signal, 1)
+
+	wgEndWork := &sync.WaitGroup{}
+
+	defer close(jobs)
+
+	waitGroup.Add(1)
+
+	go Collect(
+		&channelCancel,
+		params,
+		waitGroup,
+		wgEndWork,
+		monitor,
+		jobs)
+
+	waitGroup.Add(1)
+
+	go Send(
+		&channelCancel1,
+		params,
+		waitGroup,
+		wgEndWork,
+		client,
+		monitor,
+		jobs)
+
+	waitGroup.Wait()
+
+	return nil
 }

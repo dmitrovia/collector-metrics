@@ -76,16 +76,13 @@ func addMetricToMemStore(
 	if metr.mtype == bizmodels.GaugeName {
 		err := handler.serv.AddGauge(metr.mname, metr.mvalueFloat)
 		if err != nil {
-			fmt.Println(
-				"addMetricToMemStore->AddGauge: %w",
-				err)
+			fmt.Println("addMetricToMemStore->AddGauge: %w", err)
 		}
 	} else if metr.mtype == bizmodels.CounterName {
 		res, err := handler.serv.AddCounter(
 			metr.mname, metr.mvalueInt, false)
 		if err != nil {
-			fmt.Println("addMetricToMemStore->AddCounter: %w",
-				err)
+			fmt.Println("addMetricToMemStore->AddCounter: %w", err)
 		}
 
 		metr.mvalueInt = res.Value

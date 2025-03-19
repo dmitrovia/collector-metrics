@@ -7,6 +7,9 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	pb "github.com/dmitrovia/collector-metrics/pkg/microservice/v1"
+	"google.golang.org/grpc"
 )
 
 const GaugeName string = "gauge"
@@ -106,45 +109,58 @@ func (m *Monitor) Init() {
 
 // InitParams - store server configuration.
 type InitParams struct {
-	PORT                string
-	ValidateAddrPattern string
-	StoreInterval       int
-	FileStoragePath     string
-	Restore             bool
-	DatabaseDSN         string
-	WaitSecRespDB       time.Duration
-	Key                 string
+	ConfigPath           string
+	PORT                 string
+	ValidateAddrPattern  string
+	FileStoragePath      string
+	DatabaseDSN          string
+	Key                  string
+	CryptoPrivateKeyPath string
+	TrustedSubnet        string
+	GRPCPort             string
+	StoreInterval        int
+	Restore              bool
+	WaitSecRespDB        time.Duration
 }
 
 // InitParamsAgent - store agent configuration.
 type InitParamsAgent struct {
-	URL              string
-	PORT             string
-	ReportInterval   int
-	PollInterval     int
-	ReqInternal      int
-	StartReqInterval int
-	CountReqRetries  int
-	RepeatedReq      bool
-	Key              string
-	RateLimit        int
+	ConfigPath          string
+	URL                 string
+	PORT                string
+	Key                 string
+	CryptoPublicKeyPath string
+	UpdateURL           string
+	GRPCPort            string
+	ReportInterval      int
+	PollInterval        int
+	ReqInternal         int
+	StartReqInterval    int
+	CountReqRetries     int
+	RateLimit           int
+	RepeatedReq         bool
+	UseGRPC             bool
 }
 
 // EndpointSettings - store endpoint configuration.
 type EndpointSettings struct {
-	SendData    *bytes.Reader
-	URL         string
-	Client      *http.Client
-	Hash        string
-	Encoding    string
-	ContentType string
+	SendData           *bytes.Reader
+	Client             *http.Client
+	ConnGRPC           *grpc.ClientConn
+	MetricsGRPC        *[]byte
+	MicroServiceClient pb.MicroServiceClient
+	URL                string
+	Hash               string
+	Encoding           string
+	ContentType        string
+	RealIPHeader       string
 }
 
 // JobData - store data for the worker.
 type JobData struct {
-	Event  string
 	Mutex  *sync.Mutex
 	Par    *InitParamsAgent
 	Client *http.Client
 	Mon    *Monitor
+	Event  string
 }

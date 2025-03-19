@@ -68,7 +68,7 @@ func newCompressReader(
 ) (*compressReader, error) {
 	zipReader, err := gzip.NewReader(reader)
 	if err != nil {
-		return nil, fmt.Errorf("newCompressReader: %w", err)
+		return nil, err
 	}
 
 	return &compressReader{
@@ -99,54 +99,53 @@ func (c *compressReader) Close() error {
 // GzipMiddleware - main middleware method.
 func GzipMiddleware() func(http.Handler) http.Handler {
 	handler := func(hand http.Handler) http.Handler {
-		gzipFn := func(
-			writer http.ResponseWriter, req *http.Request,
-		) {
-			var availableCT []string
+		return http.HandlerFunc(
+			func(
+				writer http.ResponseWriter, req *http.Request,
+			) {
+				var availableCT []string
 
-			defWriter := writer
+				defWriter := writer
 
-			accCT := req.Header.Get("Content-Type")
+				accCT := req.Header.Get("Content-Type")
 
-			accCT1 := req.Header.Get("Accept") // for autotests
+				accCT1 := req.Header.Get("Accept") // for autotests
 
-			acceptEncoding := req.Header.Get("Accept-Encoding")
+				acceptEncoding := req.Header.Get("Accept-Encoding")
 
-			availableCT = []string{"application/json", "text/html"}
+				availableCT = []string{"application/json", "text/html"}
 
-			supportsGzip := strings.Contains(
-				acceptEncoding, "gzip") && (slices.Contains(
-				availableCT, accCT) || slices.Contains(
-				availableCT, accCT1))
-			if supportsGzip {
-				cw := newCompressWriter(writer)
-				defWriter = cw
-				defer cw.Close()
-			}
-
-			contentEncoding := req.Header.Get("Content-Encoding")
-
-			sendsGzip := strings.Contains(contentEncoding, "gzip")
-			if sendsGzip {
-				compressReader, err := newCompressReader(req.Body)
-				if err != nil {
-					writer.WriteHeader(http.StatusInternalServerError)
-					fmt.Println("GzipMiddleware->newCompressReader: %w",
-						err)
-
-					return
+				supportsGzip := strings.Contains(
+					acceptEncoding, "gzip") && (slices.Contains(
+					availableCT, accCT) || slices.Contains(
+					availableCT, accCT1))
+				if supportsGzip {
+					cw := newCompressWriter(writer)
+					defWriter = cw
+					defer cw.Close()
 				}
 
-				req.Body = compressReader
+				contentEncoding := req.Header.Get("Content-Encoding")
 
-				defer compressReader.Close()
-			}
+				sendsGzip := strings.Contains(contentEncoding, "gzip")
+				if sendsGzip {
+					compressReader, err := newCompressReader(req.Body)
+					if err != nil {
+						writer.WriteHeader(http.StatusInternalServerError)
+						fmt.Println(" %w", err)
 
-			// передаём управление хендлеру
-			hand.ServeHTTP(defWriter, req)
-		}
+						return
+					}
 
-		return http.HandlerFunc(gzipFn)
+					req.Body = compressReader
+
+					defer compressReader.Close()
+				}
+
+				// передаём управление хендлеру
+				hand.ServeHTTP(defWriter, req)
+			},
+		)
 	}
 
 	return handler

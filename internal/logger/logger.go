@@ -12,8 +12,7 @@ import (
 func Initialize(level string) (*zap.Logger, error) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		return nil, fmt.Errorf("Initialize->ParseAtomicLevel: %w",
-			err)
+		return nil, fmt.Errorf("Initialize->ParseAtomic: %w", err)
 	}
 
 	cfg := zap.NewProductionConfig()
@@ -26,4 +25,11 @@ func Initialize(level string) (*zap.Logger, error) {
 	}
 
 	return zl, nil
+}
+
+func DoInfoLog(
+	msg string,
+	logger *zap.Logger,
+) {
+	logger.Info(msg)
 }

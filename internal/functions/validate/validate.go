@@ -36,9 +36,3 @@ func matchString(pattern string, s string) (bool, error) {
 func IsMethodPost(method string) bool {
 	return method == http.MethodPost
 }
-
-// IsMethodGet - checks that
-// the method meets the get requirements.
-func IsMethodGet(method string) bool {
-	return method == http.MethodGet
-}

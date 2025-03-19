@@ -44,7 +44,7 @@ const defSavePathFile1 string = "/internal/temp/met.json"
 
 var errRuntimeCaller = errors.New("errRuntimeCaller")
 
-var errPath = errors.New("path is not valid")
+var errP = errors.New("path is not valid")
 
 const migrationsDir = "db/migrations"
 
@@ -55,11 +55,11 @@ type testData struct {
 	tn     string
 	mt     string
 	mn     string
-	delta  int64
-	value  float64
-	expcod int
 	exbody string
 	meth   string
+	delta  int64
+	expcod int
+	value  float64
 }
 
 func getTestData() []testData {
@@ -173,8 +173,7 @@ func setHandlerParams(params *bizmodels.InitParams) error {
 	_, path, _, ok := runtime.Caller(0)
 
 	if !ok {
-		return fmt.Errorf("setInitParams->runtime.Caller( %w",
-			errPath)
+		return fmt.Errorf("setHandlerParams->runtimeC: %w", errP)
 	}
 
 	Root := filepath.Join(filepath.Dir(path), "../..")
@@ -194,7 +193,7 @@ func initiate(
 ) error {
 	err := setHandlerParams(params)
 	if err != nil {
-		return fmt.Errorf("initiate->psetHandlerParams %w", err)
+		return fmt.Errorf("initiate->psetHandlerParams: %w", err)
 	}
 
 	storage := &dbrepository.DBepository{}
@@ -215,7 +214,7 @@ func initiate(
 
 	dbConn, err := pgxpool.New(ctx, params.DatabaseDSN)
 	if err != nil {
-		return fmt.Errorf("initStorage->pgxpool.New %w", err)
+		return fmt.Errorf("initStorage->pgxpool.New: %w", err)
 	}
 
 	if isMemRepo {
@@ -258,21 +257,19 @@ func UseMigrations(par *bizmodels.InitParams) error {
 	migrator, err := migrator.MustGetNewMigrator(
 		MigrationsFS, migrationsDir)
 	if err != nil {
-		return fmt.Errorf("useMigrations->MustGetNewMigrator %w",
-			err)
+		return fmt.Errorf("useMigrations->MustGet: %w", err)
 	}
 
 	conn, err := sql.Open("postgres", par.DatabaseDSN)
 	if err != nil {
-		return fmt.Errorf("useMigrations->sql.Open %w", err)
+		return fmt.Errorf("useMigrations->sql.Open: %w", err)
 	}
 
 	defer conn.Close()
 
 	err = migrator.ApplyMigrations(conn)
 	if err != nil {
-		return fmt.Errorf("useMigrations->ApplyMigrations %w",
-			err)
+		return fmt.Errorf("useMigrations->ApplyMig: %w", err)
 	}
 
 	return nil
@@ -360,8 +357,7 @@ func formReqBody(
 	marshall, err := json.Marshal(metr)
 	if err != nil {
 		return nil,
-			fmt.Errorf("formReqBody->Marshal: %w",
-				err)
+			fmt.Errorf("formReqBody->Marshal: %w", err)
 	}
 
 	return bytes.NewReader(marshall), nil

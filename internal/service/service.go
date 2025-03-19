@@ -53,9 +53,7 @@ func (s *DS) GetAllMetricsAPI() (
 
 	metrics, err := s.repository.GetAllMetricsAPI(&ctx)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"GetAllMetricsAPI->GetAllMetricsAPI: %w",
-			err)
+		return nil, fmt.Errorf("GetAllMetricsAPI->API: %w", err)
 	}
 
 	return metrics, nil
@@ -72,8 +70,7 @@ func (s *DS) GetAllGauges() (
 
 	gauges, err := s.repository.GetAllGauges(&ctx)
 	if err != nil {
-		return nil, fmt.Errorf("GetAllGauges->GetAllGauges: %w",
-			err)
+		return nil, fmt.Errorf("GetAllGauges->GetAllG: %w", err)
 	}
 
 	return gauges, nil
@@ -90,8 +87,7 @@ func (s *DS) GetAllCounters() (
 
 	counters, err := s.repository.GetAllCounters(&ctx)
 	if err != nil {
-		return nil, fmt.Errorf("GetAllGauges->GetAllCounters: %w",
-			err)
+		return nil, fmt.Errorf("GetAllGauges->GetAllC: %w", err)
 	}
 
 	return counters, nil
@@ -129,28 +125,25 @@ func (s *DS) SaveInFile(pth string) error {
 
 	defer file.Close()
 
+	// comment - a transaction is needed here
 	counters, err := s.repository.GetAllCounters(&ctx)
 	if err != nil {
-		return fmt.Errorf("SaveInFile->GetAllCounters: %w",
-			err)
+		return fmt.Errorf("SaveInFile->GetAllCounters: %w", err)
 	}
 
 	err = saveCounters(file, counters)
 	if err != nil {
-		return fmt.Errorf("SaveInFile->saveCounters: %w",
-			err)
+		return fmt.Errorf("SaveInFile->saveCounters: %w", err)
 	}
 
 	gauges, err := s.repository.GetAllGauges(&ctx)
 	if err != nil {
-		return fmt.Errorf("SaveInFile->GetAllGauges: %w",
-			err)
+		return fmt.Errorf("SaveInFile->GetAllGauges: %w", err)
 	}
 
 	err = saveGauges(file, gauges)
 	if err != nil {
-		return fmt.Errorf("SaveInFile->saveGauges: %w",
-			err)
+		return fmt.Errorf("SaveInFile->saveGauges: %w", err)
 	}
 
 	return nil
@@ -277,7 +270,7 @@ func (s *DS) AddGauge(mname string, mvalue float64) error {
 
 	err := s.repository.AddGauge(&ctx, &gauge)
 	if err != nil {
-		return fmt.Errorf("AddGauge->AddGauge %w", err)
+		return fmt.Errorf("AddGauge->AddGauge: %w", err)
 	}
 
 	return nil
@@ -298,7 +291,7 @@ func (s *DS) AddCounter(
 
 	res, err := s.repository.AddCounter(&ctx, &counter, isNew)
 	if err != nil {
-		return nil, fmt.Errorf("AddCounter->AddCounter %w", err)
+		return nil, fmt.Errorf("AddCounter->AddCounter: %w", err)
 	}
 
 	return res, nil

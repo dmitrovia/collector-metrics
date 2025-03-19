@@ -15,7 +15,7 @@ import (
 	"github.com/dmitrovia/collector-metrics/internal/service"
 )
 
-var errGetReqDataJSON = errors.New("data is empty")
+var err1 = errors.New("data is empty")
 
 // GetMetricJSONHandler - describing the handler.
 type GetMetricJSONHandler struct {
@@ -75,8 +75,7 @@ func getReqDataJSON(req *http.Request,
 	defer req.Body.Close()
 
 	if len(bodyD) == 0 {
-		return nil, fmt.Errorf("getReqDataJSON: %w",
-			errGetReqDataJSON)
+		return nil, fmt.Errorf("getReqDataJSON: %w", err1)
 	}
 
 	err = json.Unmarshal(bodyD, &result)
@@ -148,7 +147,7 @@ func writeAns(
 	if err != nil {
 		writer.WriteHeader(http.StatusBadRequest)
 
-		return fmt.Errorf("writeAns->Write %w", err)
+		return fmt.Errorf("writeAns->Write: %w", err)
 	}
 
 	return nil
@@ -176,8 +175,7 @@ func getCounterValueToAnswer(
 	metricValue, err := h.serv.GetValueCM(metricID)
 	if err != nil {
 		return nil,
-			fmt.Errorf("setCounterValueToAnswer->GetValueCM %w",
-				err)
+			fmt.Errorf("setCounterValueToAnswer->GetValueCM %w", err)
 	}
 
 	return &metricValue, nil

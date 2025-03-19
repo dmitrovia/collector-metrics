@@ -27,8 +27,7 @@ func MustGetNewMigrator(
 ) (*Migrator, error) {
 	driver, err := iofs.New(sqlFiles, dirName)
 	if err != nil {
-		return nil,
-			fmt.Errorf("MustGetNewMigrator->iofs.New %w", err)
+		return nil, fmt.Errorf("MustGetNewMigr->iofs.N: %w", err)
 	}
 
 	return &Migrator{
@@ -58,7 +57,7 @@ func (m *Migrator) ApplyMigrations(db *sql.DB) error {
 
 	err = migrator.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		return fmt.Errorf("unable to apply migrations %w", err)
+		return fmt.Errorf("unable to apply migrations: %w", err)
 	}
 
 	return nil

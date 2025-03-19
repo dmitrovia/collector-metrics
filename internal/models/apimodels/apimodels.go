@@ -3,10 +3,33 @@
 package apimodels
 
 type Metrics struct {
-	ID    string   `json:"id"`
-	MType string   `json:"type"`
 	Delta *int64   `json:"delta,omitempty"`
 	Value *float64 `json:"value,omitempty"`
+	ID    string   `json:"id"`
+	MType string   `json:"type"`
 }
 
 type ArrMetrics []Metrics
+
+type GprcMetrics struct {
+	Metrics *[]byte `json:"metrics"`
+}
+
+type CfgServer struct {
+	PORT                 string `json:"address"`
+	FileStoragePath      string `json:"storeFile"`
+	DatabaseDSN          string `json:"databaseDsn"`
+	Key                  string `json:"keySha"`
+	CryptoPrivateKeyPath string `json:"cryptoKey"`
+	TrustedSubnet        string `json:"trustedSubnet"`
+	StoreInterval        int    `json:"storeInterval"`
+	Restore              bool   `json:"restore"`
+}
+
+type CfgAgent struct {
+	PORT                string `json:"address"`
+	Key                 string `json:"keySha"`
+	CryptoPublicKeyPath string `json:"cryptoKey"`
+	ReportInterval      int    `json:"reportInterval"`
+	PollInterval        int    `json:"pollInterval"`
+}
